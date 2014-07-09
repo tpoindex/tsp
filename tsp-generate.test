@@ -1,0 +1,134 @@
+package require tcltest
+
+source tsp.tcl
+
+source tsp-lang.test
+
+# parse a command string, return a compUnit dict
+proc __parse {body} {
+    return [parse command $body {0 end}]
+}
+
+proc __initCompUnit {body args} {
+    set compUnit [::tsp::init_compunit filename name procargs $body]
+    foreach {var type} $args {
+        ::tsp::setVarType compUnit $var $type
+    }
+    return $compUnit
+}
+
+
+#############################################################################
+# basic "set" errors
+
+::tcltest::test generate-error-1 {command not text or scalar} -setup {
+} -body {
+    set body {\b}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: ::tsp::gen_command - first word is cmd, backslash, or invalid}}
+
+::tcltest::test generate-error-2 {command not text or scalar} -setup {
+} -body {
+    set body {[a]}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: ::tsp::gen_command - first word is cmd, backslash, or invalid}}
+
+::tcltest::test generate-error-3 {command not text or scalar} -setup {
+} -body {
+    set body {$b(a)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: ::tsp::gen_command - command has nested command argument}}
+
+
+
+#############################################################################
+# gen_command_set: basic "set" command
+
+::tcltest::test generate-gen-set-1 {set without errors} -setup {
+} -body {
+    set body {set a 1}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {}
+
+::tcltest::test generate-gen-set-2 {set with nested commands error} -setup {
+} -body {
+    set body {set a [a [b]]}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 2 command has nested commands, command is array reference, or is unparsable: "a [b]"}}
+
+
+#############################################################################
+# gen_command_*: invoke compiled commands
+#FIXME: need to have one test for each command
+
+::tcltest::test generate-gen-compiled-1 {compiled no errors} -setup {
+} -body {
+    set body {while {1} {}}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {}
+
+#############################################################################
+# gen_direct_tsp_compiled: invoke previously compiled command
+#
+
+::tcltest::test generate-gen-direct-tsp-compiled-1 {invoke tsp compiled} -setup {
+} -body {
+    set dummy [dict create name previous returns int argTypes {int int} compiledReference previous_direct]
+    ::tsp::addCompiledProc dummy 
+    set body {previous 1 1}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {}
+
+
+#############################################################################
+# gen_direct_tcl: invoke tcl builtin command
+#
+
+::tcltest::test generate-gen-direct-tcl-1 {invoke builtin tcl command} -setup {
+} -body {
+    set body {string range abcdef 1 1}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {}
+
+
+#############################################################################
+# gen_invoke_tcl: invoke tcl via interp
+#
+
+::tcltest::test generate-gen-invoke-tcl-1 {invoke tcl command via interp} -setup {
+} -body {
+    set body {other_cmd 1 1}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {}
+
+
+
+
+

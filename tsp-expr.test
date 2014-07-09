@@ -1,0 +1,695 @@
+package require tcltest
+
+
+source tsp.tcl
+source tsp-types.tcl
+source tsp-expr.tcl
+
+# force java platform so that functions are in java format for testing
+set ::tsp::PLATFORM  java
+
+# make a compUnit with vars and their types, default to usable variable
+proc mkVars {args} {
+    set compUnit [::tsp::init_compunit {} {} {} {}]
+    if {[llength $args] == 0} {
+        set args [list t boolean f boolean \
+		i int j int k int x \
+		double y double z double \
+		foo string bar string baz string]
+    }
+    set compUnit [::tsp::init_compunit {} {} {} {}]
+    foreach {var type} $args {
+        ::tsp::setVarType compUnit $var $type
+    }
+    return $compUnit
+}
+
+::tcltest::test expr_basic-1 {basic expression} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 1 + 1 }
+} -result {int {(1 + 1)}}
+
+
+##################################################################
+# unary expressions
+# 
+
+## literals-  #################################################
+::tcltest::test literals-1 {literal int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 1 }
+} -result {int 1}
+
+::tcltest::test literals-2 {literal double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 3.14 }
+} -result {double 3.14}
+
+::tcltest::test literals-3 {literal string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { "foo" }
+} -result {string {"foo"}}
+
+
+## vars-  #################################################
+::tcltest::test vars-1 {vars int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $i }
+} -result {int __i}
+
+::tcltest::test vars-2 {vars double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $x }
+} -result {double __x}
+
+::tcltest::test vars-3 {vars boolean} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $t }
+} -result {boolean __t}
+
+::tcltest::test vars-4 {vars string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $foo }
+} -result {string __foo}
+
+
+## unary-literals-plus-  #################################################
+::tcltest::test unary-literals-plus-1 {unary + with literal int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + 1 }
+} -result {int (1)}
+
+::tcltest::test unary-literals-plus-2 {unary + with literal double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + 3.14 }
+} -result {double (3.14)}
+
+
+## unary-vars-plus-  #################################################
+::tcltest::test unary-vars-plus-1 {unary + with var int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + $i }
+} -result {int (__i)}
+
+::tcltest::test unary-vars-plus-2 {unary + with var double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + $z }
+} -result {double (__z)}
+
+
+## unary-literals-minus-  #################################################
+::tcltest::test unary-literals-minus-1 {unary - with literal int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - 1 }
+} -result {int (-(1))}
+
+::tcltest::test unary-literals-minus-2 {unary - with literal double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - 3.14 }
+} -result {double (-(3.14))}
+
+
+## unary-vars-minus-  #################################################
+::tcltest::test unary-vars-minus-1 {unary - with var int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - $j }
+} -result {int (-(__j))}
+
+::tcltest::test unary-vars-minus-2 {unary - with var double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - $z }
+} -result {double (-(__z))}
+
+
+## unary-literals-plusminus-   #################################################
+::tcltest::test unary-literals-plusminus-1 {unary + with literal negative int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + (-1) }
+} -result {int ((-1))}
+
+::tcltest::test unary-literals-plusminus-2 {unary + with literal negative double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + (-3.14) }
+} -result {double ((-3.14))}
+
+
+## unary-vars-plusminus-   #################################################
+::tcltest::test unary-vars-plusminus-1 {unary + with var negative int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + (-$i) }
+} -result {int (((-(__i))))}
+
+::tcltest::test unary-vars-plusminus-2 {unary + with var negative double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  + (-$x) }
+} -result {double (((-(__x))))}
+
+
+## unary-literals-minusplus-  #################################################
+::tcltest::test unary-literals-minusplus-1 {unary - with var positive int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - (+1) }
+} -result {int (-((+1)))}
+
+::tcltest::test unary-literals-minusplus-2 {unary - with var positive double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - (+3.14) }
+} -result {double (-((+3.14)))}
+
+
+## unary-vars-minusplus-  #################################################
+::tcltest::test unary-vars-minusplus-1 {unary - with var positive int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - (+$i) }
+} -result {int (-(((__i))))}
+
+::tcltest::test unary-vars-minusplus-2 {unary - with var positive double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  - (+$z) }
+} -result {double (-(((__z))))}
+
+
+## unary-literals-bitnot-  #################################################
+::tcltest::test unary-literals-bitnot-1 {unary ~ with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ~ 1}
+} -result {int (~1)}
+
+::tcltest::test unary-literals-bitnot-2 {unary ~ with boolean expr} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ~ (1==1)} 
+} -result {int {(~(((1 == 1)) ? 1 : 0))}}
+
+::tcltest::test unary-literals-bitnot-3 {unary ~ with double error} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit {  ~ 3.14} } result
+    set result
+} -result {invalid type for operator ~: double}
+
+
+## unary-vars-bitnot-  #################################################
+::tcltest::test unary-vars-bitnot-1 {unary ~ with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ~ $i}
+} -result {int (~__i)}
+
+::tcltest::test unary-vars-bitnot-2 {unary ~ with boolean expr} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ~ $f} 
+} -result {int {(~(__f ? 1 : 0))}}
+
+::tcltest::test unary-vars-bitnot-3 {unary ~ with double error} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit {  ~ $x} } result
+    set result
+} -result {invalid type for operator ~: double}
+
+
+## unary-literals-logicalnot-  #################################################
+::tcltest::test unary-literals-logicalnot-1 {unary ! with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ! 1}
+} -result {boolean {(1 == 0 ? 1 : 0)}}
+
+::tcltest::test unary-literals-logicalnot-2 {unary ! with boolean expr} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ! (1==1)} 
+} -result {boolean {(!((1 == 1)))}}
+
+::tcltest::test unary-literals-logicalnot-3 {unary ! with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ! 3.14}
+} -result {boolean {(3.14 == 0 ? 1 : 0)}}
+
+
+## unary-vars-logicalnot-  #################################################
+::tcltest::test unary-vars-logicalnot-1 {unary ! with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ! $i}
+} -result {boolean {(__i == 0 ? 1 : 0)}}
+
+::tcltest::test unary-vars-logicalnot-2 {unary ! with boolean expr} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ! $f} 
+} -result {boolean (!__f)}
+
+::tcltest::test unary-vars-logicalnot-3 {unary ! with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit {  ! $x} 
+} -result {boolean {(__x == 0 ? 1 : 0)}}
+
+
+##################################################################
+# binary expressions
+# 
+
+## binary-boolean-ops-literal-  #################################################
+::tcltest::test binary-boolean-ops-literals-1 {binary operands && || with boolean} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { (1==0) && (1==1)}
+} -result {boolean {((1 == 0) && (1 == 1))}}
+
+::tcltest::test binary-boolean-ops-literals-2 {binary operands && || with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 3 && 1 }
+} -result {boolean {((3 != 0) && (1 != 0))}}
+
+::tcltest::test binary-boolean-ops-literals-3 {binary operands && || with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 3.14 || 1.0 }
+} -result {boolean {((3.14 != 0) || (1.0 != 0))}}
+
+
+## binary-boolean-ops-vars-  #################################################
+::tcltest::test binary-boolean-ops-vars-1 {binary operands && || with boolean} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $t && $f}
+} -result {boolean {(__t && __f)}}
+
+::tcltest::test binary-boolean-ops-vars-2 {binary operands && || with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $i && $j }
+} -result {boolean {((__i != 0) && (__j != 0))}}
+
+::tcltest::test binary-boolean-ops-vars-3 {binary operands && || with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $x || $z }
+} -result {boolean {((__x != 0) || (__z != 0))}}
+
+
+## binary-string-ops-literal-  #################################################
+::tcltest::test binary-string-ops-literals-1 {binary string == != with string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { "foo" == "bar" }
+} -result {boolean {TclFunc.StringEq("foo", "bar")}}
+
+::tcltest::test binary-string-ops-literals-2 {binary string eq ne with string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { "foo" ne "bar" }
+} -result {boolean {TclFunc.StringNe("foo", "bar")}}
+
+::tcltest::test binary-string-ops-literals-3 {binary string eq ne with mixed} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { "foo" ne 4 } } result
+    set result
+} -result {can't mix stringliteral and int with operator: ne}
+
+::tcltest::test binary-string-ops-literals-3 {binary string + with string} -setup { 
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { "foo" + "bar" } } result
+    set result
+} -result {can't apply string types to operator: +}
+
+
+## binary-string-ops-vars-  #################################################
+::tcltest::test binary-string-ops-vars-1 {binary string == != with string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $foo == $bar }
+} -result {boolean {TclFunc.StringEq(__foo, __bar)}}
+
+::tcltest::test binary-string-ops-vars-2 {binary string eq ne with string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $foo ne $bar }
+} -result {boolean {TclFunc.StringNe(__foo, __bar)}}
+
+::tcltest::test binary-string-ops-vars-3 {binary string eq ne with mixed} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { $foo ne 4 } } result
+    set result
+} -result {can't mix string and int with operator: ne}
+
+::tcltest::test binary-string-ops-vars-3 {binary string + with string} -setup { 
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { $foo + $bar } } result
+    set result
+} -result {can't apply string types to operator: +}
+
+
+## binary-integer-ops-literal-  #################################################
+::tcltest::test binary-integer-ops-literals-1 {binary integer ops with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 5 ^ 3 }
+} -result {int {(5 ^ 3)}}
+
+::tcltest::test binary-integer-ops-literals-2 {binary integer ops with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { 5.3 ^ 3 } } result
+    set result
+} -result {invalid type for operator ^: double}
+
+::tcltest::test binary-integer-ops-literals-3 {binary integer ops % with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 5 % 3 }
+} -result {int {TclFunc.IntMod(5, 3)}}
+
+::tcltest::test binary-integer-ops-literals-4 {binary integer ops % with mixed} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { 5.1 % 3 } } result
+    set result
+} -result {invalid type for operator %: double}
+
+
+## binary-integer-ops-vars-  #################################################
+::tcltest::test binary-integer-ops-vars-1 {binary integer ops with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $i ^ $j }
+} -result {int {(__i ^ __j)}}
+
+::tcltest::test binary-integer-ops-vars-2 {binary integer ops with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { $x ^ $y } } result
+    set result
+} -result {invalid type for operator ^: double}
+
+::tcltest::test binary-integer-ops-vars-3 {binary integer ops % with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $i % $j }
+} -result {int {TclFunc.IntMod(__i, __j)}}
+
+::tcltest::test binary-integer-ops-vars-4 {binary integer ops % with mixed} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { $z % $i } } result
+    set result
+} -result {invalid type for operator %: double}
+
+
+## binary-mixed-ops-literal-  #################################################
+::tcltest::test binary-mixed-ops-literals-1 {binary mixed ops with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 5 + 3 }
+} -result {int {(5 + 3)}}
+
+::tcltest::test binary-mixed-ops-literals-2 {binary mixed ops with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 5.3 + 3.9 }
+} -result {double {(5.3 + 3.9)}}
+
+::tcltest::test binary-mixed-ops-literals-3 {binary mixed ops with boolean} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { (1==1) + (1==1) }
+} -result {int {(((1 == 1) ? 1 : 0) + ((1 == 1) ? 1 : 0))}}
+
+::tcltest::test binary-mixed-ops-literals-4 {binary mixed ops with boolean int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { (1==1) + 4 }
+} -result {int {(((1 == 1) ? 1 : 0) + 4)}}
+
+::tcltest::test binary-mixed-ops-literals-5 {binary mixed ops with boolean double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 3.14 * (1==1) }
+} -result {double {(3.14 * ((1 == 1) ? 1 : 0))}}
+
+::tcltest::test binary-mixed-ops-literals-6 {binary mixed ops / with int int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 4 / 2 }
+} -result {int {TclFunc.IntDiv(4, 2)}}
+
+::tcltest::test binary-mixed-ops-literals-6 {binary mixed ops / with int boolean} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 6 / (1==1) }
+} -result {int {TclFunc.IntDiv(6, ((1 == 1) ? 1 : 0))}}
+
+::tcltest::test binary-mixed-ops-literals-7 {binary mixed ops / with int double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 6 / 3.4 }
+} -result {double {TclFunc.DoubleDiv(6, 3.4)}}
+
+::tcltest::test binary-mixed-ops-literals-8 {binary mixed ops / with double double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 6.1 / 3.4 }
+} -result {double {TclFunc.DoubleDiv(6.1, 3.4)}}
+
+
+## binary-mixed-ops-vars-  #################################################
+::tcltest::test binary-mixed-ops-vars-1 {binary mixed ops with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $j + $i }
+} -result {int {(__j + __i)}}
+
+::tcltest::test binary-mixed-ops-vars-2 {binary mixed ops / with int int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $i / $j }
+} -result {int {TclFunc.IntDiv(__i, __j)}}
+
+::tcltest::test binary-mixed-ops-vars-2 {binary mixed ops / with int double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { $i / $z }
+} -result {double {TclFunc.DoubleDiv(__i, __z)}}
+
+
+
+##################################################################
+# ternary expressions
+# 
+
+## ternary-boolean-ops-literal-  #################################################
+::tcltest::test ternary-boolean-ops-literal-1 {ternary ops with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 1==1 ? 50 : 60 }
+} -result {int {((1 == 1) ? 50 : 60)}}
+
+::tcltest::test ternary-boolean-ops-literal-2 {ternary ops with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 1==1 ? 3.14 : 6.1 }
+} -result {double {((1 == 1) ? 3.14 : 6.1)}}
+
+::tcltest::test ternary-boolean-ops-literal-3 {ternary ops with mixed} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 1==1 ? 3 : 6.1 }
+} -result {double {((1 == 1) ? 3 : 6.1)}}
+
+::tcltest::test ternary-boolean-ops-literal-4 {ternary ops with string} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 1==1 ? "foo" : "bar"}
+} -result {string {((1 == 1) ? "foo" : "bar")}}
+
+::tcltest::test ternary-boolean-ops-literal-5 {ternary ops with mixed string} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileExpr compUnit { 1==1 ? 3 : "bar"}} result
+    set result
+} -result {ternary results are mixed: second operand: "(int) 3"  third operand: "(stringliteral) bar"}
+
+::tcltest::test ternary-boolean-ops-literal-6 {ternary ops with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 5 ? 3 : 2}
+} -result {int {((5 != 0) ? 3 : 2)}}
+
+::tcltest::test ternary-boolean-ops-literal-7 {ternary ops with double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { 5.5 ? 3 : 2}
+} -result {int {((5.5 != 0) ? 3 : 2)}}
+
+
+##################################################################
+# function calls
+#
+
+## func-zero-args-  #################################################
+::tcltest::test func-zero-args-1 {function with zero args} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { rand() }
+} -result {double TclFunc.Rand()}
+
+::tcltest::test func-zero-args-2 {function with zero args} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch { ::tsp::compileExpr compUnit { rand(1) } } result
+    set result
+} -result {invalid function: rand with 1 argument(s)}
+
+## func-one-arg-  #################################################
+::tcltest::test func-one-arg-1 {function with one arg srand} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { srand(2.3) }
+} -result {double TclFunc.IntSrand((int)2.3)}
+
+::tcltest::test func-one-arg-2 {function with one arg abs int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { abs(-3) }
+} -result {int TclFunc.IntAbs((-(3)))}
+
+::tcltest::test func-one-arg-3 {function with one arg abs double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { abs(-3.3) }
+} -result {double TclFunc.DoubleAbs((-(3.3)))}
+
+::tcltest::test func-one-arg-4 {function with one args tan} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { tan(2) }
+} -result {double TclFunc.Tan(2)}
+
+::tcltest::test func-one-arg-5 {function with one args int int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { int(2) }
+} -result {int 2}
+
+::tcltest::test func-one-arg-6 {function with one args int double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { int(3.2) }
+} -result {int (long)3.2}
+
+::tcltest::test func-one-arg-8 {function with one args wide int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { wide(3) }
+} -result {int 3}
+
+::tcltest::test func-one-arg-9 {function with one args wide double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { int(3.2) }
+} -result {int (long)3.2}
+
+::tcltest::test func-one-arg-10 {function with one args round int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { round(3) }
+} -result {int 3}
+
+::tcltest::test func-one-arg-11 {function with one args round double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { round(3.2) }
+} -result {int TclFunc.Round(3.2)}
+
+
+## func-two-args-  #################################################
+::tcltest::test func-two-args-1 {function with two args atan2} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { atan2(0.3,3.4 ) }
+} -result {double {TclFunc.Atan2(0.3, 3.4)}}
+
+::tcltest::test func-two-args-2 {function with two args pow int int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { pow(3,4) }
+} -result {double {TclFunc.DoubleIntPow((double)3, 4)}}
+
+::tcltest::test func-two-args-3 {function with two args pow double double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { pow(3.3,4.4) }
+} -result {double {TclFunc.DoublePow(3.3, 4.4)}}
+
+::tcltest::test func-two-args-4 {function with two args pow double int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { pow(3.3,4) }
+} -result {double {TclFunc.DoubleIntPow(3.3, 4)}}
+
+::tcltest::test func-two-args-5 {function with two args pow int double} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileExpr compUnit { pow(3,4.4) }
+} -result {double {TclFunc.DoublePow((double)3, 4.4)}}
+
+
+##################################################################
+# compileBooleanExpr
+#
+
+::tcltest::test compileBoolean-1 {compile as boolean with boolean} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileBooleanExpr compUnit { $t || $f }
+} -result {boolean {(__t || __f)}}
+
+::tcltest::test compileBoolean-2 {compile as boolean with int} -setup {
+    set compUnit [mkVars]
+} -body {
+    ::tsp::compileBooleanExpr compUnit { $i % $j }
+} -result {boolean {TclFunc.IntMod(__i, __j) != 0 ? 1 : 0}}
+
+::tcltest::test compileBoolean-3 {compile as boolean with string} -setup {
+    set compUnit [mkVars]
+} -body {
+    catch {::tsp::compileBooleanExpr compUnit { $t ? "fizz" : "bang" } } result
+    set result
+} -result {string result cannot be coerced into boolean: (__t ? "fizz" : "bang")}
+
+

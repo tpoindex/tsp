@@ -1,0 +1,45 @@
+package require tcltest
+
+source tsp.tcl
+
+# parse a command string, return a compUnit dict
+proc __parse {body} {
+    return [parse command $body {0 end}]
+}
+
+proc __initCompUnit {body args} {
+    set compUnit [::tsp::init_compunit filename name procargs $body]
+    foreach {var type} $args {
+        ::tsp::setVarType compUnit $var $type
+    }
+    return $compUnit
+}
+
+#############################################################################
+# test string interpolation
+
+::tcltest::test generate-set-java-interpolation-1 {generate set java string interpolation} -setup {
+} -body {
+    set body {set a "hello $worldstr"}
+    set compUnit [__initCompUnit $body worldstr string]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+} -result {void {} {
+/***** ::tsp::gen_assign_var_string_interpolated_string */
+{
+    String tmp = "";
+    // ::tsp::lang_assign_string_const
+    tmp = "hello ";
+    __a = __a + tmp;
+    
+    /***** ::tsp::gen_assign_scalar_scalar */
+    // ::tsp::lang_convert_string_string
+    tmp = __worldstr;
+    __a = __a + tmp;
+    tmp = null;
+    
+}
+}}
+
+
+

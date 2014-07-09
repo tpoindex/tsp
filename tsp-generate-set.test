@@ -1,0 +1,257 @@
+package require tcltest
+
+source tsp.tcl
+
+# parse a command string, return a compUnit dict
+proc __parse {body} {
+    return [parse command $body {0 end}]
+}
+
+proc __initCompUnit {body args} {
+    set compUnit [::tsp::init_compunit filename name procargs $body]
+    foreach {var type} $args {
+        ::tsp::setVarType compUnit $var $type
+    }
+    return $compUnit
+}
+
+#############################################################################
+# test typical errors
+
+::tcltest::test generate-set-error-1 {generate set error not enough args} -setup {
+} -body {
+    set body {set a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command must have two args}}
+
+::tcltest::test generate-set-error-2 {generate set error command word as var} -setup {
+} -body {
+    set body {set [a] a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set target is not a scalar or array variable name: "[a]"} {1: set arg 1 unexpected target type: "command"}}
+
+::tcltest::test generate-set-error-3 {generate set error command word as var} -setup {
+} -body {
+    set body {set " $a " a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 1 previously undefined variable not a valid identifer: " "}}
+
+::tcltest::test generate-set-error-4 {generate set error command word as var} -setup {
+} -body {
+    set body {set a a($foo$bar)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 2 interpolated string variable not defined: "foo"}}
+
+::tcltest::test generate-set-error-5 {generate set error complex array} -setup {
+} -body {
+    set body {set a $foo($bar)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 2 variable not defined, referenced as array: "foo"}}
+
+::tcltest::test generate-set-error-6 {generate set error nested command} -setup {
+} -body {
+    set body {set a [a [b]]}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 2 command has nested commands, command is array reference, or is unparsable: "a [b]"}}
+
+::tcltest::test generate-set-error-7 {generate set error nested command in interpolated string} -setup {
+} -body {
+    set body {set a "$foo [b]"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 2 interpolated string has nested command: ""$foo [b]""}}
+
+::tcltest::test generate-set-error-8 {generate set error undefined target is invalid id} -setup {
+} -body {
+    set body {set a-x b}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 1 previously undefined variable not a valid identifer: "a-x"}}
+
+::tcltest::test generate-set-error-9 {generate set error undefined target array is invalid id} -setup {
+} -body {
+    set body {set a-x(x) b}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 1 previously undefined variable not a valid identifer: "a-x(x)"}}
+
+::tcltest::test generate-set-error-10 {generate set error previously defined target referenced as array} -setup {
+} -body {
+    set body {set a(x) b}
+    set compUnit [__initCompUnit $body a int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 1 "a" previously defined as type: "int", now referenced as array}}
+
+::tcltest::test generate-set-error-11 {generate set error previously defined target array index var as array} -setup {
+} -body {
+    set body {set a($x) b}
+    set compUnit [__initCompUnit $body a array x array]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 1 index variable "x" cannot be an defined as "array"}}
+
+::tcltest::test generate-set-error-12 {generate set error previously undefined target array index var} -setup {
+} -body {
+    set body {set a($x) b}
+    set compUnit [__initCompUnit $body a array]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 1 array index undefined identifer: "x"}}
+
+::tcltest::test generate-set-error-13 {generate set error interpolated string must have string or var target type} -setup {
+} -body {
+    set body {set a "$b c"}
+    set compUnit [__initCompUnit $body a int b int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 1 variable must be string or var for interpolated string assignment: "a"}}
+
+::tcltest::test generate-set-error-14 {generate set error interpolated string must have string or var target type} -setup {
+} -body {
+    set body {set a \b}
+    set compUnit [__initCompUnit $body a int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 1 variable must be string, var, or array for backslash assignment: "a"}}
+
+::tcltest::test generate-set-error-15 {generate set error source scalar not defined} -setup {
+} -body {
+    set body {set a $b}
+    set compUnit [__initCompUnit $body a int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 2 variable not defined: "b"}}
+
+::tcltest::test generate-set-error-16 {generate set error source array not defined} -setup {
+} -body {
+    set body {set a $b(x)}
+    set compUnit [__initCompUnit $body a int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 2 variable not defined, referenced as array: "b"}}
+
+::tcltest::test generate-set-error-17 {generate set error source array index not defined} -setup {
+} -body {
+    set body {set a $b($x)}
+    set compUnit [__initCompUnit $body a int b array]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set command arg 2 array index variable not defined: "x"}}
+
+::tcltest::test generate-set-error-18 {generate set error command word not text or scalar} -setup {
+} -body {
+    set body {set a [$bar(x) a b c]}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: set arg 2 command has nested commands, command is array reference, or is unparsable: "$bar(x) a b c"}}
+
+
+#############################################################################
+# test set warnings for implicitly defined variables
+
+::tcltest::test generate-set-warning-1 {generate set warning target defined from interpolated string} -setup {
+} -body {
+    set body {set a "hello $world"}
+    set compUnit [__initCompUnit $body world int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getWarnings compUnit
+} -result {{1: variable "a" implicitly defined as type "string"}}
+
+::tcltest::test generate-set-warning-2 {generate set warning target defined from backslash} -setup {
+} -body {
+    set body {set a \n}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getWarnings compUnit
+} -result {{1: variable "a" implicitly defined as type "string"}}
+
+::tcltest::test generate-set-warning-3 {generate set warning target defined from text string} -setup {
+} -body {
+    set body {set a bar}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getWarnings compUnit
+} -result {{1: variable "a" implicitly defined as type "string"}}
+
+::tcltest::test generate-set-warning-4 {generate set warning target defined from text int} -setup {
+} -body {
+    set body {set a 7}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getWarnings compUnit
+} -result {{1: variable "a" implicitly defined as type "int"}}
+
+::tcltest::test generate-set-warning-5 {generate set warning target defined from text double} -setup {
+} -body {
+    set body {set a 7.7}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getWarnings compUnit
+} -result {{1: variable "a" implicitly defined as type "double"}}
+
+::tcltest::test generate-set-warning-6 {generate set warning target defined from scalar string} -setup {
+} -body {
+    set body {set a $x}
+    set compUnit [__initCompUnit $body x string]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_set compUnit $tree
+    ::tsp::getWarnings compUnit
+} -result {{1: variable "a" implicitly defined as type "string"}}
+
+
+
+
+#############################################################################
+# test java code set generation
+
+#source tsp-java.tcl
+#source tsp-generate-set-java.test
+
+
+#############################################################################
+# test c code set generation
+
+#source tsp-clang.tcl
+#source tsp-generate-set-clang.test
+
+

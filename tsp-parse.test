@@ -1,0 +1,453 @@
+package require tcltest
+
+source tsp.tcl
+
+# parse a command string, return a compUnit dict
+proc __parse {body} {
+    return [parse command $body {0 end}]
+}
+
+proc __initCompUnit {body} {
+    return [::tsp::init_compunit filename name procargs $body]
+}
+
+proc ::tsp::gen_spill_vars {compUnitDict varList} {
+    return "::tsp::gen_spill_vars $varList"
+}
+
+proc ::tsp::gen_reload_vars {compUnitDict varList} {
+    return "::tsp::gen_reload_vars $varList"
+}
+
+proc ::tsp::gen_command {compUnit tree} {
+    return [list void rhs "::tsp::gen_command number of words in command: [llength $tree]"]
+}
+
+proc ::tsp::gen_invoke_proc {compUnit body tree} {
+    return "::tsp::gen_invoke_proc number of words in command: [llength $tree]"
+}
+
+#############################################################################
+# parse_var
+
+::tcltest::test parse_var-1 {parse var bare text error} -setup {
+} -body {
+    set body {a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex $subtree 0]} result
+    set result
+} -result {invalid {not a variable subtree, was simple}}
+
+::tcltest::test parse_var-2 {parse var command error} -setup {
+} -body {
+    set body {[a]}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex $subtree 0]} result
+    set result
+} -result {invalid {not a variable subtree, was word}}
+
+::tcltest::test parse_var-3 {parse var invalid array idx} -setup {
+} -body {
+    set body {$a("")}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex $subtree 0]} result
+    set result
+} -result {invalid {not a variable subtree, was word}}
+
+::tcltest::test parse_var-4 {parse var invalid array idx nested command} -setup {
+} -body {
+    set body {$a([foo])}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {array has complex index}}
+
+::tcltest::test parse_var-5 {parse var invalid array idx string/var} -setup {
+} -body {
+    set body {$a("hello $word")}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {array has complex index}}
+
+::tcltest::test parse_var-6 {parse var invalid array idx $var,$var} -setup {
+} -body {
+    set body {$a($x,$y)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {array has complex index}}
+
+::tcltest::test parse_var-7 {parse var invalid id} -setup {
+} -body {
+    set body {${a.}}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {var a. is not a valid identifier}}
+
+::tcltest::test parse_var-8 {parse var invalid array idx} -setup {
+} -body {
+    set body {$a($1)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {array index variable 1 is not a valid identifier}}
+
+::tcltest::test parse_var-9 {parse var invalid array idx backslashes} -setup {
+} -body {
+    set body {$a(a\ b\ c)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {array has complex index}}
+
+::tcltest::test parse_var-10 {parse var invalid array idx invalid id} -setup {
+} -body {
+    set body {$a($123)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    catch {::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]} result
+    set result
+} -result {invalid {array index variable 123 is not a valid identifier}}
+
+::tcltest::test parse_var-11 {parse var scalar var} -setup {
+} -body {
+    set body {$a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]
+} -result {scalar a}
+
+::tcltest::test parse_var-12 {parse var array var text idx} -setup {
+} -body {
+    set body {$a(b)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]
+} -result {array_idxtext a b}
+
+::tcltest::test parse_var-13 {parse var array var quoted text idx} -setup {
+} -body {
+    set body {$a("b")}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]
+} -result {array_idxtext a {"b"}}
+
+::tcltest::test parse_var-14 {parse var array var braced text idx} -setup {
+} -body {
+    set body {$a({b})}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]
+} -result {array_idxtext a {{b}}}
+
+::tcltest::test parse_var-15 {parse var array var var idx} -setup {
+} -body {
+    set body {$a($b)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_var compUnit [lindex [lindex [lindex $subtree 0] 2] 0]
+} -result {array_idxvar a b}
+
+
+#############################################################################
+# parse_command
+
+::tcltest::test parse_command-1 {parse command text arg} -setup {
+} -body {
+    set body {cmd arg}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {{{text cmd cmd}} {{text arg arg}}}
+
+::tcltest::test parse_command-2 {parse command var arg} -setup {
+} -body {
+    set body {cmd $arg}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {{{text cmd cmd}} {{scalar arg}}}
+
+::tcltest::test parse_command-3 {parse command subcommand arg} -setup {
+} -body {
+    set body {cmd [arg] $b}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {invalid {arg 2 invalid word: {command arg}}}
+
+::tcltest::test parse_command-4 {parse command command variable} -setup {
+} -body {
+    set body {$cmd $arg}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {{{scalar cmd}} {{scalar arg}}}
+
+::tcltest::test parse_command-5 {parse command embedded command}  -setup {
+} -body {
+    set body {cmd arg $arg arg($x) "here is your problem [foo bar]"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {invalid {arg 5 invalid word: {text {here is your problem } {here is your problem }} {command {foo bar}}}}
+
+::tcltest::test parse_command-6 {parse command quoted command}  -setup {
+} -body {
+    set body {"cmd" arg $arg arg($x)"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {{{text {"cmd"} cmd}} {{text arg arg}} {{scalar arg}} {{text arg( arg(} {scalar x} {text )\" )\"}}}
+
+::tcltest::test parse_command-7 {parse command braced command}  -setup {
+} -body {
+    set body {{cmd} arg $arg arg($x)"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_command compUnit $subtree
+} -result {{{text {{cmd}} cmd}} {{text arg arg}} {{scalar arg}} {{text arg( arg(} {scalar x} {text )\" )\"}}}
+
+
+#############################################################################
+# parse_word
+
+::tcltest::test parse_word-1 {parse word bare text} -setup {
+} -body {
+    set body {a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{text a a}}
+
+::tcltest::test parse_word-2 {parse word quoted text} -setup {
+} -body {
+    set body {"a"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{text {"a"} a}}
+
+::tcltest::test parse_word-3 {parse word braced text} -setup {
+} -body {
+    set body {{a}}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{text {{a}} a}}
+
+::tcltest::test parse_word-4 {parse word scalar var} -setup {
+} -body {
+    set body {$a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{scalar a}}
+
+::tcltest::test parse_word-5 {parse word array var text idx} -setup {
+} -body {
+    set body {$a(idx)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{array_idxtext a idx}}
+
+::tcltest::test parse_word-6 {parse word array var var idx} -setup {
+} -body {
+    set body {$a($idx)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{array_idxvar a idx}}
+
+::tcltest::test parse_word-7 {parse word backslash} -setup {
+} -body {
+    set body {"hello\nworld"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{text hello hello} {backslash {\n}} {text world world}}
+
+::tcltest::test parse_word-8 {parse word string/var} -setup {
+} -body {
+    set body {"$hello $world(a)"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {{scalar hello} {text { } { }} {array_idxtext world a}}
+
+::tcltest::test parse_word-9 {parse word nested command} -setup {
+} -body {
+    set body {set a [foo $bar]}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 2]
+} -result {{command {foo $bar}}}
+
+::tcltest::test parse_word-10 {parse var text array idx} -setup {
+} -body {
+    set body {a(b)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {text_array_idxtext a b a(b)}
+
+::tcltest::test parse_word-11 {parse var text array varidx} -setup {
+} -body {
+    set body {a($b)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0]
+} -result {text_array_idxvar a b {a($b)}}
+
+::tcltest::test parse_word-12 {parse var text array idx with no array check} -setup {
+} -body {
+    set body {a(b)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0] 0
+} -result {{text a(b) a(b)}}
+
+::tcltest::test parse_word-13 {parse var text array varidx with no array echeck} -setup {
+} -body {
+    set body {a($b)}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0] 0
+} -result {{text a( a(} {scalar b} {text ) )}}
+
+::tcltest::test parse_word-14 {parse interpolated string} -setup {
+} -body {
+    set body {"this has $a [nested command]"}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x subtree
+    ::tsp::parse_word compUnit [lindex $subtree 0] 
+} -result {{text {this has } {this has }} {scalar a} {text { } { }} {command {nested command}}}
+
+
+
+
+
+
+#############################################################################
+# parse_body
+
+::tcltest::test parse_body-1 {parse body text} -setup {
+} -body {
+    set body {set foo var}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 0: set foo var */
+::tsp::gen_command number of words in command: 3}
+
+::tcltest::test parse_body-2 {parse body command} -setup {
+} -body {
+    set body {set foo [cmd]}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 0: set foo [cmd] */
+::tsp::gen_command number of words in command: 3}
+
+::tcltest::test parse_body-3 {parse body} -setup {
+} -body {
+    set body {set foo $var}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 0: set foo $var */
+::tsp::gen_command number of words in command: 3}
+
+::tcltest::test parse_body-4 {parse body variable command} -setup {
+} -body {
+    set body {$set $foo $var}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 0: $set $foo $var */
+::tsp::gen_command number of words in command: 3}
+
+::tcltest::test parse_body-5 {parse body command command} -setup {
+} -body {
+    set body {[set foo] $var}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+    ::tsp::getErrors compUnit   
+} -result {{0: command is not a simple word or scalar: [set foo]}}
+
+::tcltest::test parse_body-6 {parse body command arg} -setup {
+} -body {
+    set body {set foo [cmd]}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 0: set foo [cmd] */
+::tsp::gen_command number of words in command: 3}
+
+::tcltest::test parse_body-7 {parse body command array } -setup {
+} -body {
+    set body {set foo $var(b)}
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 0: set foo $var(b) */
+::tsp::gen_command number of words in command: 3}
+
+
+::tcltest::test parse_body-8 {parse body pragmas and multiple commands} -setup {
+} -body {
+    set body {
+       #::tsp::vardef int i j k
+       set i 1
+       cmd1 $i 
+       #::tsp::vardef string s t
+       set s hello
+       cmd2 $s 
+       cmd3
+    }
+    set compUnit [__initCompUnit $body]
+    set range {0 end}
+    set endIdx end
+    ::tsp::parse_body compUnit $range
+} -result {
+/******** name 2: set i 1 */
+::tsp::gen_command number of words in command: 3
+/******** name 3: cmd1 $i */
+::tsp::gen_command number of words in command: 2
+/******** name 5: set s hello */
+::tsp::gen_command number of words in command: 3
+/******** name 6: cmd2 $s */
+::tsp::gen_command number of words in command: 2
+/******** name 7: cmd3 */
+::tsp::gen_command number of words in command: 1}
+
+
+
+

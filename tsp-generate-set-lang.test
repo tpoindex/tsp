@@ -1,0 +1,1291 @@
+
+package require tcltest
+
+source tsp.tcl
+
+source tsp-lang.test
+
+# parse a command string, return a compUnit dict
+proc __parse {body} {
+    return [parse command $body {0 end}]
+}
+
+proc __initCompUnit {body args} {
+    set compUnit [::tsp::init_compunit filename name procargs $body]
+    foreach {var type} $args {
+        ::tsp::setVarType compUnit $var $type
+    }
+    return $compUnit
+}
+
+proc __compress {s} {
+    regsub -all  {[[:space:]][[:space:]]+} $s " " s
+    return $s 
+}
+
+
+
+############################################################
+# assign scalar from interpolated string
+
+
+::tcltest::test generate-set-interpolated-string-boolean-1] {generate set interp string target string source boolean} -setup {
+} -body { 
+    set body {set s "hello \n $bb"}
+    set compUnit [__initCompUnit $body s string bb boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-string-int-2] {generate set interp string target string source int} -setup {
+} -body { 
+    set body {set s "hello \n $ii"}
+    set compUnit [__initCompUnit $body s string ii int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-string-double-3] {generate set interp string target string source double} -setup {
+} -body { 
+    set body {set s "hello \n $dd"}
+    set compUnit [__initCompUnit $body s string dd double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-string-string-4] {generate set interp string target string source string} -setup {
+} -body { 
+    set body {set s "hello \n $ss"}
+    set compUnit [__initCompUnit $body s string ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-string-var-5] {generate set interp string target string source var} -setup {
+} -body { 
+    set body {set s "hello \n $vv"}
+    set compUnit [__initCompUnit $body s string vv var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-var-boolean-6] {generate set interp string target var source boolean} -setup {
+} -body { 
+    set body {set v "hello \n $bb"}
+    set compUnit [__initCompUnit $body v var bb boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-var-int-7] {generate set interp string target var source int} -setup {
+} -body { 
+    set body {set v "hello \n $ii"}
+    set compUnit [__initCompUnit $body v var ii int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-var-double-8] {generate set interp string target var source double} -setup {
+} -body { 
+    set body {set v "hello \n $dd"}
+    set compUnit [__initCompUnit $body v var dd double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-var-string-9] {generate set interp string target var source string} -setup {
+} -body { 
+    set body {set v "hello \n $ss"}
+    set compUnit [__initCompUnit $body v var ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-var-var-10] {generate set interp string target var source var} -setup {
+} -body { 
+    set body {set v "hello \n $vv"}
+    set compUnit [__initCompUnit $body v var vv var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree]
+    expr {[lindex $result 2] ne ""} 
+} -result {1}
+
+
+
+
+############################################################
+# assign array idxtext from interpolated string
+
+
+::tcltest::test generate-set-interpolated-array-idxtext-boolean-1] {generate set interp string array idxtext source boolean} -setup {
+} -body { 
+    set body {set xx(yy) "hello \n $vv"}
+    set compUnit [__initCompUnit $body bb boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxtext-int-2] {generate set interp string array idxtext source int} -setup {
+} -body { 
+    set body {set xx(yy) "hello \n $vv"}
+    set compUnit [__initCompUnit $body ii int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxtext-double-3] {generate set interp string array idxtext source double} -setup {
+} -body { 
+    set body {set xx(yy) "hello \n $vv"}
+    set compUnit [__initCompUnit $body dd double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxtext-string-4] {generate set interp string array idxtext source string} -setup {
+} -body { 
+    set body {set xx(yy) "hello \n $vv"}
+    set compUnit [__initCompUnit $body ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxtext-var-5] {generate set interp string array idxtext source var} -setup {
+} -body { 
+    set body {set xx(yy) "hello \n $vv"}
+    set compUnit [__initCompUnit $body vv var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign array idxvar from interpolated string
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-boolean-boolean-1] {generate set interp string array idxvar target idxtype boolean source boolean} -setup {
+} -body { 
+    set body {set xx($bb) "hello \n $bb2"}
+    set compUnit [__initCompUnit $body bb boolean bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-boolean-int-2] {generate set interp string array idxvar target idxtype boolean source int} -setup {
+} -body { 
+    set body {set xx($bb) "hello \n $ii2"}
+    set compUnit [__initCompUnit $body bb boolean ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-boolean-double-3] {generate set interp string array idxvar target idxtype boolean source double} -setup {
+} -body { 
+    set body {set xx($bb) "hello \n $dd2"}
+    set compUnit [__initCompUnit $body bb boolean dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-boolean-string-4] {generate set interp string array idxvar target idxtype boolean source string} -setup {
+} -body { 
+    set body {set xx($bb) "hello \n $ss2"}
+    set compUnit [__initCompUnit $body bb boolean ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-boolean-var-5] {generate set interp string array idxvar target idxtype boolean source var} -setup {
+} -body { 
+    set body {set xx($bb) "hello \n $vv2"}
+    set compUnit [__initCompUnit $body bb boolean vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-int-boolean-6] {generate set interp string array idxvar target idxtype int source boolean} -setup {
+} -body { 
+    set body {set xx($ii) "hello \n $bb2"}
+    set compUnit [__initCompUnit $body ii int bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-int-int-7] {generate set interp string array idxvar target idxtype int source int} -setup {
+} -body { 
+    set body {set xx($ii) "hello \n $ii2"}
+    set compUnit [__initCompUnit $body ii int ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-int-double-8] {generate set interp string array idxvar target idxtype int source double} -setup {
+} -body { 
+    set body {set xx($ii) "hello \n $dd2"}
+    set compUnit [__initCompUnit $body ii int dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-int-string-9] {generate set interp string array idxvar target idxtype int source string} -setup {
+} -body { 
+    set body {set xx($ii) "hello \n $ss2"}
+    set compUnit [__initCompUnit $body ii int ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-int-var-10] {generate set interp string array idxvar target idxtype int source var} -setup {
+} -body { 
+    set body {set xx($ii) "hello \n $vv2"}
+    set compUnit [__initCompUnit $body ii int vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-double-boolean-11] {generate set interp string array idxvar target idxtype double source boolean} -setup {
+} -body { 
+    set body {set xx($dd) "hello \n $bb2"}
+    set compUnit [__initCompUnit $body dd double bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-double-int-12] {generate set interp string array idxvar target idxtype double source int} -setup {
+} -body { 
+    set body {set xx($dd) "hello \n $ii2"}
+    set compUnit [__initCompUnit $body dd double ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-double-double-13] {generate set interp string array idxvar target idxtype double source double} -setup {
+} -body { 
+    set body {set xx($dd) "hello \n $dd2"}
+    set compUnit [__initCompUnit $body dd double dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-double-string-14] {generate set interp string array idxvar target idxtype double source string} -setup {
+} -body { 
+    set body {set xx($dd) "hello \n $ss2"}
+    set compUnit [__initCompUnit $body dd double ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-double-var-15] {generate set interp string array idxvar target idxtype double source var} -setup {
+} -body { 
+    set body {set xx($dd) "hello \n $vv2"}
+    set compUnit [__initCompUnit $body dd double vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-string-boolean-16] {generate set interp string array idxvar target idxtype string source boolean} -setup {
+} -body { 
+    set body {set xx($ss) "hello \n $bb2"}
+    set compUnit [__initCompUnit $body ss string bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-string-int-17] {generate set interp string array idxvar target idxtype string source int} -setup {
+} -body { 
+    set body {set xx($ss) "hello \n $ii2"}
+    set compUnit [__initCompUnit $body ss string ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-string-double-18] {generate set interp string array idxvar target idxtype string source double} -setup {
+} -body { 
+    set body {set xx($ss) "hello \n $dd2"}
+    set compUnit [__initCompUnit $body ss string dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-string-string-19] {generate set interp string array idxvar target idxtype string source string} -setup {
+} -body { 
+    set body {set xx($ss) "hello \n $ss2"}
+    set compUnit [__initCompUnit $body ss string ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-string-var-20] {generate set interp string array idxvar target idxtype string source var} -setup {
+} -body { 
+    set body {set xx($ss) "hello \n $vv2"}
+    set compUnit [__initCompUnit $body ss string vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-var-boolean-21] {generate set interp string array idxvar target idxtype var source boolean} -setup {
+} -body { 
+    set body {set xx($vv) "hello \n $bb2"}
+    set compUnit [__initCompUnit $body vv var bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-var-int-22] {generate set interp string array idxvar target idxtype var source int} -setup {
+} -body { 
+    set body {set xx($vv) "hello \n $ii2"}
+    set compUnit [__initCompUnit $body vv var ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-var-double-23] {generate set interp string array idxvar target idxtype var source double} -setup {
+} -body { 
+    set body {set xx($vv) "hello \n $dd2"}
+    set compUnit [__initCompUnit $body vv var dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-var-string-24] {generate set interp string array idxvar target idxtype var source string} -setup {
+} -body { 
+    set body {set xx($vv) "hello \n $ss2"}
+    set compUnit [__initCompUnit $body vv var ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-interpolated-array-idxvar-var-var-25] {generate set interp string array idxvar target idxtype var source var} -setup {
+} -body { 
+    set body {set xx($vv) "hello \n $vv2"}
+    set compUnit [__initCompUnit $body vv var vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign string from backslash
+
+
+::tcltest::test generate-set-scalar-backslash-string-1] {generate set scalar backslash string} -setup {
+} -body { 
+    set body {set ss \n}
+    set compUnit [__initCompUnit $body ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-backslash-var-2] {generate set scalar backslash var} -setup {
+} -body { 
+    set body {set vv \n}
+    set compUnit [__initCompUnit $body vv var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign array idxtext from backslash
+
+
+::tcltest::test generate-set-array-idxtext-backslash-var-1] {generate set array idxtest backslash var} -setup {
+} -body { 
+    set body {set xx(xx) \n}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign array idxvar from backslash
+
+
+::tcltest::test generate-set-array-idxtext-backslash-var-1] {generate set array idxtest backslash var} -setup {
+} -body { 
+    set body {set xx($ss) \n}
+    set compUnit [__initCompUnit $body ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign scalar from implicitly typed text
+
+
+::tcltest::test generate-set-implicitly-typed-target-1] {generate set implicitly typed target string} -setup {
+} -body { 
+    set body {set xx string}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-implicitly-typed-target-2] {generate set implicitly typed target 1} -setup {
+} -body { 
+    set body {set xx 1}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-implicitly-typed-target-3] {generate set implicitly typed target 3.14} -setup {
+} -body { 
+    set body {set xx 3.14}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-implicitly-typed-target-4] {generate set implicitly typed target "string"} -setup {
+} -body { 
+    set body {set xx "string"}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-implicitly-typed-target-5] {generate set implicitly typed target "1.0"} -setup {
+} -body { 
+    set body {set xx "1.0"}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-implicitly-typed-target-6] {generate set implicitly typed target "3.14"} -setup {
+} -body { 
+    set body {set xx "3.14"}
+    set compUnit [__initCompUnit $body ] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign scalar from scalar
+
+
+::tcltest::test generate-set-scalar-scalar-boolean-boolean-1] {generate set scalar boolean boolean} -setup {
+} -body { 
+    set body {set bb $bb2}
+    set compUnit [__initCompUnit $body bb boolean bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-boolean-int-2] {generate set scalar boolean int} -setup {
+} -body { 
+    set body {set bb $ii2}
+    set compUnit [__initCompUnit $body bb boolean ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-boolean-double-3] {generate set scalar boolean double} -setup {
+} -body { 
+    set body {set bb $dd2}
+    set compUnit [__initCompUnit $body bb boolean dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-boolean-string-4] {generate set scalar boolean string} -setup {
+} -body { 
+    set body {set bb $ss2}
+    set compUnit [__initCompUnit $body bb boolean ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-boolean-var-5] {generate set scalar boolean var} -setup {
+} -body { 
+    set body {set bb $vv2}
+    set compUnit [__initCompUnit $body bb boolean vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-int-boolean-6] {generate set scalar int boolean} -setup {
+} -body { 
+    set body {set ii $bb2}
+    set compUnit [__initCompUnit $body ii int bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-int-int-7] {generate set scalar int int} -setup {
+} -body { 
+    set body {set ii $ii2}
+    set compUnit [__initCompUnit $body ii int ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-int-double-8] {generate set scalar int double} -setup {
+} -body { 
+    set body {set ii $dd2}
+    set compUnit [__initCompUnit $body ii int dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-int-string-9] {generate set scalar int string} -setup {
+} -body { 
+    set body {set ii $ss2}
+    set compUnit [__initCompUnit $body ii int ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-int-var-10] {generate set scalar int var} -setup {
+} -body { 
+    set body {set ii $vv2}
+    set compUnit [__initCompUnit $body ii int vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-double-boolean-11] {generate set scalar double boolean} -setup {
+} -body { 
+    set body {set dd $bb2}
+    set compUnit [__initCompUnit $body dd double bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-double-int-12] {generate set scalar double int} -setup {
+} -body { 
+    set body {set dd $ii2}
+    set compUnit [__initCompUnit $body dd double ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-double-double-13] {generate set scalar double double} -setup {
+} -body { 
+    set body {set dd $dd2}
+    set compUnit [__initCompUnit $body dd double dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-double-string-14] {generate set scalar double string} -setup {
+} -body { 
+    set body {set dd $ss2}
+    set compUnit [__initCompUnit $body dd double ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-double-var-15] {generate set scalar double var} -setup {
+} -body { 
+    set body {set dd $vv2}
+    set compUnit [__initCompUnit $body dd double vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-string-boolean-16] {generate set scalar string boolean} -setup {
+} -body { 
+    set body {set ss $bb2}
+    set compUnit [__initCompUnit $body ss string bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-string-int-17] {generate set scalar string int} -setup {
+} -body { 
+    set body {set ss $ii2}
+    set compUnit [__initCompUnit $body ss string ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-string-double-18] {generate set scalar string double} -setup {
+} -body { 
+    set body {set ss $dd2}
+    set compUnit [__initCompUnit $body ss string dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-string-string-19] {generate set scalar string string} -setup {
+} -body { 
+    set body {set ss $ss2}
+    set compUnit [__initCompUnit $body ss string ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-string-var-20] {generate set scalar string var} -setup {
+} -body { 
+    set body {set ss $vv2}
+    set compUnit [__initCompUnit $body ss string vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-var-boolean-21] {generate set scalar var boolean} -setup {
+} -body { 
+    set body {set vv $bb2}
+    set compUnit [__initCompUnit $body vv var bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-var-int-22] {generate set scalar var int} -setup {
+} -body { 
+    set body {set vv $ii2}
+    set compUnit [__initCompUnit $body vv var ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-var-double-23] {generate set scalar var double} -setup {
+} -body { 
+    set body {set vv $dd2}
+    set compUnit [__initCompUnit $body vv var dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-var-string-24] {generate set scalar var string} -setup {
+} -body { 
+    set body {set vv $ss2}
+    set compUnit [__initCompUnit $body vv var ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-scalar-scalar-var-var-25] {generate set scalar var var} -setup {
+} -body { 
+    set body {set vv $vv2}
+    set compUnit [__initCompUnit $body vv var vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign scalar from scalar avoid self assignment
+
+
+::tcltest::test generate-set-scalar-self-boolean-1] {generate set scalar self assignment boolean} -setup {
+} -body { 
+    set body {set bb $bb}
+    set compUnit [__initCompUnit $body bb boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {0}
+
+
+
+::tcltest::test generate-set-scalar-self-int-2] {generate set scalar self assignment int} -setup {
+} -body { 
+    set body {set ii $ii}
+    set compUnit [__initCompUnit $body ii int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {0}
+
+
+
+::tcltest::test generate-set-scalar-self-double-3] {generate set scalar self assignment double} -setup {
+} -body { 
+    set body {set dd $dd}
+    set compUnit [__initCompUnit $body dd double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {0}
+
+
+
+::tcltest::test generate-set-scalar-self-string-4] {generate set scalar self assignment string} -setup {
+} -body { 
+    set body {set ss $ss}
+    set compUnit [__initCompUnit $body ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {0}
+
+
+
+::tcltest::test generate-set-scalar-self-var-5] {generate set scalar self assignment var} -setup {
+} -body { 
+    set body {set vv $vv}
+    set compUnit [__initCompUnit $body vv var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {0}
+
+
+
+
+############################################################
+# assign array idxtext from scalar
+
+
+::tcltest::test generate-set-array-idxtext-scalar-boolean-1] {generate set array idxtext scalar boolean} -setup {
+} -body { 
+    set body {set xx(xx) $bb}
+    set compUnit [__initCompUnit $body bb boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxtext-scalar-int-2] {generate set array idxtext scalar int} -setup {
+} -body { 
+    set body {set xx(xx) $ii}
+    set compUnit [__initCompUnit $body ii int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxtext-scalar-double-3] {generate set array idxtext scalar double} -setup {
+} -body { 
+    set body {set xx(xx) $dd}
+    set compUnit [__initCompUnit $body dd double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxtext-scalar-string-4] {generate set array idxtext scalar string} -setup {
+} -body { 
+    set body {set xx(xx) $ss}
+    set compUnit [__initCompUnit $body ss string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxtext-scalar-var-5] {generate set array idxtext scalar var} -setup {
+} -body { 
+    set body {set xx(xx) $vv}
+    set compUnit [__initCompUnit $body vv var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+
+############################################################
+# assign array idxvar from scalar
+
+
+::tcltest::test generate-set-array-idxvar-scalar-boolean-boolean-1] {generate set array idxvar scalar boolean boolean} -setup {
+} -body { 
+    set body {set xx($bb) $bb2}
+    set compUnit [__initCompUnit $body bb boolean bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-boolean-int-2] {generate set array idxvar scalar boolean int} -setup {
+} -body { 
+    set body {set xx($bb) $ii2}
+    set compUnit [__initCompUnit $body bb boolean ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-boolean-double-3] {generate set array idxvar scalar boolean double} -setup {
+} -body { 
+    set body {set xx($bb) $dd2}
+    set compUnit [__initCompUnit $body bb boolean dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-boolean-string-4] {generate set array idxvar scalar boolean string} -setup {
+} -body { 
+    set body {set xx($bb) $ss2}
+    set compUnit [__initCompUnit $body bb boolean ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-boolean-var-5] {generate set array idxvar scalar boolean var} -setup {
+} -body { 
+    set body {set xx($bb) $vv2}
+    set compUnit [__initCompUnit $body bb boolean vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-int-boolean-6] {generate set array idxvar scalar int boolean} -setup {
+} -body { 
+    set body {set xx($ii) $bb2}
+    set compUnit [__initCompUnit $body ii int bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-int-int-7] {generate set array idxvar scalar int int} -setup {
+} -body { 
+    set body {set xx($ii) $ii2}
+    set compUnit [__initCompUnit $body ii int ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-int-double-8] {generate set array idxvar scalar int double} -setup {
+} -body { 
+    set body {set xx($ii) $dd2}
+    set compUnit [__initCompUnit $body ii int dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-int-string-9] {generate set array idxvar scalar int string} -setup {
+} -body { 
+    set body {set xx($ii) $ss2}
+    set compUnit [__initCompUnit $body ii int ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-int-var-10] {generate set array idxvar scalar int var} -setup {
+} -body { 
+    set body {set xx($ii) $vv2}
+    set compUnit [__initCompUnit $body ii int vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-double-boolean-11] {generate set array idxvar scalar double boolean} -setup {
+} -body { 
+    set body {set xx($dd) $bb2}
+    set compUnit [__initCompUnit $body dd double bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-double-int-12] {generate set array idxvar scalar double int} -setup {
+} -body { 
+    set body {set xx($dd) $ii2}
+    set compUnit [__initCompUnit $body dd double ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-double-double-13] {generate set array idxvar scalar double double} -setup {
+} -body { 
+    set body {set xx($dd) $dd2}
+    set compUnit [__initCompUnit $body dd double dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-double-string-14] {generate set array idxvar scalar double string} -setup {
+} -body { 
+    set body {set xx($dd) $ss2}
+    set compUnit [__initCompUnit $body dd double ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-double-var-15] {generate set array idxvar scalar double var} -setup {
+} -body { 
+    set body {set xx($dd) $vv2}
+    set compUnit [__initCompUnit $body dd double vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-string-boolean-16] {generate set array idxvar scalar string boolean} -setup {
+} -body { 
+    set body {set xx($ss) $bb2}
+    set compUnit [__initCompUnit $body ss string bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-string-int-17] {generate set array idxvar scalar string int} -setup {
+} -body { 
+    set body {set xx($ss) $ii2}
+    set compUnit [__initCompUnit $body ss string ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-string-double-18] {generate set array idxvar scalar string double} -setup {
+} -body { 
+    set body {set xx($ss) $dd2}
+    set compUnit [__initCompUnit $body ss string dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-string-string-19] {generate set array idxvar scalar string string} -setup {
+} -body { 
+    set body {set xx($ss) $ss2}
+    set compUnit [__initCompUnit $body ss string ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-string-var-20] {generate set array idxvar scalar string var} -setup {
+} -body { 
+    set body {set xx($ss) $vv2}
+    set compUnit [__initCompUnit $body ss string vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-var-boolean-21] {generate set array idxvar scalar var boolean} -setup {
+} -body { 
+    set body {set xx($vv) $bb2}
+    set compUnit [__initCompUnit $body vv var bb2 boolean] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-var-int-22] {generate set array idxvar scalar var int} -setup {
+} -body { 
+    set body {set xx($vv) $ii2}
+    set compUnit [__initCompUnit $body vv var ii2 int] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-var-double-23] {generate set array idxvar scalar var double} -setup {
+} -body { 
+    set body {set xx($vv) $dd2}
+    set compUnit [__initCompUnit $body vv var dd2 double] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-var-string-24] {generate set array idxvar scalar var string} -setup {
+} -body { 
+    set body {set xx($vv) $ss2}
+    set compUnit [__initCompUnit $body vv var ss2 string] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
+::tcltest::test generate-set-array-idxvar-scalar-var-var-25] {generate set array idxvar scalar var var} -setup {
+} -body { 
+    set body {set xx($vv) $vv2}
+    set compUnit [__initCompUnit $body vv var vv2 var] 
+    lassign [parse command $body {0 end}] x x x tree 
+    set result [::tsp::gen_command_set compUnit $tree ]
+    expr {[lindex $result 2] ne ""}
+} -result {1}
+
+
+
