@@ -19,6 +19,14 @@ proc ::tsp::indent {compUnitDict str {n -1} {prefix ""}} {
     return $prefix$spaces$str
 }
 
+#########################################################
+# incr indentation level
+#
+proc ::tsp::incrIndent {compUnitDict {n 1}} {
+    upvar $compUnitDict compUnit
+    dict incr compUnit depth $n
+}
+
 
 
 #########################################################

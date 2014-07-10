@@ -22,6 +22,7 @@ source tsp-types.tcl
 source tsp-generate.tcl
 source tsp-generate-set.tcl
 source tsp-generate-expr.tcl
+source tsp-generate-while.tcl
 
 if {$::tcl_platform(platform) eq "java"} {
     source tsp-java.tcl

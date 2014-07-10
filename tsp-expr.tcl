@@ -645,7 +645,7 @@ proc ::tsp::compileBooleanExpr {compUnitDict expr} {
     } elseif {$type eq "boolean"} {
         return [list $type $result]
     } else {
-	return [list boolean "$result != 0 ? 1 : 0"]
+	return [list boolean "$result != 0 ? $::tsp::VALUE_TRUE : $::tsp::VALUE_FALSE"]
     }
 }
 
