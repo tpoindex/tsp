@@ -1,0 +1,59 @@
+package require tcltest
+
+source tsp.tcl
+
+# parse a command string, return a compUnit dict
+proc __parse {body} {
+    return [parse command $body {0 end}]
+}
+
+proc __initCompUnit {body args} {
+    set compUnit [::tsp::init_compunit filename name procargs $body]
+    foreach {var type} $args {
+        ::tsp::setVarType compUnit $var $type
+    }
+    return $compUnit
+}
+
+#############################################################################
+# test typical errors
+
+::tcltest::test generate-expr-error-1 {generate expr error not enough args} -setup {
+} -body {
+    set body {expr}
+    set compUnit [__initCompUnit $body a int b int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_expr compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: expr command must have one argument}}
+
+::tcltest::test generate-expr-error-2 {generate expr error too many args} -setup {
+} -body {
+    set body {expr foo bar}
+    set compUnit [__initCompUnit $body a int b int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_expr compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: expr command has more that one argument}}
+
+::tcltest::test generate-expr-error-3 {generate expr error unbraced argument} -setup {
+} -body {
+    set body {expr a}
+    set compUnit [__initCompUnit $body]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_expr compUnit $tree
+    ::tsp::getErrors compUnit
+} -result {{1: expr argument not a braced expression}}
+
+
+#############################################################################
+# success
+
+::tcltest::test generate-expr-1 {generate expr code} -setup {
+} -body {
+    set body {expr {$a +1}}
+    set compUnit [__initCompUnit $body a int b int]
+    lassign [parse command $body {0 end}] x x x tree
+    ::tsp::gen_command_expr compUnit $tree
+} -result {int ____tmpVar__int_1 {____tmpVar__int_1 = (__a + 1) ;}}
+

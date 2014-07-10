@@ -368,7 +368,7 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
 		}
                 append result [::tsp::indent compUnit $code 1]
                 append result "\n}\n"
-                result [list void "" $result]
+                return [list void "" $result]
 
             } else {
                 set errors 1

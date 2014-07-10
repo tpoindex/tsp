@@ -2,7 +2,7 @@ source tsp.tcl
 set body {
 #::tsp::procdef returns: int args: int string
 #::tsp::vardef int sum 
-set sum $i
+set sum [expr {$i +1}]
 puts "$s $sum"
 }
 set compUnit [::tsp::init_compunit FILE NAME {i s} $body]
