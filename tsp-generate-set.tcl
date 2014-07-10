@@ -320,11 +320,16 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
         } elseif {$sourceWordType eq "command"} {
             # assignment from command execution
             set sourceCmd [lindex $sourceComponent 1]
-            set dummyUnit [::tsp::init_compunit dummy dummy dummy $sourceCmd]
-            set rc [catch {lassign [parse command $sourceCmd {0 end}] cmdComments cmdRange cmdRest cmdTree}]            
+            set sourceRange [lindex [lindex $tree 2] 1]
+            # removing enclosing [ ] characters
+            lassign $sourceRange start end
+            incr start 1
+            incr end -2
+            set sourceRange [list $start $end]
+            set rc [catch {lassign [parse command [dict get $compUnit body] $sourceRange] cmdComments cmdRange cmdRest cmdTree}]            
             if {$rc == 0} {
                 set firstNode [lindex $cmdTree 0]
-                set firstWordList [::tsp::parse_word dummyUnit $firstNode]
+                set firstWordList [::tsp::parse_word compUnit $firstNode]
                 lassign $firstNode firstNodeType firstNodeRange firstNodeSubtree
                 set word [parse getstring $sourceCmd $firstNodeRange]
                 if {[llength $firstWordList] == 1} {
