@@ -8,13 +8,8 @@
 proc ::tsp::gen_command_expr {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
-    if {[llength $tree] == 1} {
-        ::tsp::addError compUnit "expr command must have one argument"
-        return [list void "" ""]
-    }
-
     if {[llength $tree] != 2} {
-        ::tsp::addError compUnit "expr command has more that one argument"
+        ::tsp::addError compUnit "wrong # args: should be \"expr arg\""
         return [list void "" ""]
     }
 

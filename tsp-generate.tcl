@@ -361,10 +361,6 @@ proc ::tsp::gen_runtime_error {compUnitDict msg} {
 
 proc ::tsp::gen_command_if {compUnitDict tree} {
 }
-proc ::tsp::gen_command_while {compUnitDict tree} {
-}
-proc ::tsp::gen_command_for {compUnitDict tree} {
-}
 proc ::tsp::gen_command_foreach {compUnitDict tree} {
 }
 proc ::tsp::gen_command_break {compUnitDict tree} {

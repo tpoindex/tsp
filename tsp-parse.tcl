@@ -106,8 +106,12 @@ proc ::tsp::source_comments {compUnitDict range} {
     set text [parse getstring [dict get $compUnit body] $range]
     set name [dict get $compUnit name]
     set line [dict get $compUnit lineNum]
-    regsub -all "\n|\r|\t"  $text " " text
-    regsub -all \\*/     $text "* /" text
+    regsub -all {\n|\r|\t} $text " " text
+    regsub -all {\*/}      $text "//" text
+    set text [string trim $text]
+    if {[string length $text] > 40} {
+        set text [string trim [string range $text 0 38]]....
+    }
     return "\n/******** $name $line: [string trim $text] */\n"
 }
 

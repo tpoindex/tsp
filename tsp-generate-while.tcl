@@ -8,13 +8,8 @@
 proc ::tsp::gen_command_while {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
-    if {[llength $tree] == 1} {
-        ::tsp::addError compUnit "while command must have two arguments"
-        return [list void "" ""]
-    }
-
     if {[llength $tree] != 3} {
-        ::tsp::addError compUnit "while command has more than two argument"
+        ::tsp::addError compUnit "wrong # args: should be \"while test command\""
         return [list void "" ""]
     }
 
@@ -34,13 +29,17 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     lassign $exprTypeCode type exprCode
 
     set bodyRange [lindex [lindex $tree 2] 1]
+    lassign $bodyRange start end
+    incr start
+    incr end -2
+    set bodyRange [list $start $end]
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
 
     append code "while ( " $exprCode " ) {\n"
     ::tsp::incrIndent compUnit
     append code [::tsp::indent compUnit $bodyCode]
     ::tsp::incrIndent compUnit -1
-    append code "}\n"
+    append code "\n}\n"
     return [list void "" $code]
 }
 
