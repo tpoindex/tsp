@@ -33,3 +33,56 @@ proc ::tsp::gen_command_expr {compUnitDict tree} {
 }
 
 
+#########################################################
+# generate code for "incr" command (assumed to be first parse word)
+# return list of: type rhsVarName code
+# FIXME:  support array targets?
+#
+proc ::tsp::gen_command_incr {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] < 2 || [llength $tree] > 3} {
+        ::tsp::addError compUnit "wrong # args: should be \"incr varName ?increment?\""
+        return [list void "" ""]
+    }
+
+    set varComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
+    lassign $varComponent type rawtext varname
+    if {$type ne "text"} {
+        ::tsp::addError compUnit "incr varName argument requires a scalar varName"
+        return [list void "" ""]
+    }
+
+    set vartype [::tsp::getVarType compUnit $varname]
+    if {$vartype ne "int" && $vartype ne "var"} {
+        ::tsp::addError compUnit "incr argument varName must be type \"int\" or \"var\""
+        return [list void "" ""]
+    }
+   
+    set incrAmount 1
+    if {[llength $tree] == 3} {
+        set incrComponent [lindex [::tsp::parse_word compUnit [lindex $tree 2]] 0]
+        lassign $incrComponent type incrvar incrtext
+        if {$type eq "text"} {
+            # make sure text is an integer
+            if {! [::tsp::typeIsInt $incrtext]} {
+                ::tsp::addError compUnit "incr amount argument is not an integer: \"$incrtext\""
+                return [list void "" ""]
+            }
+            set incrAmount $incrtext
+        } elseif {$type eq "scalar"} {
+            set incrtype [::tsp::getVarType compUnit $incrvar]
+            if {$incrtype ne "int" && $incrtype ne "var"} {
+                ::tsp::addError compUnit "incr amount argument varName must be type \"int\" or \"var\""
+                return [list void "" ""]
+            }
+        } else {
+            ::tsp::addError compUnit "incr amount argument must be a integer or a scalar variable"
+            return [list void "" ""]
+        }
+    }
+
+    set rhsVar [::tsp::get_tmpvar compUnit int]
+    set code [::tsp::lang_incr_var $rhsVar $varname $vartype $incrAmount $incrvar $incrtype]
+    return [list int $rhsVar $code]
+}

@@ -654,6 +654,32 @@ proc ::tsp::lang_append_string {targetVarName source} {
     return "$targetVarName = $targetVarName + $source;\n"
 }
 
+
+##############################################
+# increment a varname by an amount or a value
+# targetVarName is assumed to be a native integer
+# result is stored into varname and targetVarName
+# throw runtime error if varname is var but not an integer, or
+# if incrvar is a var but not an integer
+#
+proc ::tsp::lang_incr_var {targetVarName varName varType incrAmount incrVar incrType} {
+    if {$varType eq "int"} {
+        append result "$targetVarName = $varName;\n"
+    } else {
+        append result "$targetVarName
+        ::tsp::lang_convert_int_var $targetVarName $varName "cannot convert \"$varName\" to integer"]
+        #FIXME make sure varName is an integer value
+    }
+    append result "\n"
+    append result "\n"
+    append result "\n"
+    append result "\n"
+    append result "\n"
+    append result "\n"
+    return $result
+}
+
+
 ##############################################
 # allocate a TclObject objv array
 #
