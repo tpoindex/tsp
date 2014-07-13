@@ -1,4 +1,5 @@
-
+# compiled math commands:
+# expr, incr
 
 #########################################################
 # generate code for "expr" command (assumed to be first parse word)
