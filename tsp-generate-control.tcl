@@ -103,6 +103,7 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
         return [list void "" ""]
     }
 
+    # get expr component, make sure it is braced
     set exprComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
     lassign $exprComponent type rawtext exprtext
     if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
@@ -117,6 +118,14 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     }
     
     lassign $exprTypeCode type exprCode
+
+    # get body component make sure it is braced
+    set bodyComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
+    lassign $bodyComponent type rawtext bodytext
+    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+        ::tsp::addError compUnit "body argument not a braced expression"
+        return [list void "" ""]
+    }
 
     set bodyRange [lindex [lindex $tree 2] 1]
     lassign $bodyRange start end
@@ -134,3 +143,33 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
 }
 
 
+
+#########################################################
+# generate code for "if" command (assumed to be first parse word)
+# only braced arguments are generated, anything else generates an error
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_while {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] < 3} {
+        ::tsp::addError compUnit "wrong # args: should be \"if expression script ...\""
+        return [list void "" ""]
+    }
+
+    # make sure all expressions and scripts are braced
+    set i 1
+    for {set i 1] {$i < $argMax} {incr i} {
+        set argComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+    }
+
+    set argMax [llength $tree]
+    set thenSeen 0
+    set elseSeen 0
+    
+    # expect condition script 
+    while {$next < $argMax} {
+        set exprComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
+    }
+
+}
