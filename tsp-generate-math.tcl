@@ -93,8 +93,6 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
         }
     }
 
-    set rhsVar [::tsp::get_tmpvar compUnit int]
-
     # check if either varname or incrvar are temp variables, otherwise prefix user vars with "__"
     if {! [::tsp::is_tmpvar $varname]} {
         set varname __$varname
@@ -106,7 +104,41 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
         }
     }
 
+    # if target is a var, use a temp var for increment and assignment rhsVar
+    if {$vartype eq "var"} {
+        set rhsVar [::tsp::get_tmpvar compUnit int]
+        #set rhsVar [::tsp::get_tmpvar compUnit int $varname]
+        ::tsp::setDirty compUnit $varname 0
+        set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to convert var to int, \"$varname\", value: "]]
+        append code [::tsp::lang_convert_int_var $rhsVar $varname $errMsg]
+    } else {
+        set rhsVar $varname
+    }
 
-    set code [::tsp::lang_incr_var $rhsVar $varname $vartype $incrAmount $incrvar $incrtype]
+    # if incr var is a var, use a temp var for increment 
+    if {$incrvar ne ""} {
+        if {$incrtype eq "var"} {
+            set incrsource [::tsp::get_tmpvar compUnit int]
+            #set incrsource [::tsp::get_tmpvar compUnit int $incrvar]
+            ::tsp::setDirty compUnit $incrvar 0
+            set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to convert var to int, \"$incrvar\", value: "]]
+            append code [::tsp::lang_convert_int_var $incrsource $incrvar $errMsg]
+        } else {
+            set incrsource $incrvar
+        }
+    } else {
+        set incrsource $incrAmount
+    }
+    
+    append code "$rhsVar = $rhsVar + ($incrsource);\n"
+
+    # if target var is a var, update the var with the incr amount
+    if {$vartype eq "var"} {
+        append code [::tsp::lang_assign_var_int $varname $rhsVar]
+    }
+
     return [list int $rhsVar $code]
 }
+
+
+

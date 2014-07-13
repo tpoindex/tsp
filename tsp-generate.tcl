@@ -101,6 +101,7 @@ proc ::tsp::gen_command {compUnitDict tree} {
 
         if {$type eq "text" && [info procs ::tsp::gen_command_$word] eq "::tsp::gen_command_$word"} {
             # command is compilable (if, while, string, lindex, etc.)
+            ::tsp::reset_tmpvarsUsed compUnit
             return [::tsp::gen_command_$word compUnit $tree]
 
         } elseif {$type eq "text" && [dict exists $::tsp::COMPILED_PROCS $word]} {

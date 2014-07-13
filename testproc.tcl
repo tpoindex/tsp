@@ -3,7 +3,7 @@ set body {
     #::tsp::procdef returns: int args: int string
     #::tsp::vardef var sum 
     set sum $i
-    incr i 8
+    incr sum $sum
     #while {$i < 10} {
      #puts "$s $sum"
      #puts hi
