@@ -157,19 +157,136 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    # make sure all expressions and scripts are braced
-    set i 1
-    for {set i 1] {$i < $argMax} {incr i} {
-        set argComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
-    }
 
     set argMax [llength $tree]
     set thenSeen 0
     set elseSeen 0
+
+    append code "if ( \n"
     
-    # expect condition script 
+    set i 1
+    # expect "condition"  "script" 
     while {$next < $argMax} {
-        set exprComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
+
+        # get the condition
+        set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+        lassign $nextComponent type rawtext text
+        if {$type ne "text"} {
+            ::tsp::addError compUnit "unexpected \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            return [list void "" ""]
+        }
+        if {[string range $text 0 0] ne "\{"} {
+            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            return [list void "" ""]
+        }
+        # compile the expression
+        set rc [catch {set exprTypeCode [::tsp::compileBooleanExpr compUnit $text]} result]
+        if {$rc != 0} {
+            ::tsp::addError compUnit "couldn't parse expr: \"$exprtext\", $result"
+            return [list void "" ""]
+        }
+        lassign $exprTypeCode type exprCode
+        append code $exprCode " ) \{\n\n"
+        
+
+        # get the script, passing over optional "then"
+        incr i
+        if {$i == $argMax} {
+            ::tsp::addError compUnit "no script after \"if\" condition"
+            return [list void "" ""]
+        }
+        set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+        lassign $nextComponent type rawtext text
+        if {$type eq "text" && $text eq "then"} {
+            incr i
+            if {$i == $argMax} {
+                ::tsp::addError compUnit "no script after \"if\" then"
+                return [list void "" ""]
+            }
+            set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+            lassign $nextComponent type rawtext text
+        }
+        if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            return [list void "" ""]
+        } 
+        set bodyRange [lindex [lindex $tree $i] 1]
+        lassign $bodyRange start end
+        incr start
+        incr end -2
+        set bodyRange [list $start $end]
+        set bodyCode [::tsp::parse_body compUnit $bodyRange]
+        ::tsp::incrIndent compUnit
+        append code [::tsp::indent compUnit $bodyCode]
+        ::tsp::incrIndent compUnit -1
+        append code "\n\n\}"
+        
+
+        # set up for "elseif", or break on "else" or last arg.
+        incr i
+        if {$i = $argMax} {
+            break
+        }
+        set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+        lassign $nextComponent type rawtext text
+        if {$type eq "text" && $text eq "elseif"} {
+            incr i
+            if {$i >= ($argMax - 2)} {
+                ::tsp::addError compUnit "\"elseif\" missing condition and/or script arguments"
+                return [list void "" ""]
+            }
+            append " else if ( "
+            continue
+        } else {
+            break
+        }
     }
 
+    # process "else" script, if any
+    if {$i < $argMax} {
+        set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+        lassign $nextComponent type rawtext text
+        if {$type eq "text" && $text eq "else"} {
+            incr i
+            if {$i == $argMax} {
+                ::tsp::addError compUnit "no script after \"if\" then"
+                return [list void "" ""]
+            }
+            set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
+            lassign $nextComponent type rawtext text
+        }
+        if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            return [list void "" ""]
+        } 
+        append code " else \{\n\n"
+        set bodyRange [lindex [lindex $tree $i] 1]
+        lassign $bodyRange start end
+        incr start
+        incr end -2
+        set bodyRange [list $start $end]
+        set bodyCode [::tsp::parse_body compUnit $bodyRange]
+        ::tsp::incrIndent compUnit
+        append code [::tsp::indent compUnit $bodyCode]
+        ::tsp::incrIndent compUnit -1
+        append code "\n\n\}\n"
+    } 
+    append code \n
+
+    # should have used up all arguments by now.....
+    if {$i < $argMax} { 
+        ::tsp::addError compUnit "extra arguments after \"else\" argument"
+        return [list void "" ""]
+    }
+
+    return [list void "" $code]
 }
+
+
+
+
+
+
+#foreach
+#switch
+#case
