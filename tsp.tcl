@@ -7,10 +7,11 @@ namespace eval ::tsp {
     variable NATIVE_TYPES [list boolean int double string]
     variable RETURN_TYPES [list void boolean int double string var]
   
-    # compiler log for all procs
-    variable COMPILER_LOG ""
+    # compiler log for all procs, keys are "filename,procname" errors|warnings, entries are list of: errors/warnings
+    # most recent compilation has key of _
+    variable COMPILER_LOG [dict create]
 
-    # dict of compiled procs, entries are [list returns argTypes compiledReference]
+    # dict of compiled procs, entries are list of: returns argTypes compiledReference
     variable COMPILED_PROCS [dict create]
 } 
 
@@ -55,17 +56,17 @@ proc ::tsp::getErrors {compUnitDict} {
 # get all of the logged errors for the compUnit with
 # proc name and filename information
 #
-proc ::tsp::getLogErrors {compUnitDict} {
+proc ::tsp::getLoggedErrors {compUnitDict} {
     upvar $compUnitDict compUnit
     set errors [dict get $compUnit errors]
     if {[llength $errors] == 0} {
         return [list]
     } 
-    set filename [dict get $compUnit filename]
+    set filename [dict get $compUnit file]
     set name [dict get $compUnit name]
     set result [list]
     foreach error $errors {
-        lappend $result "$filename:$name - $error"
+        lappend result "$filename:$name - $error"
     }
     return $result
 }
@@ -93,17 +94,17 @@ proc ::tsp::getWarnings {compUnitDict} {
 # get all of the logged warnings for the compUnit with
 # proc name and filename information
 #
-proc ::tsp::getLogWarnings {compUnitDict} {
+proc ::tsp::getLoggedWarnings {compUnitDict} {
     upvar $compUnitDict compUnit
     set warnings [dict get $compUnit warnings]
     if {[llength $warnings] == 0} {
         return [list]
     } 
-    set filename [dict get $compUnit filename]
+    set filename [dict get $compUnit file]
     set name [dict get $compUnit name]
     set result [list]
     foreach warning $warnings {
-        lappend $result "$filename:$name - $warning"
+        lappend result "$filename:$name - $warning"
     }
     return $result
 }
@@ -139,4 +140,40 @@ proc ::tsp::validProcName {name} {
 }
 
 
+#########################################################
+# log all of the errors and warnings from a compilation
+# last compilation has index of "_"
+#
+proc ::tsp::logErrorsWarnings {compUnitDict} {
+    upvar $compUnitDict compUnit
+    set errors [::tsp::getLoggedErrors compUnit]
+    set warnings [::tsp::getLoggedWarnings compUnit]
+    set filename [dict get $compUnit file]
+    set name [dict get $compUnit name]
+    dict set ::tsp::COMPILER_LOG $filename,$name [dict create errors $errors warnings $warnings]
+    dict set ::tsp::COMPILER_LOG  _              [dict create errors $errors warnings $warnings]
+}
+
+#########################################################
+# print errors and warnins to a filehandle
+# optional filehandle, defaults to stderr
+# optional pattern, defaults to *,* (sourcefilename,procname)
+#
+proc ::tsp::printErrorsWarnings {{fd stderr} {patt *,*}} {
+    set keys [lsort [dict keys $::tsp::COMPILER_LOG]]
+    foreach key $keys {
+        if {[string match $patt $key]} {
+            puts $fd "$key ---------------------------------------------------------"
+            puts $fd "    ERRORS --------------------------------------------------"
+            foreach err [dict get $::tsp::COMPILER_LOG $key errors] {
+                puts $fd "   $err"
+            }
+            puts $fd "    WARNINGS ------------------------------------------------"
+            foreach warn [dict get $::tsp::COMPILER_LOG $key warnings] {
+                puts $fd "    $warn"
+            }
+            puts $fd ""
+        }
+    }
+}
 

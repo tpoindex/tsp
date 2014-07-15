@@ -3,6 +3,7 @@ set body {
     #::tsp::procdef returns: int args: int string
     #::tsp::vardef var sum 
     set i 10000
+    set j $i
     return $i
     #if {$i > 0} then {
         #set i 0

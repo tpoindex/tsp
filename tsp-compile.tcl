@@ -57,12 +57,8 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     set compUnit [::tsp::init_compunit $file $name $procargs $body]
 
-    set lastIdx [string length $body]
-    incr lastIdx -1
-    set range [list 0 $lastIdx]
-
     set result ""
-    set rc [catch {set code [::tsp::parse_body compUnit $range]} result]
+    set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} result]
 
     if {$rc != 0} {
         if {$result eq "nocompile"} {

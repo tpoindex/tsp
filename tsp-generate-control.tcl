@@ -1,5 +1,6 @@
 #  compiled control commands:
-#  for, while, foreach, if, break, continue, return, switch, case
+#  for, while, foreach, if, break, continue, return, switch, case,
+#  catch, error, etc.
 
 
 #########################################################
