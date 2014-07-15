@@ -155,6 +155,13 @@ proc ::tsp::lang_decl_var {varName} {
 }
 
 ##############################################
+# declare a native tclobj, same as ::tsp::lang_decl_var 
+#
+proc ::tsp::lang_decl_native_var {varName} {
+    return [::tsp::lang_decl_var $varName]
+}
+
+##############################################
 # new tclobj var as boolean
 #
 proc ::tsp::lang_new_var_boolean {varName value} {

@@ -1,5 +1,5 @@
 #  compiled control commands:
-#  for, while, foreach, if
+#  for, while, foreach, if, break, continue, return, switch, case
 
 
 #########################################################
@@ -278,7 +278,6 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
 
 #########################################################
 # generate code for "break" command (assumed to be first parse word)
-# only braced arguments are generated, anything else generates an error
 # return list of: type rhsVarName code
 #
 proc ::tsp::gen_command_break {compUnitDict tree} {
@@ -300,7 +299,6 @@ proc ::tsp::gen_command_break {compUnitDict tree} {
 
 #########################################################
 # generate code for "continue" command (assumed to be first parse word)
-# only braced arguments are generated, anything else generates an error
 # return list of: type rhsVarName code
 #
 proc ::tsp::gen_command_continue {compUnitDict tree} {
@@ -320,7 +318,51 @@ proc ::tsp::gen_command_continue {compUnitDict tree} {
 }
 
 
-#return
+#########################################################
+# generate code for "return" command (assumed to be first parse word)
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_return {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    set returnType [dict get $compUnit returns]
+
+    if {$returnType eq "void"} {
+        if {[llength $tree] > 1} {
+            ::tsp::addError compUnit "wrong # args: proc return type declared as \"$returnType\", but \"return\" has arguments"
+            return [list void "" ""]
+        }
+        return [list void "" \nreturn;\n"]
+    }
+
+    if {[llength $tree] != 2} {
+        ::tsp::addError compUnit "wrong # args: proc return type declared as \"$returnType\", \"return\" requires exactly one argument"
+        return [list void "" ""]
+    }
+
+    #FIXME: should probably check for proper return type, literal or variable, and
+    #       not try to always assign into a temp var
+    set body [dict get $compUnit body]
+    set node [lindex $tree 1]
+    set argrange [lindex $node 1]
+    lassign $argrange start end
+    set end [expr {$start + $end - 1}]
+    set argtext [string range $body $start $end]
+    set argVar [::tsp::get_tmpvar compUnit $returnType]
+    set setBody "set $argVar $argtext"
+    set dummyUnit [::tsp::init_compunit dummy dummy "" $setBody]
+    lassign [parse command $setBody {0 end}] x x x setTree
+    ::tsp::copyVars compUnit dummyUnit
+    set argCode [::tsp::gen_command_set dummyUnit $setTree]
+    set code [lindex $argCode 2]
+    # vi return arg is a var, preserve it from being disposed/freed in this method/function
+    if {$returnType eq "var"} {
+        append code [::tsp::lang_preserve $argVar]\n
+    }
+    return [list void "" "\n${code}return $argVar;\n"]
+}
+
+
 #foreach
 #switch
 #case
