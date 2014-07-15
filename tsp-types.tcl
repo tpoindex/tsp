@@ -266,9 +266,9 @@ proc ::tsp::parse_varDefs {compUnitDict def} {
 
 #########################################################
 # check if id is a valid identifier
-# valid identifiers look like C/Java identifiers, except that
-# id cannot begin with two underscores (e.g. "__xxx"), which are
-# reserved for tsp internal identifiers
+# valid identifiers look like C/Java identifiers
+# begins with an alpha or underscore, remainder are
+# alpha, number, or underscore
 # 
 
 #FIXME - exclude lang specific list of reserved words
@@ -276,9 +276,6 @@ proc ::tsp::parse_varDefs {compUnitDict def} {
 proc ::tsp::isValidIdent {id} {
     #tsp::proc returns: bool args: string id 
     
-    if {[string match __* $id]} {
-        return 0
-    } 
     return [regexp {^[a-zA-Z_][a-zA-Z0-9_]*$} $id]
 }
 
@@ -598,7 +595,7 @@ proc ::tsp::reset_tmpvarsUsed {compUnitDict} {
 #########################################################
 #
 # get and/or generate a temp var by type, and also defined as a var
-# note: temp vars defined as: ____tmpVar_${type}_${n}
+# note: temp vars defined as: _tmpVar_${type}_${n}
 # optional var suffix creates "shadow" vars
 
 proc ::tsp::get_tmpvar {compUnitDict type {var ""}} {
@@ -613,7 +610,7 @@ proc ::tsp::get_tmpvar {compUnitDict type {var ""}} {
 	# get next var name and generate name
 	set n [dict get $compUnit tmpvarsUsed $type]
 	incr n
-	set name ____tmpVar__${type}_${n}
+	set name _tmpVar_${type}_${n}
 	dict set compUnit tmpvarsUsed $type $n
 
 	# check if used vars by type is greater than max
@@ -624,7 +621,7 @@ proc ::tsp::get_tmpvar {compUnitDict type {var ""}} {
 	    dict set compUnit tmpvars $type $n
 	}
     } else {
-        set name ____tmpVar_$var
+        set name _tmpVar_$var
         set existing [::tsp::getVarType compUnit $name]
         if {$existing eq "undefined"} {
             ::tsp::setVarType compUnit $name $type
@@ -642,7 +639,7 @@ proc ::tsp::get_tmpvar {compUnitDict type {var ""}} {
 # test if name is a temp var
 
 proc ::tsp::is_tmpvar {name} {
-    return [regexp {^____tmpVar_} $name]
+    return [regexp {^_tmpVar_} $name]
 }
 
 

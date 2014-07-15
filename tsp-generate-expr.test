@@ -55,5 +55,5 @@ proc __initCompUnit {body args} {
     set compUnit [__initCompUnit $body a int b int]
     lassign [parse command $body {0 end}] x x x tree
     ::tsp::gen_command_expr compUnit $tree
-} -result {int ____tmpVar__int_1 {____tmpVar__int_1 = (__a + 1) ;}}
+} -result {int _tmpVar__int_1 {_tmpVar__int_1 = (__a + 1) ;}}
 
