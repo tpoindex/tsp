@@ -43,6 +43,7 @@ proc ::tsp::parse_body {compUnitDict range} {
             set toRange [list 0 $commandFirst]
             set lines [parse getstring $body $toRange]
             set lineNum [regexp -all \n $lines]
+            incr lineNum -1
             dict set compUnit lineNum $lineNum
 
             # append the tcl command that we're compiling

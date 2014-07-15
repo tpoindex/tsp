@@ -72,17 +72,16 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
     incr start
     incr end -2
     set bodyRange [list $start $end]
+    ::tsp::incrDepth compUnit
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
-
     append code $preCode
     append code "\n"
     append code "while ( " $exprCode " ) {\n"
-    ::tsp::incrIndent compUnit
     append code [::tsp::indent compUnit $bodyCode]
     append code "\n"
     append code [::tsp::indent compUnit $postCode]
-    ::tsp::incrIndent compUnit -1
     append code "\n}\n"
+    ::tsp::incrDepth compUnit -1
 
     return [list void "" $code]
 }
@@ -132,13 +131,12 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     incr start
     incr end -2
     set bodyRange [list $start $end]
+    ::tsp::incrDepth compUnit
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
-
     append code "while ( " $exprCode " ) {\n"
-    ::tsp::incrIndent compUnit
     append code [::tsp::indent compUnit $bodyCode]
-    ::tsp::incrIndent compUnit -1
     append code "\n}\n"
+    ::tsp::incrDepth compUnit -1
     return [list void "" $code]
 }
 
@@ -149,7 +147,7 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
 # only braced arguments are generated, anything else generates an error
 # return list of: type rhsVarName code
 #
-proc ::tsp::gen_command_while {compUnitDict tree} {
+proc ::tsp::gen_command_if {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     if {[llength $tree] < 3} {
@@ -157,26 +155,22 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
         return [list void "" ""]
     }
 
-
     set argMax [llength $tree]
-    set thenSeen 0
-    set elseSeen 0
-
-    append code "if ( \n"
+    append code "if ( "
     
     set i 1
     # expect "condition"  "script" 
-    while {$next < $argMax} {
+    while {$i < $argMax} {
 
         # get the condition
         set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
         lassign $nextComponent type rawtext text
         if {$type ne "text"} {
-            ::tsp::addError compUnit "unexpected \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            ::tsp::addError compUnit "unexpected \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         }
-        if {[string range $text 0 0] ne "\{"} {
-            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $text 0 30]]\""
+        if {[string range $rawtext 0 0] ne "\{"} {
+            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         }
         # compile the expression
@@ -186,7 +180,7 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
             return [list void "" ""]
         }
         lassign $exprTypeCode type exprCode
-        append code $exprCode " ) \{\n\n"
+        append code $exprCode " ) \{\n"
         
 
         # get the script, passing over optional "then"
@@ -207,7 +201,7 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
             lassign $nextComponent type rawtext text
         }
         if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
-            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         } 
         set bodyRange [lindex [lindex $tree $i] 1]
@@ -216,26 +210,25 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
         incr end -2
         set bodyRange [list $start $end]
         set bodyCode [::tsp::parse_body compUnit $bodyRange]
-        ::tsp::incrIndent compUnit
-        append code [::tsp::indent compUnit $bodyCode]
-        ::tsp::incrIndent compUnit -1
-        append code "\n\n\}"
+        append code [::tsp::indent compUnit $bodyCode 1]
+        append code "\n\}"
         
 
-        # set up for "elseif", or break on "else" or last arg.
+        # set up loop for "elseif" if any, or break 
+        # on implied "?else? script" or last arg.
         incr i
-        if {$i = $argMax} {
+        if {$i == ($argMax - 1)} {
             break
         }
         set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
         lassign $nextComponent type rawtext text
         if {$type eq "text" && $text eq "elseif"} {
             incr i
-            if {$i >= ($argMax - 2)} {
+            if {$i >= ($argMax - 1)} {
                 ::tsp::addError compUnit "\"elseif\" missing condition and/or script arguments"
                 return [list void "" ""]
             }
-            append " else if ( "
+            append code " else if ( "
             continue
         } else {
             break
@@ -249,27 +242,26 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
         if {$type eq "text" && $text eq "else"} {
             incr i
             if {$i == $argMax} {
-                ::tsp::addError compUnit "no script after \"if\" then"
+                ::tsp::addError compUnit "no script after \"if\" else"
                 return [list void "" ""]
             }
             set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
             lassign $nextComponent type rawtext text
         }
         if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
-            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $text 0 30]]\""
+            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         } 
-        append code " else \{\n\n"
+        append code " else \{\n"
         set bodyRange [lindex [lindex $tree $i] 1]
         lassign $bodyRange start end
         incr start
         incr end -2
         set bodyRange [list $start $end]
         set bodyCode [::tsp::parse_body compUnit $bodyRange]
-        ::tsp::incrIndent compUnit
-        append code [::tsp::indent compUnit $bodyCode]
-        ::tsp::incrIndent compUnit -1
-        append code "\n\n\}\n"
+        append code [::tsp::indent compUnit $bodyCode 1]
+        append code "\n\}"
+        incr i
     } 
     append code \n
 
@@ -284,9 +276,51 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
 
 
 
+#########################################################
+# generate code for "break" command (assumed to be first parse word)
+# only braced arguments are generated, anything else generates an error
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_break {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] > 1} {
+        ::tsp::addError compUnit "wrong # args: should be \"break\""
+        return [list void "" ""]
+    }
+
+    # make sure we are in a loop, as indicated by 'depth'
+    if {[dict get $compUnit depth] < 1} {
+        ::tsp::addError compUnit "\"break\" used outside of loop"
+        return [list void "" ""]
+    }
+    return [list void "" "\nbreak;\n"]
+}
 
 
+#########################################################
+# generate code for "continue" command (assumed to be first parse word)
+# only braced arguments are generated, anything else generates an error
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_continue {compUnitDict tree} {
+    upvar $compUnitDict compUnit
 
+    if {[llength $tree] > 1} {
+        ::tsp::addError compUnit "wrong # args: should be \"continue\""
+        return [list void "" ""]
+    }
+
+    # make sure we are in a loop, as indicated by 'depth'
+    if {[dict get $compUnit depth] < 1} {
+        ::tsp::addError compUnit "\"continue\" used outside of loop"
+        return [list void "" ""]
+    }
+    return [list void "" "\ncontinue;\n"]
+}
+
+
+#return
 #foreach
 #switch
 #case

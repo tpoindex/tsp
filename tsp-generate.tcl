@@ -6,10 +6,9 @@
 # optionally add prefix string, only if n specified
 proc ::tsp::indent {compUnitDict str {n -1} {prefix ""}} {
     upvar $compUnitDict compUnit
-    if {$n > -1} {
-        set level $n
-    } else {
-        set level [dict get $compUnit depth]
+    set level [dict get $compUnit depth]
+    if {$n > 0} {
+        incr level $n
     }
     if {$level == 0} {
         return $str
@@ -20,9 +19,9 @@ proc ::tsp::indent {compUnitDict str {n -1} {prefix ""}} {
 }
 
 #########################################################
-# incr indentation level
+# incr depth (and indentation) level
 #
-proc ::tsp::incrIndent {compUnitDict {n 1}} {
+proc ::tsp::incrDepth {compUnitDict {n 1}} {
     upvar $compUnitDict compUnit
     dict incr compUnit depth $n
 }
