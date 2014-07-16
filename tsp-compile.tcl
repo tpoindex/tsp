@@ -62,28 +62,53 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     if {$rc != 0} {
         if {$result eq "nocompile"} {
-            uplevel ::tcl::proc $name $procargs $body
+            uplevel [list ::tcl::proc $name $procargs $body]
             return
+        } else {
+            # some other error
+            error "parse_body error: $result"
         }
-        # some other error
-        error "parse_body error: $result"
     }
 
-    set errors [dict get $compUnit errors]
+    set errors [::tsp::getErrors compUnit]
     set numErrors [llength $errors]
     
+    set compileResult [dict get $compUnit compileType]
     if {$numErrors > 0 } {
-        if {$result eq "assertcompile"} {
-            error "assertcompile: proc $name\nbut resulted in errors:\n$errors"
+        if {$compileResult eq "assertcompile"} {
+            ::tsp::logErrorsWarnings compUnit
+            error "assertcompile: proc $name, but resulted in errors:\n$errors"
+        } elseif {$compileResult eq "nocompile"} {
+            # pragma says not to compile this proc, so no big deal
+            # don't record any errors or warnings
+            uplevel [list ::tcl::proc $name $args $body]
+        } else {
+            ::tsp::logErrorsWarnings compUnit
+            error "assertcompile: proc $name, but resulted in errors:\n$errors"
         }
-        append ::tsp::tsp_log $errors
-        uplevel ::tcl::proc $name $args $body
     } else {
-        ::tsp::lang_emit compUnit $code 
-        ::tsp::lang_compile compUnit
-        ::tsp::lang_define $name $compiledProc
+        # parse_body ok, let's see if we can compile it
+        set compilable [::tsp::lang_create_compilable compUnit $code]
+#FIXME
+return $compilable
+        set rc [::tsp::lang_compile compUnit $compilable]
+        if {$rc == 0} {
+            ::tsp::lang_interp_define compUnit
+        } else {
+            uplevel [list ::tcl::proc $name $args $body]
+        }
+        ::tsp::logErrorsWarnings compUnit
     }
    
 }
 
+
+#########################################################
+# main tsp proc interface
+#
+
+proc ::tsp::proc {name argList body} {
+    set scriptfile [info script]
+    ::tsp::compile_proc $scriptfile $name $argList $body
+}
 

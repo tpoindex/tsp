@@ -702,7 +702,8 @@ proc ::tsp::lang_assign_objv {n obj} {
 #
 proc ::tsp::lang_invoke_builtin {cmd} {
     append code "//  ::tsp::lang_invoke_builtin\n"
-    append code "(TSP_Util.getbuiltin_${cmd}()).cmdProc(interp, argObjvArray);\n"
+    append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray);\n"
+    #append code "(TSP_Util.getbuiltin_${cmd}()).cmdProc(interp, argObjvArray);\n"
 #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
 # so that we properly release/preserve cmdResultObj
     append code "cmdResultObj = interp.getResult();\n"
@@ -841,6 +842,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set i 0
     foreach arg $procArgs {
         set type [lindex $procArgTypes $i]
+        # rest of foreach needs i+1
+        incr i
         set nativeType [::tsp::lang_xlate_native_type $type]
         append nativeTypedArgs $comma $nativeType " " $arg 
         append declProcArgs [::tsp::lang_decl_native_$type $arg]
@@ -850,7 +853,6 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         } else {
             append argVarAssignments [::tsp::lang_convert_${type}_var $arg argv\[$i\] "can't convert arg $i to $type"]
         }
-        incr i
         set comma ", "
     }
     if {[string length $nativeTypedArgs]} {
@@ -871,7 +873,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 
     set procVarsDecls ""
     set procVarsCleanup ""
-    foreach {var type} [dict get $compUnit vars] {
+    foreach {var} [lsort [dict keys [dict get $compUnit vars]]] {
+        set type [::tsp::getVarType compUnit $var]
         if {[lsearch $procArgs __$var] >= 0} {
             continue
         }
@@ -893,23 +896,37 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 package tsp.cmd;
 import tcl.lang.*;
 import tcl.lang.cmd.*;
-import tcl.pkg.tsp.util.*;
-import tcl.pkg.tsp.math.*;
+//import tcl.pkg.tsp.util.*;
+//import tcl.pkg.tsp.math.*;
 
 public class ${name}Cmd implements Command {
-    TclObject\[\] emptyArgv = new TclObject\[0\];
+    // empty argv array if needed when calling commands that have no arguments
+    private static final TclObject\[\] emptyArgv = new TclObject\[0\];
+
+    // push a new callframe by wiring up interp fields (why isn't this a CallFrame constructor?)
+    private static CallFrame pushNewCallFrame(Interp interp) {
+	CallFrame frame = interp.newCallFrame();
+	frame.level = (interp.varFrame == null) ? 1 : (interp.varFrame.level + 1);
+	frame.caller = interp.frame;
+	frame.callerVar = interp.varFrame;
+	interp.frame = frame;
+	interp.varFrame = frame;
+	return frame;
+    }
 
     public void cmdProc(Interp interp, TclObject argv\[\]) throws TclException {
         $returnVarDecl
         // variables used by this command, assigned from argv array
         [::tsp::indent compUnit $declProcArgs 2 \n]
 
-        if (argv.length != $numProcArgs) {
+        if (argv.length != [expr {$numProcArgs + 1}]) {
             throw new TclException(interp, "wrong # args: should be \\"$name [join [dict get $compUnit args]]\\"");
         }
 
         try {
+            // assign arg variable from argv array
             [::tsp::indent compUnit $argVarAssignments 3 \n]
+            // invoke inner compile proc method
             ${returnVarAssignment}__${name}(interp ${nativeArgs});
             $returnSetResult
         } catch (TclException te) {
@@ -931,17 +948,16 @@ public class ${name}Cmd implements Command {
         [::tsp::indent compUnit $procVarsDecls 2 \n]
 
         try {
-            //frame = interp.newCallFrame(this, emptyArgv);
-
+            frame = pushNewCallFrame(interp);
+            if (frame == null) {
+                throw new TclException(interp,"tsp internal error - pushNewCallFrame() returned null");
+            }
             // code must return a value, else will raise a compilation error
             [::tsp::indent compUnit $code 3]
         } catch (TclException te) {
             throw te;
         } finally {
-            if (frame != null) {
-                //frame.dispose();
-            }
-
+            frame.dispose();
             // release "var" variables, if any
             [::tsp::indent compUnit $procVarsCleanup 3 \n]
         }

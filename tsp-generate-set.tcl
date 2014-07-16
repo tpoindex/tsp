@@ -409,7 +409,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
 
     # block level temp targetVarName and sourceVarName are a list of two elements "name istmp"
     # procedure wide temp targetVarName and sourceVarName are also recognized
-    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName]} {
+    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName] || [string range $targetVarName 0 1] eq "__"} {
         set targetVarName [lindex $targetVarName 0]
         set targetPre ""
     } else {
@@ -520,14 +520,14 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
 
     # block level temp targetVarName and sourceVarName are a list of two elements "name istmp"
     # procedure wide temp targetVarName and sourceVarName are also recognized
-    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName]} {
+    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName] || [string range $targetVarName 0 1] eq "__"} {
         set targetVarName [lindex $targetVarName 0]
         set targetPre ""
     } else {
         set targetPre __
     }
 
-    if {[llength $sourceVarName] == 2 || [::tsp::is_tmpvar $sourceVarName]} {
+    if {[llength $sourceVarName] == 2 || [::tsp::is_tmpvar $sourceVarName] || [string range $sourceVarName 0 1] eq "__"} {
         set sourceVarName [lindex $sourceVarName 0]
         set sourcePre ""
     } else {
@@ -618,7 +618,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
     
     # block level temp targetVarName and sourceVarName are a list of two elements "name istmp"
     # procedure wide temp targetVarName and sourceVarName are also recognized
-    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName]} {
+    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName] || [string range $targetVarName 0 1] eq "__"} {
         set targetVarName [lindex $targetVarName 0]
         set targetPre ""
     } else {
