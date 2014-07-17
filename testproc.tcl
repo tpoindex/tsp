@@ -28,3 +28,10 @@ proc callit {} {puts calledit}
   callit
 }
 
+source tsp.tcl
+proc callit {} {puts calledit}
+::tsp::proc foo {} {
+  #::tsp::procdef returns: void args:
+  puts "hello world"
+}
+

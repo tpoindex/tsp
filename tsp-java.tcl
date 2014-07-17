@@ -724,7 +724,8 @@ proc ::tsp::lang_assign_objv {n obj} {
 proc ::tsp::lang_invoke_builtin {cmd} {
     append code "//  ::tsp::lang_invoke_builtin\n"
     #FIXME: use a static class to hold all builtin commands
-    append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray);\n"
+    append code "getbuiltin_$cmd.cmdProc(interp, argObjvArray);\n"
+    #append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray);\n"
     #append code "(TSP_Util.getbuiltin_${cmd}()).cmdProc(interp, argObjvArray);\n"
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
@@ -914,8 +915,8 @@ import tcl.lang.cmd.*;
 //import tcl.pkg.tsp.math.*;
 
 public class ${name}Cmd implements Command {
-    // empty argv array if needed when calling commands that have no arguments
-    private static final TclObject\[\] emptyArgv = new TclObject\[0\];
+
+[::tsp::lang_builtin_refs]
 
     // push a new callframe by wiring up interp fields (why isn't this a CallFrame constructor?)
     private static CallFrame pushNewCallFrame(Interp interp) {
@@ -1036,7 +1037,20 @@ proc ::tsp::lang_interp_define {compUnitDict} {
     [java::getinterp] createCommand $name [java::new $class]
 }
 
-
+##############################################
+# build a list of builtin command references
+# ignore commands that are tsp compiled
+# FIXME: this should be generated into a statically compiled class tsp.util.TSP_Util
+#
+proc ::tsp::lang_builtin_refs {} {
+    set result ""
+    foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
+        if {[info procs ::tsp::gen_command_$cmd] ne "::tsp::gen_command_$cmd"} {
+            append result "    private static Command getbuiltin_$cmd = new tcl.lang.cmd.[string totitle $cmd]Cmd();\n"
+        }
+    }
+    return $result
+}
 
 
 
