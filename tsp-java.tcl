@@ -1,5 +1,11 @@
 
 # language specific procs - java 
+package require java
+package require hyde
+
+# hyde options
+hyde::configure -writecache 0
+hyde::configure -runtime forcecompile
 
 
 # interpreter builtin commands that we can call directly
@@ -555,13 +561,18 @@ proc ::tsp::lang_assign_var_int {targetVarName sourceVarName {preserve 1}} {
     append result "if ($targetVarName != null) {\n"
     append result "    if ($targetVarName.isShared()) {\n"
     append result "        [::tsp::lang_release $targetVarName]"
+    append result "        [::tsp::lang_new_var_int $targetVarName $sourceVarName]"
+    if {$preserve} {
+        append result "        [::tsp::lang_preserve $targetVarName]"
+    }
+    append result "    } else {\n"
+    append result "        TclInteger.set($targetVarName, (long) $sourceVarName);\n"
     append result "    }\n"
+    append result "} else {\n"
     append result "    [::tsp::lang_new_var_int $targetVarName $sourceVarName]"
     if {$preserve} {
         append result "    [::tsp::lang_preserve $targetVarName]"
     }
-    append result "} else {\n"
-    append result "    TclInteger.set($targetVarName, (long) $sourceVarName);\n"
     append result "}\n"
     return $result
 }
@@ -574,13 +585,18 @@ proc ::tsp::lang_assign_var_double {targetVarName sourceVarName {preserve 1}} {
     append result "if ($targetVarName != null) {\n"
     append result "    if ($targetVarName.isShared()) {\n"
     append result "        [::tsp::lang_release $targetVarName]"
+    append result "        [::tsp::lang_new_var_double $targetVarName $sourceVarName]"
+    if {$preserve} {
+        append result "        [::tsp::lang_preserve $targetVarName]"
+    }
+    append result "    } else {\n"
+    append result "        TclDouble.set($targetVarName, (double) $sourceVarName);\n"
     append result "    }\n"
+    append result "} else {\n"
     append result "    [::tsp::lang_new_var_double $targetVarName $sourceVarName]"
     if {$preserve} {
         append result "    [::tsp::lang_preserve $targetVarName]"
     }
-    append result "} else {\n"
-    append result "    TclDouble.set($targetVarName, (double) $sourceVarName);\n"
     append result "}\n"
     return $result
 }
@@ -593,14 +609,19 @@ proc ::tsp::lang_assign_var_string {targetVarName sourceVarName {preserve 1}} {
     append result "if ($targetVarName != null) {\n"
     append result "    if ($targetVarName.isShared()) {\n"
     append result "        [::tsp::lang_release $targetVarName]"
+    append result "        [::tsp::lang_new_var_string $targetVarName $sourceVarName]"
+    if {$preserve} {
+        append result "        [::tsp::lang_preserve $targetVarName]"
+    }
+    append result "    } else {\n"
+    append result "        TclString.empty($targetVarName);\n"  
+    append result "        TclString.append($targetVarName, $sourceVarName);\n"
     append result "    }\n"
+    append result "} else {\n"
     append result "    [::tsp::lang_new_var_string $targetVarName $sourceVarName]"
     if {$preserve} {
         append result "    [::tsp::lang_preserve $targetVarName]"
     }
-    append result "} else {\n"
-    append result "    TclString.empty($targetVarName);\n"  
-    append result "    TclString.append($targetVarName, $sourceVarName);\n"
     append result "}\n"
     return $result
 }
@@ -702,10 +723,11 @@ proc ::tsp::lang_assign_objv {n obj} {
 #
 proc ::tsp::lang_invoke_builtin {cmd} {
     append code "//  ::tsp::lang_invoke_builtin\n"
+    #FIXME: use a static class to hold all builtin commands
     append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray);\n"
     #append code "(TSP_Util.getbuiltin_${cmd}()).cmdProc(interp, argObjvArray);\n"
-#FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
-# so that we properly release/preserve cmdResultObj
+    #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
+    # so that we properly release/preserve cmdResultObj
     append code "cmdResultObj = interp.getResult();\n"
     return [list cmdResultObj $code]
 }
@@ -715,7 +737,7 @@ proc ::tsp::lang_invoke_builtin {cmd} {
 # allocate a TclObject objv list
 #
 proc ::tsp::lang_alloc_objv_list {} {
-    return "argObjvList = new TclList.newInstance();\n"
+    return "argObjvList = TclList.newInstance();\n"
 }
 
 
@@ -729,22 +751,14 @@ proc ::tsp::lang_append_objv {obj} {
 
 ##############################################
 # invoke a tcl command via the interp
-#  assumes argObjvList has been constructed
-#  preverve and release argObjvList safely
+#  assumes argObjvArray has been constructed
 #
 proc ::tsp::lang_invoke_tcl {} {
     append code "//  ::tsp::lang_invoke_tcl\n"
-    append code "try {\n"
-    append code "    argObjvList.preserve();\n"
-    append code "    interp.invoke(argObjvList, 0);\n"
-    append code "} catch (TclException te) {\n"
-    append code "    throw te;\n"
-    append code "} finally{\n"
-    append code "    argObjvList.release();\n"
-#FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
-# so that we properly release/preserve cmdResultObj
-    append code "    cmdResultObj = interp.getResult();\n"
-    append code "}\n"
+    append code "interp.invoke(argObjvArray, 0);\n"
+    #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
+    # so that we properly release/preserve cmdResultObj
+    append code "cmdResultObj = interp.getResult();\n"
     return [list cmdResultObj $code]
 }
 
@@ -759,7 +773,7 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
     if {[string length $argList]} {
         append invokeArgs ", [join $argList ", "]"
     }
-    append code "//  ::tsp::lang_invoke_tcl\n"
+    append code "//  ::tsp::lang_invoke_tsp_compiled\n"
     append code "try {\n"
     append code "\n"
     if {$procType eq "void"} {
@@ -972,6 +986,69 @@ public class ${name}Cmd implements Command {
     return [subst $classTemplate]
 
 }
+
+
+
+##############################################
+# compile a class/function
+# on successful compile, set the compiledReference in the compUnit
+#
+proc ::tsp::lang_compile {compUnitDict code} {
+    upvar $compUnitDict compUnit
+
+    #FIXME - should use "hyde::jclass -source" when it is supported
+
+    # #################
+    # find a file we can write the code 
+    set patt [file join $::env(java.io.tmpdir) $::env(user.name)_[pid]_]
+    set name [dict get $compUnit name]
+    set dirname ${patt}[expr {int(rand()*10000)}]
+    while {[file exists $dirname]} {
+        set dirname ${patt}[expr {int(rand()*10000)}]
+    }
+    file mkdir $dirname
+    set filename [file join $dirname ${name}Cmd.java]
+    set fd [open $filename w]
+    puts $fd $code
+    close $fd
+    # #################
+    
+    set rc [catch {
+        hyde::jclass ${name}Cmd -package tsp.cmd -include $filename
+        dict set compUnit compiledReference tsp.cmd.${name}Cmd
+    } result ]
+    if {$rc} {
+        ::tsp::addError compUnit $result
+    }
+    file delete $filename
+    file delete $dirname
+    return $rc
+}
+
+
+##############################################
+# define a compiledReference in the interp
+#
+proc ::tsp::lang_interp_define {compUnitDict} {
+    upvar $compUnitDict compUnit
+    set class [dict get $compUnit compiledReference]
+    set name [dict get $compUnit name]
+    [java::getinterp] createCommand $name [java::new $class]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

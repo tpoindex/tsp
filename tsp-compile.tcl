@@ -45,7 +45,7 @@ proc ::tsp::init_compunit {file name procargs body} {
         depth 0 \
         lineNum 1 \
         errors "" \
-        warings "" \
+        warnings "" \
         compileType "" \
         compiledReference ""] 
 }
@@ -89,8 +89,6 @@ proc ::tsp::compile_proc {file name procargs body} {
     } else {
         # parse_body ok, let's see if we can compile it
         set compilable [::tsp::lang_create_compilable compUnit $code]
-#FIXME
-return $compilable
         set rc [::tsp::lang_compile compUnit $compilable]
         if {$rc == 0} {
             ::tsp::lang_interp_define compUnit
@@ -110,5 +108,6 @@ return $compilable
 proc ::tsp::proc {name argList body} {
     set scriptfile [info script]
     ::tsp::compile_proc $scriptfile $name $argList $body
+    return ""
 }
 

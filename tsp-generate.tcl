@@ -194,7 +194,7 @@ proc ::tsp::gen_invoke_tcl {compUnitDict tree} {
     set cmdName [lindex $cmdComponent 1]
     
     append result "\n/***** ::tsp::gen_invoke_tcl $cmdName */\n"
-    append result [::tsp::gen_objv_list compUnit $tree]
+    append result [::tsp::gen_objv_array compUnit $tree]
     lassign [::tsp::lang_invoke_tcl] cmdResultVar code
     append result $code
 

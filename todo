@@ -1,8 +1,8 @@
 
-0. declare shadow vars as static, to reuse.  shadow vars not released at end of code body.  Command proc
+0. PROB NOT (just let gc do it's job on new generation) declare shadow vars as static, to reuse.  shadow vars not released at end of code body.  Command proc
    should implement CommandWithDispose so that shadow vars can be collected
 
-1. tcl direct & indirect: use shadow vars if recursive count == 1, otherwise use per-invocation tmpVars (on
+1. PROB NOT (same as above) tcl direct & indirect: use shadow vars if recursive count == 1, otherwise use per-invocation tmpVars (on
    stack)
 
 2. allocate tcl direct arrays for each number of arguments, or allocate largest used and Arrays.copyRangeOf() 
@@ -14,11 +14,13 @@
 4. on volatile reload, get or duplicate tcl variable into shadow var and reload native from that (saves dirty
    step).
 
-5. interp.newCallFrame() needs to be public, and/or add new CallFrame constructor to hook into interp
+5. DONE-(fixed in genereted code) interp.newCallFrame() needs to be public, and/or add new CallFrame constructor to hook into interp
    with minimal fuss.
 
+6. parsing ::tsp::procdef - allow missing 'args:' if arglist is empty
 
-20. implement control commands: if, while, for, foreach, switch, case, break, continue, return,  catch
+
+20. implement control commands: foreach, switch, case, catch, upvar 
 
 30. implement: expr list, lxxxxx, string, concat, append, join
 
