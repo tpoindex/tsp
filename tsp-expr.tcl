@@ -5,41 +5,41 @@ namespace eval ::tsp {
 
         variable PLATFORM                java
 
-        variable tclfunc_int_div         TclFunc.IntDiv
-        variable tclfunc_int_mod         TclFunc.IntMod
-        variable tclfunc_double_div      TclFunc.DoubleDiv
-        variable tclfunc_str_lt          TclFunc.StringLt
-        variable tclfunc_str_gt          TclFunc.StringGt
-        variable tclfunc_str_le          TclFunc.StringLe
-        variable tclfunc_str_ge          TclFunc.StringGe
-        variable tclfunc_str_eq          TclFunc.StringEq
-        variable tclfunc_str_ne          TclFunc.StringNe
+        variable tclfunc_int_div         TspFunc.IntDiv
+        variable tclfunc_int_mod         TspFunc.IntMod
+        variable tclfunc_double_div      TspFunc.DoubleDiv
+        variable tclfunc_str_lt          TspFunc.StringLt
+        variable tclfunc_str_gt          TspFunc.StringGt
+        variable tclfunc_str_le          TspFunc.StringLe
+        variable tclfunc_str_ge          TspFunc.StringGe
+        variable tclfunc_str_eq          TspFunc.StringEq
+        variable tclfunc_str_ne          TspFunc.StringNe
 
-        variable tclfunc_int_abs         TclFunc.IntAbs
-        variable tclfunc_double_abs      TclFunc.DoubleAbs
-        variable tclfunc_acos            TclFunc.Acos
-        variable tclfunc_asin            TclFunc.Asin
-        variable tclfunc_atan            TclFunc.Atan 
-        variable tclfunc_atan2           TclFunc.Atan2
-        variable tclfunc_ceil            TclFunc.Ceil
-        variable tclfunc_cos             TclFunc.Cos
-        variable tclfunc_cosh            TclFunc.Cosh
-        variable tclfunc_exp             TclFunc.Exp
-        variable tclfunc_floor           TclFunc.Floor
-        variable tclfunc_fmod            TclFunc.Fmod
-        variable tclfunc_hypot           TclFunc.Hypot
-        variable tclfunc_log             TclFunc.Log
-        variable tclfunc_log10           TclFunc.Log10
-        variable tclfunc_double_pow      TclFunc.DoublePow
-        variable tclfunc_double_int_pow  TclFunc.DoubleIntPow
-        variable tclfunc_rand            TclFunc.Rand
-        variable tclfunc_round           TclFunc.Round
-        variable tclfunc_sin             TclFunc.Sin 
-        variable tclfunc_sinh            TclFunc.Sinh
-        variable tclfunc_sqrt            TclFunc.Sqrt
-        variable tclfunc_int_srand       TclFunc.IntSrand
-        variable tclfunc_tan             TclFunc.Tan
-        variable tclfunc_tanh            TclFunc.Tanh
+        variable tclfunc_int_abs         TspFunc.IntAbs
+        variable tclfunc_double_abs      TspFunc.DoubleAbs
+        variable tclfunc_acos            TspFunc.Acos
+        variable tclfunc_asin            TspFunc.Asin
+        variable tclfunc_atan            TspFunc.Atan 
+        variable tclfunc_atan2           TspFunc.Atan2
+        variable tclfunc_ceil            TspFunc.Ceil
+        variable tclfunc_cos             TspFunc.Cos
+        variable tclfunc_cosh            TspFunc.Cosh
+        variable tclfunc_exp             TspFunc.Exp
+        variable tclfunc_floor           TspFunc.Floor
+        variable tclfunc_fmod            TspFunc.Fmod
+        variable tclfunc_hypot           TspFunc.Hypot
+        variable tclfunc_log             TspFunc.Log
+        variable tclfunc_log10           TspFunc.Log10
+        variable tclfunc_double_pow      TspFunc.DoublePow
+        variable tclfunc_double_int_pow  TspFunc.DoubleIntPow
+        variable tclfunc_rand            TspFunc.Rand
+        variable tclfunc_round           TspFunc.Round
+        variable tclfunc_sin             TspFunc.Sin 
+        variable tclfunc_sinh            TspFunc.Sinh
+        variable tclfunc_sqrt            TspFunc.Sqrt
+        variable tclfunc_int_srand       TspFunc.IntSrand
+        variable tclfunc_tan             TspFunc.Tan
+        variable tclfunc_tanh            TspFunc.Tanh
 
         variable VALUE_TRUE              true
         variable VALUE_FALSE             false
@@ -50,41 +50,41 @@ namespace eval ::tsp {
 
         variable PLATFORM                c
 
-        variable tclfunc_int_div         TSP_tclfunc_int_div
-        variable tclfunc_int_mod         TSP_tclfunc_int_mod
-        variable tclfunc_double_div      TSP_tclfunc_double_div
-        variable tclfunc_str_lt          TSP_tclfunc_str_lt
-        variable tclfunc_str_gt          TSP_tclfunc_str_gt
-        variable tclfunc_str_le          TSP_tclfunc_str_le
-        variable tclfunc_str_ge          TSP_tclfunc_str_ge
-        variable tclfunc_str_eq          TSP_tclfunc_str_eq
-        variable tclfunc_str_ne          TSP_tclfunc_str_ne
+        variable tclfunc_int_div         TSP_func_int_div
+        variable tclfunc_int_mod         TSP_func_int_mod
+        variable tclfunc_double_div      TSP_func_double_div
+        variable tclfunc_str_lt          TSP_func_str_lt
+        variable tclfunc_str_gt          TSP_func_str_gt
+        variable tclfunc_str_le          TSP_func_str_le
+        variable tclfunc_str_ge          TSP_func_str_ge
+        variable tclfunc_str_eq          TSP_func_str_eq
+        variable tclfunc_str_ne          TSP_func_str_ne
 
-        variable tclfunc_int_abs         TSP_tclfunc_int_abs
-        variable tclfunc_double_abs      TSP_tclfunc_double_abs
-        variable tclfunc_acos            TSP_tclfunc_acos
-        variable tclfunc_asin            TSP_tclfunc_asin
-        variable tclfunc_atan            TSP_tclfunc_atan 
-        variable tclfunc_atan2           TSP_tclfunc_atan2
-        variable tclfunc_ceil            TSP_tclfunc_ceil
-        variable tclfunc_cos             TSP_tclfunc_cos
-        variable tclfunc_cosh            TSP_tclfunc_cosh
-        variable tclfunc_exp             TSP_tclfunc_exp
-        variable tclfunc_floor           TSP_tclfunc_floor
-        variable tclfunc_fmod            TSP_tclfunc_fmod
-        variable tclfunc_hypot           TSP_tclfunc_hypot
-        variable tclfunc_log             TSP_tclfunc_log
-        variable tclfunc_log10           TSP_tclfunc_log10
-        variable tclfunc_double_pow      TSP_tclfunc_double_pow
-        variable tclfunc_double_int_pow  TSP_tclfunc_double_int_pow
-        variable tclfunc_rand            TSP_tclfunc_rand
-        variable tclfunc_round           TSP_tclfunc_round
-        variable tclfunc_sin             TSP_tclfunc_sin 
-        variable tclfunc_sinh            TSP_tclfunc_sinh
-        variable tclfunc_sqrt            TSP_tclfunc_sqrt
-        variable tclfunc_int_srand       TSP_tclfunc_int_srand
-        variable tclfunc_tan             TSP_tclfunc_tan
-        variable tclfunc_tanh            TSP_tclfunc_tanh
+        variable tclfunc_int_abs         TSP_func_int_abs
+        variable tclfunc_double_abs      TSP_func_double_abs
+        variable tclfunc_acos            TSP_func_acos
+        variable tclfunc_asin            TSP_func_asin
+        variable tclfunc_atan            TSP_func_atan 
+        variable tclfunc_atan2           TSP_func_atan2
+        variable tclfunc_ceil            TSP_func_ceil
+        variable tclfunc_cos             TSP_func_cos
+        variable tclfunc_cosh            TSP_func_cosh
+        variable tclfunc_exp             TSP_func_exp
+        variable tclfunc_floor           TSP_func_floor
+        variable tclfunc_fmod            TSP_func_fmod
+        variable tclfunc_hypot           TSP_func_hypot
+        variable tclfunc_log             TSP_func_log
+        variable tclfunc_log10           TSP_func_log10
+        variable tclfunc_double_pow      TSP_func_double_pow
+        variable tclfunc_double_int_pow  TSP_func_double_int_pow
+        variable tclfunc_rand            TSP_func_rand
+        variable tclfunc_round           TSP_func_round
+        variable tclfunc_sin             TSP_func_sin 
+        variable tclfunc_sinh            TSP_func_sinh
+        variable tclfunc_sqrt            TSP_func_sqrt
+        variable tclfunc_int_srand       TSP_func_int_srand
+        variable tclfunc_tan             TSP_func_tan
+        variable tclfunc_tanh            TSP_func_tanh
 
         variable VALUE_TRUE              1
         variable VALUE_FALSE             0
