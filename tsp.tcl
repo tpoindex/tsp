@@ -13,6 +13,9 @@ namespace eval ::tsp {
 
     # dict of compiled procs, entries are list of: returns argTypes compiledReference
     variable COMPILED_PROCS [dict create]
+
+    # other ::tsp namespace variables are set in language specific files, 
+    # e.g., tsp-java.tcl, tsp-clang.tcl
 } 
 
 #FIXME: source command should be in pkgIndex.tcl

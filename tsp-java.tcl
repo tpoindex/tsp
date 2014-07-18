@@ -9,42 +9,38 @@ hyde::configure -runtime forcecompile
 
 
 # interpreter builtin commands that we can call directly
-# exclude commands that are compiled by tsp::gen_command_*
-# this should match the 
+# note: this is all compiled commands, since some tsp_compiled
+# command may defer to the builtin ones.
 
-proc ::tsp::lang_init {} {
-    set ::tsp::BUILTIN_TCL_COMMANDS [list]
-    foreach cmd {
-	    after		append		apply		array		binary		
-	    break		case		catch		cd		clock		
-	    close		continue	concat		dict		encoding		
-	    eof			eval		error		exec		exit		
-	    expr		fblocked	fconfigure	fcopy		file		
-	    fileevent		flush		for		foreach		format		
-	    gets		global		glob		if		incr		
-	    info		interp		list		join		lappend		
-	    lassign		lindex		linsert		llength		lrange		
-	    lrepeat		lreplace	lreverse	lsearch		lset		
-	    lsort		namespace	open		package		pid		
-	    proc		puts		pwd		read		regsub		
-	    rename		return		scan		seek				
-	    socket		source		split		string		subst		
-	    switch		tell		time		trace		unset		
-	    update		uplevel		upvar		variable	vwait		
-	    while		} {
-
-	if {[info procs $cmd] eq $cmd} {
-	    continue
-	}
-
-	if {! ([info commands ::tsp::gen_command_$cmd] eq $cmd) } {
-	    lappend ::tsp::BUILTIN_TCL_COMMANDS $cmd
-	}
-    }
+namespace eval ::tsp {
+    variable BUILTIN_TCL_COMMANDS [list					\
+        after       append      apply       array       binary      	\
+        break       case        catch       cd          clock       	\
+        close       concat      continue    dict        encoding    	\
+        eof         error       eval        exec        exit        	\
+        expr        fblocked    fconfigure  fcopy       file        	\
+        fileevent   flush       for         foreach     format      	\
+        gets        glob        global      if          incr        	\
+        info        interp      join        lappend     lassign     	\
+        lindex      linsert     list        llength     lrange      	\
+        lrepeat     lreplace    lreverse    lsearch     lset        	\
+        lsort       namespace   open        package     pid         	\
+        proc        puts        pwd         read        regexp      	\
+        regsub      rename      return      scan        seek        	\
+        set         socket      source      split       string      	\
+        subst       switch      tell        time        trace       	\
+        unset       update      uplevel     upvar       variable    	\
+        vwait       while						]
 }
 
-::tsp::lang_init
-rename ::tsp::lang_init ""
+# BUILTIN_TCL_COMMANDS was derived as:
+# foreach cmd [lsort [info commands]] { 
+#     if {[info procs $cmd] eq $cmd || [string match jacl* $cmd]} continue
+#     puts $cmd
+# }
+
+
+
 
 ##############################################
 # translate a tsp type to a native type, note that
@@ -724,9 +720,9 @@ proc ::tsp::lang_assign_objv {n obj} {
 proc ::tsp::lang_invoke_builtin {cmd} {
     append code "//  ::tsp::lang_invoke_builtin\n"
     #FIXME: use a static class to hold all builtin commands
-    append code "getbuiltin_$cmd.cmdProc(interp, argObjvArray);\n"
+    append code "builtin_$cmd.cmdProc(interp, argObjvArray);\n"
     #append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray);\n"
-    #append code "(TSP_Util.getbuiltin_${cmd}()).cmdProc(interp, argObjvArray);\n"
+    #append code "(TspUtil.builtin_${cmd}).cmdProc(interp, argObjvArray);\n"
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
     append code "cmdResultObj = interp.getResult();\n"
@@ -1040,19 +1036,43 @@ proc ::tsp::lang_interp_define {compUnitDict} {
 ##############################################
 # build a list of builtin command references
 # ignore commands that are tsp compiled
-# FIXME: this should be generated into a statically compiled class tsp.util.TSP_Util
+# FIXME: this should be generated into a statically compiled class tsp.util.TspUtil
 #
 proc ::tsp::lang_builtin_refs {} {
     set result ""
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
         if {[info procs ::tsp::gen_command_$cmd] ne "::tsp::gen_command_$cmd"} {
-            append result "    private static Command getbuiltin_$cmd = new tcl.lang.cmd.[string totitle $cmd]Cmd();\n"
+            append result "    public static final Command builtin_$cmd = new tcl.lang.cmd.[string totitle $cmd]Cmd();\n"
         }
     }
     return $result
 }
 
 
+##############################################
+# wrap an expression assignment to catch math errors
+#
+#FIXME: catch body belongs in tsp.util.TspUtil, as not to repeat code
+proc ::tsp::lang_expr {exprAssignment} {
+    append result "try {\n"
+    append result "    $exprAssignment"
+    append result "} catch (TclException te) {\n"
+    append result "    String msg = te.getMessage();\n"
+    append result "    if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {\n"
+    append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DIVZERO {divide by zero}\"));\n"
+    append result "        throw new TclException(interp, \"divide by zero\")\n"
+    append result "    } else if (msg != null && msg.equals(TspFunc.DOMAIN_ERROR)) {\n"
+    append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DOMAIN {domain error: argument not in valid range}\"));\n"
+    append result "        throw new TclException(interp, \"domain error: argument not in valid range\");\n"
+    append result "    } else { \n"
+    append result "        throw te;\n"
+    append result "   }\n"
+    append result "} catch (Exception ex) {\n"
+    append result "   throw new TclException(interp, \"expr caught Java Exception: \" + ex.getMessage())\n"
+    append result "}\n"
+    append result "\n"
+    return $result
+}
 
 
 
