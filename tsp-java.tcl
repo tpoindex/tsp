@@ -680,25 +680,6 @@ proc ::tsp::lang_append_string {targetVarName source} {
 
 
 ##############################################
-# increment a varname by an amount or a value
-# targetVarName is assumed to be a native integer
-# result is stored into varname and targetVarName
-# throw runtime error if varname is var but not an integer, or
-# if incrvar is a var but not an integer
-#
-proc ::tsp::lang_incr_var {targetVarName varName varType incrAmount incrVar incrType} {
-
-    # 
-    append result "\n"
-    append result "\n"
-    append result "\n"
-    append result "\n"
-    append result "\n"
-    return $result
-}
-
-
-##############################################
 # allocate a TclObject objv array
 #
 proc ::tsp::lang_alloc_objv_array {size} {
@@ -1091,11 +1072,6 @@ proc ::tsp::lang_expr {exprAssignment} {
 
 
 # FIXME- below here
-##############################################
-# create result vars
-#
-proc ::tsp::lang_result_vars {compUnitDict} {
-}
 
 ##############################################
 # spill vars into interp
@@ -1210,88 +1186,5 @@ proc ::tsp::lang_reload_vars {compUnitDict varList} {
 }
 
 
-##############################################
-# invoke a tcl command 
-#
-#FIXME  - needs rewrite
-proc ::tsp::lang_invoke_tcl_cmd {compUnitDict cmd varList assignVar} {
-    upvar $compUnitDict compUnit
 
-    set hasType [dict exists $compUnit var $assignVar]
-    set assignType ""
-    if {$hasType} {
-        switch $type {
-            int     {set assignType TclInteger}
-            boolean {set assignType TclBoolean}
-            double  {set assignType TclDouble}
-            string  {set assignType TclString}
-            var     {set assignType TclObject}
-            default {error "unknown var type: $type"}
-        }
-    } else {
-        error "invoke_cmd: undefined assign variable: $assignVar"
-    }
-    set arg 0
-    set buf "{\n"
-    append buf "TclList cmdList = TclList.newInstance();\n"    
-    append buf "cmdList.preserve();\n"    
-    append buf "TclObject arg$arg = TclString.newInstance($cmd);\n"    
-    append buf " arg$arg.preserve();\n"    
-    append buf "TclList.append(interp, cmdList, arg$arg);\n"    
-    foreach var $varList {
-        incr arg
-        set hasType [dict exists $compUnit var $var]
-        if {$hasType} {
-            set type [dict get $compUnit var $var]
-        } else {
-            error "invoke_cmd: undefined variable: $var"
-        }
-        append buf "TclObject arg$arg = "
-        switch $type {
-            int     {append buf "TclInteger.newInstance($var);\n"}
-            boolean {append buf "TclBoolean.newInstance($var);\n"}
-            double  {append buf "TclDouble.newInstance($var);\n"}
-            string  {append buf "TclString.newInstance($var);\n"}
-            var     {}
-            default {error "unknown var type: $type"}
-        }
-        append buf "arg$arg.preserve();\n"
-    }
-    append buf "try {\n"
-    append buf "  interp.invoke(cmdList, 0);\n"
-    if {$assignVar ne ""} {
-        append buf "  TclObject result = interp.getResult();\n"
-        if {$assignType eq "TclObject"} {
-            append buf "  $var = $assignType.get(interp, result);\n"
-        } else {
-            append buf "  $var = $assignType.get(interp, result);\n"
-        }
-    }
-    append buf "} catch (TclException e) {\n"
-    append buf "} finally {\n"
-    for {set i 0} {$i <= $arg} {incr i} {
-        append buf "arg$arg.release();\n"
-    }
-    append buf "}\n"
-    append buf "}\n"
-
-    return $buf
-}
-
-##############################################
-# release var/string/temp var
-#
-proc ::tsp::lang_release_vars {compUnitDict} {
-    upvar $compUnitDict compUnit
-    set buf ""
-    set varList [dict get $compUnit vars]
-    foreach var $varList {
-        set type [dict get $compUnit var $var ]
-        switch $type {
-            list* -
-            var {append buf "$var.release();\n"}
-        }
-    }
-    return $buf
-}
 
