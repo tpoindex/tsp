@@ -9,13 +9,14 @@
 # body - body
 # returns - type
 # vars - vars to type dict
+# finalSpill - vars spill into interp on method end, for upvar/global/variable defined vars
 # dirty - sub dict of native typed vars that need tmp obj updated before tcl invocation
 # tmpvars - sub dict of temporary var types used
 # tmpvars - sub dict of temporary var types used per command invocation
 # volatile - vars to spill/reload into tcl interp, for one command only
 # frame - true/false if new var frame is required
 # force - true to force compilation
-# buf - code buffer
+# buf - code buffer, what is actually compiled
 # breakable - count of nested while/for/foreach, when > 1  break/continue are allowed
 # depth - count of nesting level
 # lineNum - current line number
@@ -34,6 +35,7 @@ proc ::tsp::init_compunit {file name procargs body} {
         body $body \
         returns "" \
         vars "" \
+        finalSpill "" \
         dirty "" \
         tmpvars [dict create boolean 0 int 0 double 0 string 0 var 0] \
         tmpvarsUsed [dict create boolean 0 int 0 double 0 string 0 var 0] \

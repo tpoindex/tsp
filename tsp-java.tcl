@@ -1057,132 +1057,85 @@ proc ::tsp::lang_expr {exprAssignment} {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# FIXME- below here
-
 ##############################################
-# spill vars into interp
+# spill vars into interp, used for ::tsp::volatile,
+# compiled commands that use varName arguments, and
+# spilling final var values for upvar/global/variable.
+# returns code
+# the next 
 #
-#FIXME  - needs rewrite
 proc ::tsp::lang_spill_vars {compUnitDict varList} {
     upvar $compUnitDict compUnit
 
-    set buf ""
+    set buf "// ::tsp::::tsp::lang_spill_vars $varList\n"
     foreach var $varList {
-        set hasType [dict exists $compUnit var $var]
-        if {$hasType} {
-            set type [dict get $compUnit var $var]
+        set type [::tsp::getVarType compUnit $var]
+        if {$type eq "undefined"} {
+            set type var
+            :tsp::setVarType compUnit $var $type
+        }
+        if {$type eq "array"} {
+            # array variables are already in interp
+            continue
+        }
+        if {$type eq "var"} {
+            append buf [::tsp::lang_preserve $var]
+            set interpVar $var
         } else {
-            error "var $var is not defined"
+            #FIXME: use dirty checking, may not have to re-assign native typed var into shadow var
+            set interpVar [::tsp::get_tmpvar compUnit $type $var]
+            append buf [::tsp::lang_assign_var_$type $interpVar $var ]
         }
-        set objType ""
-        switch $type {
-            int     {set objType TclInteger}
-            boolean {set objType TclBoolean}
-            double  {set objType TclDouble}
-            string  {set objType TclString}
-            var     {}
-            default {error "unknown var type: $type"}
-        }
-        if {$objType ne ""} {
-            append buf "{\n"
-            append buf "TclObject obj = $objType.newInstance(" $var ");\n"
-            append buf "obj.preserve();\n"
-            append buf "interp.setVar(\"" $var "\", obj, 0);\n"
-            append buf "}\n"
-        } else {
-            append buf "$var.preserve();\n"
-            append buf "interp.setVar(\"" $var "\", $var, 0);\n"
-        }
-    }
-}
-
-##############################################
-# convert a native type variable to a TclObject variable 
-#
-#FIXME  - needs rewrite
-
-proc ::tsp::lang_var_to_obj {var type obj} {
-    set buf ""
-    switch $type {
-        int     {append buf "$obj = TclInteger.newInstance(" $var ");"}
-        boolean {append buf "$obj = TclBoolean.newInstance(" $var ");"}
-        double  {append buf "$obj = TclDouble.newInstance(" $var ");"}
-        string  {append buf "$obj = TclString.newInstance(" $var ");"}
-        var     {append buf "$obj = $var;"}
-        default {error "unknown var type: $type"}
+        append buf "interp.setVar(\"" $var "\", $interpVar, 0);\n"
     }
     return $buf
 }
 
-##############################################
-# convert a TclObject variable into a typed variable
-#
-#FIXME  - needs rewrite
-proc ::tsp::lang_obj_to_var {var type obj} {
-    set buf ""
-    switch $type {
-        int     {append buf "$var = TclInteger.getLong(interp,  $obj);\n"}
-        boolean {append buf "$var = TclBoolean.get(interp, $obj);\n"}
-        double  {append buf "$var = TclDouble.get(interp, $obj);\n"}
-        string  {append buf "$var = $obj.toString();\n"}
-        var     {append buf "$var = $obj;"}
-        default {error "unknown var type: $type"}
-    }
-    return $buf
-}
-
-##############################################
-# set a interp variable from a TclObject
-#
-#FIXME  - needs rewrite
-proc ::tsp::lang_set_interp_var_obj {var obj} {
-    set buf ""
-    append buf "interp.setVar(\"$var\",  $obj , 0);\n"
-    return $buf
-}
-
-##############################################
-# get a interp variable assign to a TclObject
-#
-#FIXME  - needs rewrite
-proc ::tsp::lang_get_interp_var_obj {var obj} {
-    set buf ""
-    append buf "$obj = interp.getVar(\"$var\", 0);\n"
-    return $buf
-}
 
 
 ##############################################
-# reload vars from interp
+# load vars from interp, use for reloading vars after
+# ::tsp::volatile, compiled commands that use varName arguments,
+# and loading initial variables after upvar/global/variable
+# returns code
 #
-#FIXME  - needs rewrite
-proc ::tsp::lang_reload_vars {compUnitDict varList} {
+proc ::tsp::lang_load_vars {compUnitDict varList} {
     upvar $compUnitDict compUnit
 
     set buf ""
     foreach var $varList {
-        set hasType [dict exists $compUnit var $var]
-        if {$hasType} {
-            set type [dict get $compUnit var $var]
-        } else {
-            error "var $var type is not defined"
+        set type [::tsp::getVarType compUnit $var]
+        if {$type eq "undefined"} {
+            set type var
+            :tsp::setVarType compUnit $var $type
         }
-        ::tsp::reload_var $compUnit $var $type
+        if {$type eq "array"} {
+            # array variables are already in interp
+            continue
+        }
+        if {$type eq "var"} {
+            set interpVar $var
+        } else {
+            #FIXME: use dirty checking, reset shadowed vars as not dirty here
+            set interpVar [::tsp::get_tmpvar compUnit $type $var]
+            append buf [::tsp::lang_assign_var_$type $interpVar $var ]
+        }
+        append buf [::tsp::lang_safe_release $interpVar]
+        append buf "try {\n"
+        append buf "$interpVar = null;\n"
+        append buf "$interpVar = interp.getVar(\"" $var "\", 0);\n"
+        append buf "catch (TclException te) {\n"
+        append buf "    // missing variable checked outside of try/catch\n"
+        append buf "}\n"
+        append buf "if ($interpVar != null) {\n"
+        append buf [::tsp::indent compUnit  [::tsp::lang_convert_$type_var $var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1]
+        if {$type eq "var"} {
+            append buf [::tsp::lang_new_var_string $var]
+            append buf [::tsp::lang_preserve $var]
+        }
+        append buf "}\n"
     }
+    return $buf
 }
 
 
