@@ -64,7 +64,7 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     if {$rc != 0} {
         if {$result eq "nocompile"} {
-            uplevel [list ::tcl::proc $name $procargs $body]
+            uplevel [list ::proc $name $procargs $body]
             return
         } else {
             # some other error
@@ -83,7 +83,7 @@ proc ::tsp::compile_proc {file name procargs body} {
         } elseif {$compileResult eq "nocompile"} {
             # pragma says not to compile this proc, so no big deal
             # don't record any errors or warnings
-            uplevel [list ::tcl::proc $name $args $body]
+            uplevel [list ::proc $name $procargs $body]
         } else {
             ::tsp::logErrorsWarnings compUnit
             error "assertcompile: proc $name, but resulted in errors:\n$errors"
@@ -92,10 +92,12 @@ proc ::tsp::compile_proc {file name procargs body} {
         # parse_body ok, let's see if we can compile it
         set compilable [::tsp::lang_create_compilable compUnit $code]
         set rc [::tsp::lang_compile compUnit $compilable]
+#FIXME: just debugging here
+puts $compilable
         if {$rc == 0} {
             ::tsp::lang_interp_define compUnit
         } else {
-            uplevel [list ::tcl::proc $name $args $body]
+            uplevel [list ::proc $name $procargs $body]
         }
         ::tsp::logErrorsWarnings compUnit
     }

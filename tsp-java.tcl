@@ -350,6 +350,14 @@ proc ::tsp::lang_convert_string_var {targetVarName sourceVarName {errMsg ""}} {
 }
 
 ##############################################
+# convert a var from a var value, this is here for
+# easy of substitution, calls lang_assign_var_var
+#
+proc ::tsp::lang_convert_var_var {targetVarName sourceVarName {errMsg ""}} {
+    return [::tsp::lang_assign_var_var $targetVarName $sourceVarName]
+}
+
+##############################################
 # get string from a boolean value
 #
 proc ::tsp::lang_get_string_boolean {sourceVarName} {
@@ -697,6 +705,8 @@ proc ::tsp::lang_assign_objv {n obj} {
 ##############################################
 # invoke a builtin tcl command
 #  assumes argObjvArray has been constructed
+# NOTE - return assign var as list of {cmdResultObj istmp}
+#        to prevent it from being prefixed
 #
 proc ::tsp::lang_invoke_builtin {cmd} {
     append code "//  ::tsp::lang_invoke_builtin\n"
@@ -707,7 +717,7 @@ proc ::tsp::lang_invoke_builtin {cmd} {
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
     append code "cmdResultObj = interp.getResult();\n"
-    return [list cmdResultObj $code]
+    return [list {cmdResultObj istmp} $code]
 }
 
 
@@ -730,6 +740,8 @@ proc ::tsp::lang_append_objv {obj} {
 ##############################################
 # invoke a tcl command via the interp
 #  assumes argObjvArray has been constructed
+# NOTE - return assign var as list of {cmdResultObj istmp}
+#        to prevent it from being prefixed
 #
 proc ::tsp::lang_invoke_tcl {} {
     append code "//  ::tsp::lang_invoke_tcl\n"
@@ -737,7 +749,7 @@ proc ::tsp::lang_invoke_tcl {} {
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
     append code "cmdResultObj = interp.getResult();\n"
-    return [list cmdResultObj $code]
+    return [list {cmdResultObj istmp} $code]
 }
 
 
@@ -973,6 +985,7 @@ public class ${name}Cmd implements Command {
 #
 proc ::tsp::lang_compile {compUnitDict code} {
     upvar $compUnitDict compUnit
+    dict set compUnit buf $code
 
     #FIXME - should use "hyde::jclass -source" when it is supported
 
@@ -1120,20 +1133,23 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
             set interpVar [::tsp::get_tmpvar compUnit $type $var]
             append buf [::tsp::lang_assign_var_$type $interpVar $var ]
         }
+        append buf "// interp.getVar $var\n"
         append buf [::tsp::lang_safe_release $interpVar]
         append buf "try {\n"
-        append buf "$interpVar = null;\n"
-        append buf "$interpVar = interp.getVar(\"" $var "\", 0);\n"
-        append buf "catch (TclException te) {\n"
+        append buf "    $interpVar = null;\n"
+        append buf "    $interpVar = interp.getVar(\"" $var "\", 0);\n"
+        append buf "} catch (TclException te) {\n"
         append buf "    // missing variable checked outside of try/catch\n"
         append buf "}\n"
         append buf "if ($interpVar != null) {\n"
-        append buf [::tsp::indent compUnit  [::tsp::lang_convert_$type_var $var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1]
+        append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1] 
         if {$type eq "var"} {
-            append buf [::tsp::lang_new_var_string $var]
-            append buf [::tsp::lang_preserve $var]
+            append buf "\n\} else {\n"
+            append buf "    [::tsp::lang_new_var_string $var \"\"]"
+            append buf "    [::tsp::lang_preserve $var]"
+            append buf "}\n"
         }
-        append buf "}\n"
+        append buf "\n}\n"
     }
     return $buf
 }
