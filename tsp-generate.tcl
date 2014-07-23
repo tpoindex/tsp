@@ -62,12 +62,16 @@ proc ::tsp::treeHasNestedCommands {compUnitDict tree} {
 # generate code to spill variables into tcl interp
 #
 proc ::tsp::gen_spill_vars {compUnitDict volatile} {
+    upvar $compUnitDict compUnit
+    return [::tsp::lang_spill_vars compUnit $volatile]
 }
 
 #########################################################
 # generate code to reload variables fromt tcl interp
 #
-proc ::tsp::gen_reload_vars {compUnitDict volatile} {
+proc ::tsp::gen_load_vars {compUnitDict volatile} {
+    upvar $compUnitDict compUnit
+    return [::tsp::lang_load_vars compUnit $volatile]
 }
 
 #########################################################

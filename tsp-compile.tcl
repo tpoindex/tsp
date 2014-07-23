@@ -92,13 +92,13 @@ proc ::tsp::compile_proc {file name procargs body} {
         # parse_body ok, let's see if we can compile it
         set compilable [::tsp::lang_create_compilable compUnit $code]
         set rc [::tsp::lang_compile compUnit $compilable]
-#FIXME: just debugging here
-puts $compilable
         if {$rc == 0} {
             ::tsp::lang_interp_define compUnit
         } else {
             uplevel [list ::proc $name $procargs $body]
         }
+#FIXME: probably should check a debug variable before adding compilable as a warning
+        ::tsp::addWarning compUnit $compilable
         ::tsp::logErrorsWarnings compUnit
     }
    

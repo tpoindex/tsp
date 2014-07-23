@@ -1,6 +1,10 @@
 #FIXME: be consistent in quoting strings, esp those that are array index
 #       probaby ok to quote them once when recognized
 
+#FIXME: everywhere lang_decl_var is used, it probably leaks tclobjects.  this
+#       happens in code that has block-level tclobjects, and are not released.
+#       replace these with get_tmpvar so that they will be cleaned on exit
+
 #########################################################
 # generate a set command, the basic assignment command
 # we only compile: 
@@ -400,7 +404,7 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
 #########################################################
 # assign a scalar variable from text string
 #
-proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType sourceText sourceType {preserve 0}} {
+proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType sourceText sourceType} {
 
     upvar $compUnitDict compUnit
 
@@ -487,15 +491,15 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
          var {
              switch $sourceType {
                  int {
-                     append result [::tsp::lang_assign_var_int  $targetPre$targetVarName $sourceText $preserve]
+                     append result [::tsp::lang_assign_var_int  $targetPre$targetVarName $sourceText]
                      return $result
                  }
                  double {
-                     append result [::tsp::lang_assign_var_double  $targetPre$targetVarName $sourceText $preserve]
+                     append result [::tsp::lang_assign_var_double  $targetPre$targetVarName $sourceText]
                      return $result
                  }
                  string {
-                     append result [::tsp::lang_assign_var_string  $targetPre$targetVarName [::tsp::lang_quote_string $sourceText] $preserve]
+                     append result [::tsp::lang_assign_var_string  $targetPre$targetVarName [::tsp::lang_quote_string $sourceText]]
                      return $result
                  }
                  error "unexpected sourceType: $sourceType"
@@ -511,7 +515,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
 #########################################################
 # assign a scalar variable from a scalar
 #
-proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sourceVarName sourceType {preserve 1}} {
+proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sourceVarName sourceType} {
 
     upvar $compUnitDict compUnit
 
@@ -593,7 +597,7 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
          }
 
          var {
-             append result [::tsp::lang_assign_var_$sourceType  $targetPre$targetVarName $sourcePre$sourceVarName $preserve]
+             append result [::tsp::lang_assign_var_$sourceType  $targetPre$targetVarName $sourcePre$sourceVarName]
              return $result
          }
     }
@@ -609,7 +613,7 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
 #
 # note: uses block level: "tmp"  "tmp2"
 # FIXME: be smarter about combining backslash and strings, just append until a scalar is found or last of components
-proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarName targetType sourceComponents {preserve 1}} {
+proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarName targetType sourceComponents} {
 
     upvar $compUnitDict compUnit
 
@@ -648,7 +652,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
                     ::tsp::addError compUnit "set command arg 2 interpolated string variable not defined: \"$sourceVarName\""
                     return [list ""]
                 }
-                append code [::tsp::gen_assign_scalar_scalar compUnit {tmp istmp} string $sourceVarName $sourceType $preserve]
+                append code [::tsp::gen_assign_scalar_scalar compUnit {tmp istmp} string $sourceVarName $sourceType]
             }
             default {
                 ::tsp::addError compUnit "set arg 2 interpolated string cannot contain $compType, only text, backslash, or scalar variables"
@@ -662,7 +666,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
         }
     }
     if {$targetType eq "var"} {
-        append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName var {tmp2 istmp} string $preserve ]
+        append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName var {tmp2 istmp} string]
         append code [::tsp::lang_free_native_string tmp2]
     }
     append code [::tsp::lang_free_native_string tmp]
@@ -780,7 +784,7 @@ proc ::tsp::gen_assign_array_interpolated_string {compUnitDict targetVarName tar
     append result "\n/***** ::tsp::gen_assign_array_interpolated_string */\n"
     append result "{\n"
     append code [::tsp::lang_decl_var targetVar]
-    append code [::tsp::gen_assign_var_string_interpolated_string compUnit {targetVar istmp} var $sourceComponents 0]
+    append code [::tsp::gen_assign_var_string_interpolated_string compUnit {targetVar istmp} var $sourceComponents]
     append code [::tsp::indent compUnit [::tsp::gen_assign_array_scalar compUnit $targetVarName $targetArrayIdxtext \
                                 $targetArrayIdxvar $targetArrayIdxvarType $targetType targetVar var]]
     append result [::tsp::indent compUnit $code 1]
@@ -812,7 +816,7 @@ proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourc
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index var \"$sourceArrayIdxvar\" "]]
         append code [::tsp::lang_assign_var_array_idxvar targetVar $sourceVarName __$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
     }
-    append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName $targetType {targetVar istmp} var 0]
+    append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName $targetType {targetVar istmp} var]
     append code [::tsp::indent compUnit $code 1]
     append code "\n}\n"
     return $result

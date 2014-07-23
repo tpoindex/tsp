@@ -80,7 +80,7 @@ proc ::tsp::parse_body {compUnitDict range} {
 
             # reload volatile variables that were spilled into tcl
             if {$volatileLen > 0} {
-                append gencode [::tsp::gen_reload_vars compUnit $volatile]
+                append gencode [::tsp::gen_load_vars compUnit $volatile]
             }
         }
 

@@ -1075,7 +1075,6 @@ proc ::tsp::lang_expr {exprAssignment} {
 # compiled commands that use varName arguments, and
 # spilling final var values for upvar/global/variable.
 # returns code
-# the next 
 #
 proc ::tsp::lang_spill_vars {compUnitDict varList} {
     upvar $compUnitDict compUnit
@@ -1091,15 +1090,16 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             # array variables are already in interp
             continue
         }
-        if {$type eq "var"} {
-            append buf [::tsp::lang_preserve $var]
-            set interpVar $var
+        # woot! setVar is overloaded by type, so no need to convert to anything else
+        # probably shouldn't get tmpvars here, but check anyway
+        if {[llength $var] == 2 || [::tsp::is_tmpvar $var] || [string range $var 0 1] eq "__"} {
+            set var [lindex $var 0]
+            set pre ""
         } else {
-            #FIXME: use dirty checking, may not have to re-assign native typed var into shadow var
-            set interpVar [::tsp::get_tmpvar compUnit $type $var]
-            append buf [::tsp::lang_assign_var_$type $interpVar $var ]
+            set pre __
         }
-        append buf "interp.setVar(\"" $var "\", $interpVar, 0);\n"
+        append buf "// interp.setVar $var \n"
+        append buf "interp.setVar(\"" $var "\", null, $pre$var, 0);\n"
     }
     return $buf
 }
@@ -1126,12 +1126,19 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
             # array variables are already in interp
             continue
         }
+        # probably shouldn't get tmpvars here, but check anyway
+        if {[llength $var] == 2 || [::tsp::is_tmpvar $var] || [string range $var 0 1] eq "__"} {
+            set var [lindex $var 0]
+            set pre ""
+        } else {
+            set pre __
+        }
         if {$type eq "var"} {
-            set interpVar $var
+            set interpVar $pre$var
         } else {
             #FIXME: use dirty checking, reset shadowed vars as not dirty here
-            set interpVar [::tsp::get_tmpvar compUnit $type $var]
-            append buf [::tsp::lang_assign_var_$type $interpVar $var ]
+            #FIXME: code a ::tsp::get_shadow_var proc
+            set interpVar [::tsp::get_tmpvar compUnit var $var]
         }
         append buf "// interp.getVar $var\n"
         append buf [::tsp::lang_safe_release $interpVar]
@@ -1142,11 +1149,14 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
         append buf "    // missing variable checked outside of try/catch\n"
         append buf "}\n"
         append buf "if ($interpVar != null) {\n"
-        append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1] 
+        append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1] 
+        #FIXME: in some cases, an empty var is expected, such as upvar or global and the global
+        #       doesn't yet exists.  other cases, such as a volatile spill/load is a likely error (??)
+        #       add a flag for var exists checking 
         if {$type eq "var"} {
             append buf "\n\} else {\n"
-            append buf "    [::tsp::lang_new_var_string $var \"\"]"
-            append buf "    [::tsp::lang_preserve $var]"
+            append buf "    [::tsp::lang_new_var_string $pre$var \"\"]"
+            append buf "    [::tsp::lang_preserve $pre$var]"
             append buf "}\n"
         }
         append buf "\n}\n"
