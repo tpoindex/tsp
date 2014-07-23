@@ -194,7 +194,7 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
                 return [list void "" [::tsp::lang_assign_var_string __$targetVarName [::tsp::lang_quote_string $sourceText]]]
 
             } elseif {$targetWordType eq "text_array_idxtext" || $targetWordType eq "text_array_idxvar"} {
-                return [list void "" [::tsp::gen_assign_array_text compUnitDict $targetVarName $targetArrayIdxtext \
+                return [list void "" [::tsp::gen_assign_array_text compUnit $targetVarName $targetArrayIdxtext \
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceText $sourceType]]
 
             } else {
@@ -214,10 +214,10 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
 
             # generate assigment
             if {$targetWordType eq "text"} {
-                return [list void "" [::tsp::gen_assign_scalar_text compUnitDict $targetVarName $targetType $sourceText $sourceType]]
+                return [list void "" [::tsp::gen_assign_scalar_text compUnit $targetVarName $targetType $sourceText $sourceType]]
 
             } elseif {$targetWordType eq "text_array_idxtext" || $targetWordType eq "text_array_idxvar"} {
-                return [list void "" [::tsp::gen_assign_array_text compUnitDict $targetVarName $targetArrayIdxtext \
+                return [list void "" [::tsp::gen_assign_array_text compUnit $targetVarName $targetArrayIdxtext \
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceText $sourceType]]
 
             } else {
@@ -680,44 +680,38 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
 # assign an array variable from text string
 # array index is either a text string, or a variable 
 #
-# note: uses block level: "value"
 #
 proc ::tsp::gen_assign_array_text {compUnitDict targetVarName targetArrayIdxtext \
-		targetArrayIdxvar targetArrayIdxvarType targetType sourceText sourceType {preserveReleaseList {}}} {
+		targetArrayIdxvar targetArrayIdxvarType targetType sourceText sourceType} {
 
     upvar $compUnitDict compUnit
-    set preserveReleaseList [linsert $preserveReleaseList 0 value]
     
+    set value [::tsp::get_tmpvar compUnit var]
+    append code [::tsp::lang_safe_release $value]
     append result "\n/***** ::tsp::gen_assign_array_text */\n"
     if {$targetArrayIdxtext ne ""} {
         # constant string index
-        append result "{\n"
-        append code [::tsp::lang_decl_var value]
         if {$sourceType eq "string"} {
-            append code [::tsp::lang_new_var_$sourceType  value [::tsp::lang_quote_string $sourceText]]
+            append code [::tsp::lang_new_var_$sourceType  $value [::tsp::lang_quote_string $sourceText]]
         } else {
-            append code [::tsp::lang_new_var_$sourceType  value $sourceText]
+            append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
         }
         append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] \
-			[::tsp::lang_quote_string $targetArrayIdxtext] $preserveReleaseList] 
-        append result [::tsp::indent compUnit $code 1]
-        append result "\n}\n"
+			[::tsp::lang_quote_string $targetArrayIdxtext] $value] 
+        append result $code
         return $result
     } else {
         # variable index
         # we have to get a string from the scalar
-        append result "{\n"
-        append code [::tsp::lang_decl_var value]
-        append code [::tsp::lang_decl_native_rawstring idx]
+        set idx [::tsp::get_tmpvar compUnit string]
         if {$sourceType eq "string"} {
-            append code [::tsp::lang_new_var_$sourceType  value [::tsp::lang_quote_string $sourceText]]
+            append code [::tsp::lang_new_var_$sourceType  $value [::tsp::lang_quote_string $sourceText]]
         } else {
-            append code [::tsp::lang_new_var_$sourceType  value $sourceText]
+            append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
         }
-        append code [::tsp::lang_assign_native_rawstring idx [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
-        append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] idx $preserveReleaseList]
-        append result [::tsp::indent compUnit $code 1]
-        append result "\n}\n"
+        append code [::tsp::lang_assign_native_rawstring $idx [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
+        append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
+        append result $code
         return $result
     }
 }
