@@ -409,10 +409,11 @@ proc ::tsp::lang_release {obj} {
 
 ##############################################
 # safe release / decrRefCount a TclObject variable
+# and set object to null.
 # checks for null before release
 #
 proc ::tsp::lang_safe_release {obj} {
-    return "if ($obj != null) $obj.release();\n"
+    return "if ($obj != null) { $obj.release(); $obj = null; } \n"
 }
 
 
@@ -641,7 +642,7 @@ proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
     append result "}\n"
     # FIXME - probably don't have to duplicate soourceVarName object
     #         just assign and preserve()
-    append result "$targetVarName = $sourceVarName.duplicate());\n"
+    append result "$targetVarName = $sourceVarName.duplicate();\n"
     if {$preserve} {
         append result [::tsp::lang_preserve $targetVarName]
     }
@@ -652,26 +653,20 @@ proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
 # assign a tclobj var to an interp array using string name1/name2
 #   targetArrayStr targetIdxStr must already be valid string constants
 #   or string references.
-#   the var list tclobjs are preserved and released
-#   in a safe manner.   the first var in varlist is
-#   the tclobj var value to assign.
+#   the var is the object to assign into the array,
+#   which is preserved and released
 #
-proc ::tsp::lang_assign_array_var {targetArrayStr targetIdxStr varList} {
-    set var [lindex $varList 0]
+proc ::tsp::lang_assign_array_var {targetArrayStr targetIdxStr var} {
     append result "// ::tsp::lang_assign_array_var\n"
     append result "try {\n"
-    foreach v $varList {
-        append result "    [::tsp::lang_preserve $v]"
-    }
+    append result "    [::tsp::lang_preserve $var]"
     append result "    interp.setVar($targetArrayStr, $targetIdxStr, $var, 0);\n"
     append result "} catch (TclException te) {\n"
     append result "    throw te;\n"
     append result "} catch (TclRuntimeError tre) {\n"
     append result "    throw tre;\n"
     append result "} finally {\n"
-    foreach v $varList {
-        append result "    [::tsp::lang_release $v]"
-    }
+    append result "    [::tsp::lang_release $var]"
     append result "}\n"
     return $result
 }
@@ -716,7 +711,9 @@ proc ::tsp::lang_invoke_builtin {cmd} {
     #append code "(TspUtil.builtin_${cmd}).cmdProc(interp, argObjvArray);\n"
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
+    append code [::tsp::lang_safe_release cmdResultObj]
     append code "cmdResultObj = interp.getResult();\n"
+    append code [::tsp::lang_preserve cmdResultObj]
     return [list {cmdResultObj istmp} $code]
 }
 
@@ -748,7 +745,9 @@ proc ::tsp::lang_invoke_tcl {} {
     append code "interp.invoke(argObjvArray, 0);\n"
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
+    append code [::tsp::lang_safe_release cmdResultObj]
     append code "cmdResultObj = interp.getResult();\n"
+    append code [::tsp::lang_preserve cmdResultObj]
     return [list {cmdResultObj istmp} $code]
 }
 
@@ -872,7 +871,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     } else {
         set returnVarDecl ""
         set returnVarAssignment ""
-        set returnSetResult ""
+        set returnSetResult "interp.resetResult();"
     }
 
     set procVarsDecls ""

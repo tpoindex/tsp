@@ -1,8 +1,6 @@
-FIX: ::tsp::gen_assign_array_text and ::tsp::lang_assign_array_var  - check to see if need to free any vars
-     after lang_decl_var refactor (next item)
-FIX: tsp-generate-set.tcl - all of the lang_decl_var are probably leaking memory, not released
-FIX: object already disposed - probably need to preserve the result from intperp when assigning to var
-FIX: procs that return void should clear interp results before returning
+
+FIX: will have to have ::tsp::get_tmpvar also get rawstring??  for C? see ::tsp::gen_assign_array_text usage.
+     perhaps C lang will just use a common rawstring for array index?  
 
 0. PROB NOT (just let gc do it's job on new generation) declare shadow vars as static, to reuse.  shadow vars not released at end of code body.  Command proc
    should implement CommandWithDispose so that shadow vars can be collected
