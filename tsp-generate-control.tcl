@@ -367,3 +367,5 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
 #foreach
 #switch
 #case
+#error
+#catch

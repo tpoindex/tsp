@@ -1098,7 +1098,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             set pre __
         }
         append buf "// interp.setVar $var \n"
-        append buf "interp.setVar(\"" $var "\", null, $pre$var, 0);\n"
+        append buf "interp.setVar([::tsp::lang_quote_string  $var], null, $pre$var, 0);\n"
     }
     return $buf
 }
@@ -1143,7 +1143,7 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
         append buf [::tsp::lang_safe_release $interpVar]
         append buf "try {\n"
         append buf "    $interpVar = null;\n"
-        append buf "    $interpVar = interp.getVar(\"" $var "\", 0);\n"
+        append buf "    $interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
         append buf "} catch (TclException te) {\n"
         append buf "    // missing variable checked outside of try/catch\n"
         append buf "}\n"
