@@ -363,8 +363,78 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     return [list void "" "\n${code}return $argVar;\n"]
 }
 
-
 #foreach
+#########################################################
+# generate code for "foreach" command (assumed to be first parse word)
+# list of variables must be a single word, or a literal list enclosed
+# in braces.  List to iterate must be a literal list enclosed in braces,
+# or a variable reference.  code must be a braced arguments. 
+# currenlty, only a single list can be iterated.
+# return list of: type rhsVarName code
+#
+#FIXME: support multi lists??
+#
+proc ::tsp::gen_command_foreach {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] != 4} {
+        ::tsp::addError compUnit "wrong # args: should be \"foreach var-list list codde\""
+        return [list void "" ""]
+    }
+
+    set varlistComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
+    lassign $varlistComponent type rawtext vartext
+    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+        ::tsp::addError compUnit "varlist argument not a single var or braced list literal"
+        return [list void "" ""]
+    }
+    # check that varlist are all variables, if any are not defined, make them a var
+    foreach var $vartext {
+        set type [::tsp::getVarType compUnit $var]
+        if {$type eq "undefined"} {
+            if {[::tsp::isValidIdent $var]} {
+                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\""
+                ::tsp::setVarType compUnit $var var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$var\""
+                return [list void "" ""]
+            }
+        }
+    }
+
+    set listComponent [lindex [::tsp::parse_word compUnit [lindex $tree 2]] 0]
+    lassign $listComponent type rawtext listtext
+    #FIXME: support array variables as lists
+    if {$type ne "scalar" || $type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+        ::tsp::addError compUnit "varlist argument not a scalar, single var, or braced list literal"
+        return [list void "" ""]
+    }
+
+    set bodyComponent [lindex [::tsp::parse_word compUnit [lindex $tree 3]] 0]
+    lassign $bodyComponent type rawtext bodytext
+    #FIXME: support array variables as lists
+    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+        ::tsp::addError compUnit "body argument not a braced literal"
+        return [list void "" ""]
+    }
+
+    set bodyRange [lindex [lindex $tree 4] 1]
+    lassign $bodyRange start end
+    incr start
+    incr end -2
+    set bodyRange [list $start $end]
+    ::tsp::incrDepth compUnit
+    set bodyCode [::tsp::parse_body compUnit $bodyRange]
+    append code "\n"
+    append code [::tsp::lang_foreach compUnit $varlistComponent $listComponent [::tsp::indent compUnit $bodyCode]]
+    append code "\n}\n"
+    ::tsp::incrDepth compUnit -1
+    
+    return [list void "" $code]
+}
+
+
+
 #switch
 #case
 #error

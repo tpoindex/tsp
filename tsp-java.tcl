@@ -788,6 +788,63 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
 
 
 ##############################################
+# generate a foreach command.
+# varlistComponent and listComponent are results of
+# ::tsp::parse_word
+# body is already indented compiled code of the body
+#
+proc ::tsp::lang_foreach {compUnitDict varlistComponent listComponent body} {
+# get list length as int
+# while varidx < listlength
+# assign vars from list
+# append body
+
+    upvar $compUnitDict compUnit
+
+    append code "// ::tsp::lang_foreach\n"
+
+    set idx [::tsp::get_tmpvar compUnit int]
+    set len [::tsp::get_tmpvar compUnit int]
+
+    lassign $varlistComponent varType varRawText varText
+    lassign $listComponent listType listRawText listText
+    
+    if {$listComponent eq "scalar"} {
+        set listVar $listText
+        set listVarType [::tsp::getVarType compUnit $listVar]
+        if {$listVarType eq "boolean" || $listVarType eq "int" || $listVarType eq "double"} {
+            # code to assign one variable, the rest as null/zero, execute body
+FIXHERE
+AND RETURN
+        } else {
+            if {$type eq "string"} {
+                set listVar [::tsp::get_tmpvar compUnit var]
+                append code "[::tsp::lang_safe_release $listVar]\n"
+                append code "[::tsp::lang_new_var_string $listVar $listRawText]\n"
+                append code "[::tsp::lang_preserve $listVar]\n"
+            } else {
+                # must be var
+                set listVar $listRawText
+            }
+        }
+    } else {
+        # assumed to be a braced list
+        # FIXME: can we just iterate/flatten through this literal list instead?
+        set listVar [::tsp::get_tmpvar compUnit var]
+        set listVarType var
+        append code "[::tsp::lang_safe_release $listVar]\n"
+        append code "[::tsp::lang_new_var_string $listVar [::tsp::lang_quote_string $listText]]\n"
+        append code "[::tsp::lang_preserve $listVar]\n"
+    }
+    append code "$len = TclList.getLength(interp, $listvar);\n"
+
+
+ASSIGN VARS and RETURN
+
+    set var [::tsp::get_tmpvar compUnit var]
+}
+
+##############################################
 # release var/string/temp var
 #
 proc ::tsp::lang_release_vars {compUnitDict} {
