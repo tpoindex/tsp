@@ -363,7 +363,6 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     return [list void "" "\n${code}return $argVar;\n"]
 }
 
-#foreach
 #########################################################
 # generate code for "foreach" command (assumed to be first parse word)
 # list of variables must be a single word, or a literal list enclosed
@@ -445,7 +444,56 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
 
 
 
+#########################################################
+# generate code for "catch" command (assumed to be first parse word)
+# return list of: type rhsVarName code
+#
+#FIXME: support multi lists??
+#
+proc ::tsp::gen_command_catch {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree]  < 2 || [llength $tree] > 3} {
+        ::tsp::addError compUnit "wrong # args: should be \"catch command ?varName?\""
+        return [list void "" ""]
+    }
+
+    set bodyRange [lindex [lindex $tree 1] 1]
+    lassign $bodyRange start end
+    incr start
+    incr end -2
+    set bodyRange [list $start $end]
+    ::tsp::incrDepth compUnit
+    set bodyCode [::tsp::parse_body compUnit $bodyRange]
+
+    if {[llength $tree] == 3} {
+        set varNameComponent [::tsp::parse_word compUnit [lindex [lindex $tree 2] 1]]
+        lassign $varNameComponent type var text
+        if {$type ne "text"} {
+            ::tsp::addError compUnit "catch result var must be a scalar"
+            return [list void "" ""]
+        }
+        set varType [::tsp::getVarType compUnit $var]
+        if {$varType eq "undefined"} {
+            if {[::tsp::isValidIdent $var]} {
+                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\""
+                ::tsp::setVarType compUnit $var var
+                set varType var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$var\""
+                return [list void "" ""]
+            }
+        }
+    } else {
+        set var ""
+        set varType ""
+    }
+
+    set returnVar [::tsp::get_tmpvar compUnit int]
+    set code [::tsp::lang_catch compUnit $returnVar $bodyCode $var $varType]
+    return [list int $returnVar $code]
+}
+
+
 #switch
 #case
-#error
-#catch

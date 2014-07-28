@@ -804,6 +804,30 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
 
 
 ##############################################
+# generate a catch command
+#
+proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
+    upvar $compUnitDict compUnit
+    append code "// ::tsp::lang_catch\n"
+    append code "interp.resetResult();\n"
+    append code "try \{\n"
+    append code "[::tsp::indent compUnit $bodyCode 1]\n"
+    append code "    $returnVar = 0;
+    append code "\} catch (TclException te) \{\n"
+    append code "    $returnVar = 1;
+    append code "\}\n"
+    if {$var ne ""} {
+        if {$varType eq "var"} {
+            append code "[::tsp::lang_assign_${type}_var $var interp.getResult()]"
+        } else {
+            append code "[::tsp::lang_convert_${type}_var $var interp.getResult() "unable to convert var to $varType"]"
+        }
+    }
+    return $code
+}
+
+
+##############################################
 # generate a foreach command.
 # varList is list of vars to be assigned from list elements
 # dataList is scalar var of data or dataString is literal data string
