@@ -805,11 +805,11 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
 
 ##############################################
 # generate a foreach command.
-# varlistComponent and datalistComponent are results of
-# ::tsp::parse_word
+# varList is list of vars to be assigned from list elements
+# dataList is scalar var of data or dataString is literal data string
 # body is already indented compiled code of the body
 #
-proc ::tsp::lang_foreach {compUnitDict varlistComponent datalistComponent body} {
+proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
     upvar $compUnitDict compUnit
 
     append code "// ::tsp::lang_foreach\n"
@@ -817,68 +817,67 @@ proc ::tsp::lang_foreach {compUnitDict varlistComponent datalistComponent body} 
     set idx [::tsp::get_tmpvar compUnit int]
     set len [::tsp::get_tmpvar compUnit int]
 
-    lassign $varlistComponent varType varRawText varText
-    lassign $datalistComponent listType listRawText listText
     
-    if {$datalistComponent eq "scalar"} {
-        set datalistVar $listRawText
-        set datalistVarType [::tsp::getVarType compUnit $datalistVar]
-        if {$datalistVarType eq "boolean" || $datalistVarType eq "int" || $datalistVarType eq "double"} {
+    # dataList or dataString?
+    if {$dataList ne ""} {
+        set dataListType [::tsp::getVarType compUnit $dataList]
+        if {$dataListType eq "boolean" || $dataListType eq "int" || $dataListType eq "double"} {
             # code to assign one variable, the rest as null/zero, execute body
-            set target [lindex $varText 0]
+            set target [lindex $varList 0]
             set targetType [::tsp::getVarType compUnit $target]
-            set rest [lrange $varText 1 end]
+            set rest [lrange $varList 1 end]
             
-            if {$targetType eq $datalistVarType} {
-                append code "$target = __$datalistVar;\n"
+            if {$targetType eq $dataListType} {
+                append code "$target = __$dataList;\n"
             } else {
-                append code [::tsp::lang_convert_${targetType}_${datalistVarType} __$target __$datalistVar "unable to convert $datalistVarType to $targetType"]
+                append code [::tsp::lang_convert_${targetType}_${dataListType} __$target __$dataList "unable to convert $dataListType to $targetType"]
             }
             # zero out any remaining vars
             foreach v $rest {
                 set type [::tsp::getVarType compUnit $v]
-                append code [::tsp::lang_assign_empty_zero $__v $type]
+                append code [::tsp::lang_assign_empty_zero __$v $type]
             }
             append code $body
             return $body
 
         } else {
-            if {$datalistVarType eq "string"} {
-                set listVar [::tsp::get_tmpvar compUnit var]
-                append code "[::tsp::lang_safe_release $datalistVar]\n"
-                append code "[::tsp::lang_new_var_string $listVar __$datalistVar]\n"
-                append code "[::tsp::lang_preserve $listVar]\n"
+            if {$dataListType eq "string"} {
+                set dataVar [::tsp::get_tmpvar compUnit var]
+                append code "[::tsp::lang_safe_release $dataList]\n"
+                append code "[::tsp::lang_new_var_string $dataVar __$dataList]\n"
+                append code "[::tsp::lang_preserve $dataVar]\n"
             } else {
                 # must be var
-                set listVar __$listRawText
+                set dataVar __$dataList
             }
         }
     } else {
-        # assumed to be a braced list (by gen_command_foreach)
-        # FIXME: can we just iterate/flatten through this literal list instead?
-        set listVar [::tsp::get_tmpvar compUnit var]
-        set listVarType var
-        append code "[::tsp::lang_safe_release $listVar]\n"
-        append code "[::tsp::lang_new_var_string $listVar [::tsp::lang_quote_string $listText]]\n"
-        append code "[::tsp::lang_preserve $listVar]\n"
+        # assumed to be a braced list string literal
+        # FIXME: can we just iterate/flatten through this literal list instead? 
+        set dataVar [::tsp::get_tmpvar compUnit var]
+        set dataVar var
+        append code "[::tsp::lang_safe_release $dataVar]\n"
+        append code "[::tsp::lang_new_var_string $dataVar [::tsp::lang_quote_string $dataString]]\n"
+        append code "[::tsp::lang_preserve $dataVar]\n"
     }
 
-    append code "$len = TclList.getLength(interp, $listVar);\n"
+    append code "$len = TclList.getLength(interp, $dataVar);\n"
     append code "$idx = 0;\n"
     append code "while ($idx < $len) \{\n"
-    foreach var $varText {
+    foreach var $varList {
+        append code "    // set var $var\n"
         set type [::tsp::getVarType compUnit $var]
         append code "    if (${idx}++ < $len) \{\n"
         if {$type eq "var"} {
-            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var TclList.get($listVar,$idx)] 2]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
         } else {
-            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.get($listVar,$idx)] 2]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
         }
         append code "    \} else \{\n"
         append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 2]\n"
         append code "    \}\n"
     }
-    append code $body
+    append code [::tsp::indent compUnit $body]
     append code "\}\n"
     append code "\n"
     append code "\n"

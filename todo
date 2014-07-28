@@ -1,3 +1,4 @@
+FIX: make lang_rawstring return a String or char* reference from a Java String or Tcl_DString
 
 FIX: will have to have ::tsp::get_tmpvar also get rawstring??  for C? see ::tsp::gen_assign_array_text usage.
      perhaps C lang will just use a common rawstring for array index?  

@@ -401,6 +401,7 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
             }
         }
     }
+    set varList $vartext
 
     set datalistComponent [lindex [::tsp::parse_word compUnit [lindex $tree 2]] 0]
     lassign $datalistComponent type rawtext listtext
@@ -408,6 +409,17 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
     if {$type ne "scalar" && $type ne "text" && [string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "varlist argument not a scalar, single var, or braced list literal"
         return [list void "" ""]
+    }
+    if {$type eq "scalar"} {
+        set dataList $rawtext
+        set dataString ""
+    } else {
+        set dataList ""
+        set dataString $listtext
+        if {[catch {llength $dataString}]} {
+            ::tsp::addError compUnit "foreach data list is not a proper list"
+            return [list void "" ""]
+        }
     }
 
     set bodyComponent [lindex [::tsp::parse_word compUnit [lindex $tree 3]] 0]
@@ -425,7 +437,7 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
-    append code [::tsp::lang_foreach compUnit $varlistComponent $datalistComponent [::tsp::indent compUnit $bodyCode]]
+    append code [::tsp::lang_foreach compUnit $varList $dataList $dataString $bodyCode]
     ::tsp::incrDepth compUnit -1
     
     return [list void "" $code]
