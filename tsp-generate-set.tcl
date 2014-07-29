@@ -713,7 +713,7 @@ proc ::tsp::gen_assign_array_text {compUnitDict targetVarName targetArrayIdxtext
         } else {
             append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
         }
-        append code [::tsp::lang_assign_native_rawstring $idx [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
+        append code [::tsp::lang_convert_string_string $idx [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
         append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
         append result $code
         return $result
@@ -751,7 +751,6 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
         # variable index
         # we have to get a string from the scalar
         set idx [::tsp::get_tmpvar compUnit string]
-        append code [::tsp::lang_decl_native_rawstring $idx]"
         if {$sourceType eq "var"} {
             set value __$sourceVarName
         } else {
@@ -760,7 +759,7 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
             append code [::tsp::lang_new_var_$sourceType  value __$sourceVarName]
             append code [::tsp::lang_preserve $value]
         }
-        append code [::tsp::lang_assign_native_rawstring $idx  [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
+        append code [::tsp::lang_convert_string_string $idx  [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
         append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
         append result $code
         return $result
@@ -788,7 +787,7 @@ proc ::tsp::gen_assign_array_interpolated_string {compUnitDict targetVarName tar
 
 #########################################################
 # assign an scalar from an array
-# sourceArrayIdx is either a quoted string, or a rawstring reference
+# sourceArrayIdx is either a quoted string, or a string 
 #
 proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourceVarName sourceArrayIdxvar sourceArrayIdxvarType sourceArrayIdxtext} {
 

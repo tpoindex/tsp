@@ -448,8 +448,6 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
 # generate code for "catch" command (assumed to be first parse word)
 # return list of: type rhsVarName code
 #
-#FIXME: support multi lists??
-#
 proc ::tsp::gen_command_catch {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
@@ -458,16 +456,9 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    set bodyRange [lindex [lindex $tree 1] 1]
-    lassign $bodyRange start end
-    incr start
-    incr end -2
-    set bodyRange [list $start $end]
-    ::tsp::incrDepth compUnit
-    set bodyCode [::tsp::parse_body compUnit $bodyRange]
-
+    # check if result var is present
     if {[llength $tree] == 3} {
-        set varNameComponent [::tsp::parse_word compUnit [lindex [lindex $tree 2] 1]]
+        set varNameComponent [lindex [::tsp::parse_word compUnit [lindex $tree 2]] 0]
         lassign $varNameComponent type var text
         if {$type ne "text"} {
             ::tsp::addError compUnit "catch result var must be a scalar"
@@ -489,11 +480,36 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
         set varType ""
     }
 
+    # compile the catch body
+    set bodyRange [lindex [lindex $tree 1] 1]
+    lassign $bodyRange start end
+    incr start
+    incr end -2
+    set bodyRange [list $start $end]
+    ::tsp::incrDepth compUnit
+    set bodyCode [::tsp::parse_body compUnit $bodyRange]
     set returnVar [::tsp::get_tmpvar compUnit int]
     set code [::tsp::lang_catch compUnit $returnVar $bodyCode $var $varType]
+    ::tsp::incrDepth compUnit -1
     return [list int $returnVar $code]
 }
 
 
-#switch
-#case
+#########################################################
+# generate code for "switch" command (assumed to be first parse word)
+# switch only processes simple switch, where the switch string is assumed
+# to be exact, and where the switch pattern-body pairs are enclosed in
+# braces.  Switch string should be a scalar variable, 
+# Each pattern must be of the same type as switch string.
+# Each body must also be enclosed in braces.
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_switch {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] != 3} 
+        ::tsp::addError compUnit "wrong # args: should be \"switch string pattern-body-list\""
+        return [list void "" ""]
+    }
+    
+}

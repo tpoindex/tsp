@@ -87,13 +87,6 @@ proc ::tsp::lang_type_string {} {
 }
 
 ##############################################
-# return native raw string type: String/char[]
-#
-proc ::tsp::lang_type_rawstring {} {
-    return String
-}
-
-##############################################
 # return native var type
 #
 proc ::tsp::lang_type_var {} {
@@ -132,13 +125,6 @@ proc ::tsp::lang_decl_native_double {varName} {
 # declare a native string
 #
 proc ::tsp::lang_decl_native_string {varName} {
-    return "String $varName = \"\";\n"
-}
-
-##############################################
-# declare a native rawstring
-#
-proc ::tsp::lang_decl_native_rawstring {varName} {
     return "String $varName = \"\";\n"
 }
 
@@ -192,32 +178,10 @@ proc ::tsp::lang_new_var_string {varName str} {
 }
 
 ##############################################
-# new assign a native rawstring, str should
-# either be a quoted const or a rawstring reference
-#
-proc ::tsp::lang_assign_native_rawstring {varName str} {
-    return "$varName = $str;\n"
-}
-
-##############################################
-# free a  native rawstring
-#
-proc ::tsp::lang_free_native_rawstring {varName} {
-    return "$varName = null;\n"
-}
-
-##############################################
 # free a tcl obj var
 #
 proc ::tsp::lang_free_var {varName} {
     return "$varName = null\n;"
-}
-
-##############################################
-# get a native rawstring from a tclobj var
-#
-proc ::tsp::lang_get_native_rawstring_var {varName} {
-    return "TclObject.toString($varName)"
 }
 
 ##############################################
@@ -521,7 +485,7 @@ proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype err
 
 ##############################################
 # assign a TclObject from a interp array with a text index or var index
-# idxTxtVar should either be a quoted string, or a rawstring reference
+# idxTxtVar should either be a quoted string, or a string
 # note that errMsg should be passed unquoetd (done here)
 #
 proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
@@ -811,16 +775,18 @@ proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
     append code "// ::tsp::lang_catch\n"
     append code "interp.resetResult();\n"
     append code "try \{\n"
-    append code "[::tsp::indent compUnit $bodyCode 1]\n"
-    append code "    $returnVar = 0;
+    append code "[::tsp::indent compUnit $bodyCode]\n\n"
+    append code "    // ::tsp::lang_catch: rc = 0, success \n"
+    append code "    $returnVar = 0;\n"
     append code "\} catch (TclException te) \{\n"
-    append code "    $returnVar = 1;
+    append code "    // ::tsp::lang_catch: rc = 1, error \n"
+    append code "    $returnVar = 1;\n"
     append code "\}\n"
     if {$var ne ""} {
         if {$varType eq "var"} {
-            append code "[::tsp::lang_assign_${type}_var $var interp.getResult()]"
+            append code [::tsp::lang_assign_${varType}_var $var interp.getResult()]
         } else {
-            append code "[::tsp::lang_convert_${type}_var $var interp.getResult() "unable to convert var to $varType"]"
+            append code [::tsp::lang_convert_${varType}_var $var interp.getResult() "unable to convert var to $varType"]
         }
     }
     return $code
@@ -902,9 +868,7 @@ proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
         append code "    \}\n"
     }
     append code [::tsp::indent compUnit $body]
-    append code "\}\n"
-    append code "\n"
-    append code "\n"
+    append code "\n\}\n\n"
 
     return $code
 }
