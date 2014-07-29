@@ -74,7 +74,10 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
     incr end -2
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
+
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
+
+    append code "\n/***** ::tsp::gen_command_for */\n"
     append code $preCode
     append code "\n"
     append code "while ( " $exprCode " ) {\n"
@@ -133,7 +136,10 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     incr end -2
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
+
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
+
+    append code "\n/***** ::tsp::gen_command_while */\n"
     append code "while ( " $exprCode " ) {\n"
     append code [::tsp::indent compUnit $bodyCode]
     append code "\n}\n"
@@ -157,6 +163,7 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
     }
 
     set argMax [llength $tree]
+    append code "\n/***** ::tsp::gen_command_if */\n"
     append code "if ( "
     
     set i 1
@@ -294,7 +301,9 @@ proc ::tsp::gen_command_break {compUnitDict tree} {
         ::tsp::addError compUnit "\"break\" used outside of loop"
         return [list void "" ""]
     }
-    return [list void "" "\nbreak;\n"]
+    append code "\n/***** ::tsp::gen_command_break */\n"
+    append code "\nbreak;\n"
+    return [list void "" $code]
 }
 
 
@@ -315,7 +324,9 @@ proc ::tsp::gen_command_continue {compUnitDict tree} {
         ::tsp::addError compUnit "\"continue\" used outside of loop"
         return [list void "" ""]
     }
-    return [list void "" "\ncontinue;\n"]
+    append code "\n/***** ::tsp::gen_command_continue */\n"
+    append code "\ncontinue;\n"
+    return [list void "" $code]
 }
 
 
@@ -360,7 +371,9 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     if {$returnType eq "var"} {
         append code [::tsp::lang_preserve $argVar]\n
     }
-    return [list void "" "\n${code}return $argVar;\n"]
+    append result "\n/***** ::tsp::gen_command_return */\n"
+    append result "\n${code}return $argVar;\n"
+    return [list void "" $result]
 }
 
 #########################################################
@@ -436,6 +449,8 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
+
+    append code "\n/***** ::tsp::gen_command_foreach */\n"
     append code [::tsp::lang_foreach compUnit $varList $dataList $dataString $bodyCode]
     ::tsp::incrDepth compUnit -1
     
@@ -450,7 +465,7 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
 #
 proc ::tsp::gen_command_catch {compUnitDict tree} {
     upvar $compUnitDict compUnit
-
+    
     if {[llength $tree]  < 2 || [llength $tree] > 3} {
         ::tsp::addError compUnit "wrong # args: should be \"catch command ?varName?\""
         return [list void "" ""]
@@ -489,6 +504,8 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
     ::tsp::incrDepth compUnit
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
     set returnVar [::tsp::get_tmpvar compUnit int]
+
+    append code "\n/***** ::tsp::gen_command_catch */\n"
     set code [::tsp::lang_catch compUnit $returnVar $bodyCode $var $varType]
     ::tsp::incrDepth compUnit -1
     return [list int $returnVar $code]
@@ -507,9 +524,120 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
 proc ::tsp::gen_command_switch {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
-    if {[llength $tree] != 3} 
-        ::tsp::addError compUnit "wrong # args: should be \"switch string pattern-body-list\""
+    set body [dict get $compUnit body]
+
+    if {[llength $tree] != 3} {
+        ::tsp::addError compUnit "wrong # args: should be \"switch string pattern-script-list\""
+        return [list void "" ""]
+    }
+
+    set switchComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
+    lassign $switchComponent type switchVar text
+    # FIXME: should also handle arrays
+    if {$type ne "scalar"} {
+        ::tsp::addError compUnit "switch must specify a scalar variable"
+        return [list void "" ""]
+    }
+    set switchVarType [::tsp::getVarType compUnit $switchVar]
+    if {$switchVarType eq "undefined"} {
+        ::tsp::addError compUnit "switch variable argument \"$switchVar\" not defined."
         return [list void "" ""]
     }
     
+    set pattScriptComponent [lindex [::tsp::parse_word compUnit [lindex $tree 2]] 0]
+    lassign $pattScriptComponent type rawtext pattScriptList
+    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+        ::tsp::addError compUnit "switch pattern-script list must be text enclosed in braces"
+        return [list void "" ""]
+    }
+    set len -1
+    catch {set len [llength $pattScriptList]}
+    if {$len == -1} {
+        ::tsp::addError compUnit "switch pattern-script argument not a valid list"
+        return [list void "" ""]
+    }
+    if {$len % 2 != 0} {
+        ::tsp::addError compUnit "switch pattern-script argument unmatched pattern-script pairs"
+        return [list void "" ""]
+    }
+    set pattScriptRange [lindex [lindex $tree 2] 1]
+    lassign $pattScriptRange start end
+    incr start
+    incr end -2
+    set pattScriptRange [list $start $end]
+    set pattScriptIdxes [parse list $body $pattScriptRange]
+
+    # check that pattern types are valid for the switch scalar, bodies are
+    # enclosed in braces.  parse bodies into code, and assemble a new list.
+    # check if "default" if present, is last
+    set offending [list]
+    set pattCodeList [list]
+    set pairNum 0
+    set seenDefault 0
+    set firstPatt 1
+    foreach {patt script} $pattScriptList {pattRange scriptRange} $pattScriptIdxes {
+        if {$seenDefault} {
+            ::tsp::addError compUnit "switch \"default\" pattern not last in pattern-script pairs"
+            return [list void "" ""]
+        }
+        incr pairNum
+        if {$patt eq "default"} {
+            if {$firstPatt} {
+                ::tsp::addError compUnit "switch \"default\" cannot be first pattern"
+                return [list void "" ""]
+            }
+            if {$script eq "-"} {
+                ::tsp::addError compUnit "no body specified for pattern \"default\""
+                return [list void "" ""]
+            }
+            set seenDefault 1
+        } else {
+            set allTypes [::tsp::literalTypes $patt]
+            switch $switchVarType {
+                boolean {
+                    if {! [::tsp::typeIsBoolean $allTypes]} {lappend offending $patt } 
+                    # boolean constants must be able to evaluate true/false
+                    if {[catch {if {$patt} {} }]} {
+                        lappend offending $patt
+                    }
+                }
+                int     {
+                    if {! [::tsp::typeIsInt     $allTypes]} {lappend offending $patt } 
+                }
+                double  {
+                    if {! [::tsp::typeIsNumeric $allTypes]} {lappend offending $patt } 
+                }
+                default { }
+            }
+        }
+        set firstPatt 0
+ 
+        if {[string trim $script] eq ""} {
+            set script Code ""
+        } elseif {$script eq "-"} { 
+            set scriptCode "-"
+        } else {
+            if {[string range [parse getstring $body $scriptRange] 0 0] ne "\{"} {
+                ::tsp::addError compUnit "switch pattern-script pair $pairNum script not enclosed by braces"
+                return [list void "" ""]
+            }
+            lassign $scriptRange start end
+            incr start
+            incr end -2
+            set scriptRange [list $start $end]
+            ::tsp::incrDepth compUnit
+            set scriptCode [::tsp::parse_body compUnit $scriptRange]
+            ::tsp::incrDepth compUnit -1
+        }
+        lappend pattCodeList $patt $scriptCode
+    }
+
+    if {[llength $offending] > 0} {
+        ::tsp::addError compUnit "switch patterns not matching switch type of $switchVarType: $offending"
+        return [list void "" ""]
+    }
+
+    append code "\n/***** ::tsp::gen_command_switch */\n"
+    set code [::tsp::lang_switch compUnit $switchVar $switchVarType $pattCodeList]
+    return [list void "" $code]
 }

@@ -794,6 +794,56 @@ proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
 
 
 ##############################################
+# generate a switch command.
+# switchVar is a scalar, pattScriptList is list of patterns and scripts
+#
+proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
+    upvar $compUnitDict compUnit
+
+    if {$switchVarType eq "var"} {
+        set switchVar __$switchVar.toString()
+    } else {
+        set switchVar __$switchVar
+    }
+    append code "// ::tsp::lang_switch\n"
+    set match ""
+    set or ""
+    set else ""
+    foreach {patt script} $pattCodeList {
+        if {$patt eq "default"} {
+            append match " $or true /*default*/ "
+        } else {
+            if {$switchVarType eq "string" || $switchVarType eq "var"} {
+                append match "$or ([::tsp::lang_quote_string $patt].equals($switchVar)) "
+            } elseif {$switchVarType eq "boolean"} {
+                if {$patt} {
+                    append match "$or (true == $switchVar) "
+                } else {
+                    append match "$or (false == $switchVar) "
+                }
+            } else {
+                # int or double
+                append match "$or ($patt == $switchVar) "
+            }
+	}
+
+        if {$script eq "-"} {
+            set or ||
+        } else {
+            append code "${else}if ( $match ) \{\n"
+            append code [::tsp::indent compUnit $script 1]
+            append code "\n\} "
+            set else "else "
+            set match ""
+            set or ""
+        }
+
+    }
+    append code "\n"
+    return $code
+}
+
+##############################################
 # generate a foreach command.
 # varList is list of vars to be assigned from list elements
 # dataList is scalar var of data or dataString is literal data string
