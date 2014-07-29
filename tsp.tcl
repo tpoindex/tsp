@@ -28,6 +28,7 @@ source tsp-generate.tcl
 source tsp-generate-set.tcl
 source tsp-generate-math.tcl
 source tsp-generate-control.tcl
+source tsp-generate-var.tcl
 
 if {$::tcl_platform(platform) eq "java"} {
     source tsp-java.tcl
