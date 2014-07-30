@@ -352,6 +352,7 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
         return [list void "" ""]
     }
 
+
     #FIXME: should probably check for proper return type, literal or variable, and
     #       not try to always assign into a temp var
     set body [dict get $compUnit body]
@@ -372,6 +373,9 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
         append code [::tsp::lang_preserve $argVar]\n
     }
     append result "\n/***** ::tsp::gen_command_return */\n"
+    append result "/* spill vars back into interp */\n
+    append result ::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 1]
+    append result "/* return proc value */\n
     append result "\n${code}return $argVar;\n"
     return [list void "" $result]
 }

@@ -1097,7 +1097,16 @@ public class ${name}Cmd implements Command {
         } catch (TclException te) {
             throw te;
         } finally {
+
+            // spill variables that are global, upvar, or variable back into interp
+            try {
+                ::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 4 \n]
+            } catch (TclException fte) {
+                // have to ignore at this point
+            }
+
             frame.dispose();
+
             // release "var" variables, if any
             [::tsp::indent compUnit $procVarsCleanup 3 \n]
         }
