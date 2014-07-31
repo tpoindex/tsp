@@ -1100,7 +1100,7 @@ public class ${name}Cmd implements Command {
 
             // spill variables that are global, upvar, or variable back into interp
             try {
-                ::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 4 \n]
+                [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 4 \n]
             } catch (TclException fte) {
                 // have to ignore at this point
             }
@@ -1180,9 +1180,8 @@ proc ::tsp::lang_interp_define {compUnitDict} {
 proc ::tsp::lang_builtin_refs {} {
     set result ""
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
-        if {[info procs ::tsp::gen_command_$cmd] ne "::tsp::gen_command_$cmd"} {
-            append result "    public static final Command builtin_$cmd = new tcl.lang.cmd.[string totitle $cmd]Cmd();\n"
-        }
+        if {[info procs $cmd] eq $cmd || [string match jacl* $cmd]} continue
+        append result "    public static final Command builtin_$cmd = new tcl.lang.cmd.[string totitle $cmd]Cmd();\n"
     }
     return $result
 }
@@ -1285,26 +1284,24 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
             #FIXME: code a ::tsp::get_shadow_var proc
             set interpVar [::tsp::get_tmpvar compUnit var $var]
         }
-        append buf "// interp.getVar $var\n"
+        append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
         append buf [::tsp::lang_safe_release $interpVar]
-        append buf "try {\n"
+        append buf "try \{\n"
         append buf "    $interpVar = null;\n"
         append buf "    $interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
-        append buf "} catch (TclException te) {\n"
+        append buf "\} catch (TclException te) \{\n"
         append buf "    // missing variable checked outside of try/catch\n"
-        append buf "}\n"
-        append buf "if ($interpVar != null) {\n"
-        append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1] 
+        append buf "\}\n"
+
         #FIXME: in some cases, an empty var is expected, such as upvar or global and the global
         #       doesn't yet exists.  other cases, such as a volatile spill/load is a likely error (??)
         #       add a flag for var exists checking 
-        if {$type eq "var"} {
-            append buf "\n\} else {\n"
-            append buf "    [::tsp::lang_new_var_string $pre$var \"\"]"
-            append buf "    [::tsp::lang_preserve $pre$var]"
-            append buf "}\n"
-        }
-        append buf "\n}\n"
+
+        append buf "if ($interpVar != null) \{\n"
+        append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1] 
+        append buf "\n\} else \{\n"
+        append buf [::tsp::indent compUnit  [::tsp::lang_assign_empty_zero $pre$var $type] 1]
+        append buf "\}\n"
     }
     return $buf
 }

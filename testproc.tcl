@@ -44,6 +44,13 @@ source tsp.tcl
 }
 
 
+source tsp.tcl
+set bing yeah
+::tsp::proc foo3 {} {
+  #::tsp::procdef returns: void args:
+  global bing
+  puts $bing
+}
 
 
 

@@ -154,7 +154,7 @@ proc ::tsp::gen_command_variable {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     set len [llength $tree]
-    if {$len < 2 {
+    if {$len < 2} {
         ::tsp::addError compUnit "wrong # args: should be \"variable ?name value? name ?value?\""
         return [list void "" ""]
     }
