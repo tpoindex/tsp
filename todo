@@ -1,4 +1,5 @@
-FIX: return command should spill vars from finalSpill, as also as the end of the procedure
+FIX: global/upvar/variable - if loading directly into var, should preserve(), and not go thru checking
+FIX: perhaps put the load_vars error handling into the finally block
 
 
 
