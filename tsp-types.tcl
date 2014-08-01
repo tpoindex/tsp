@@ -111,7 +111,7 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
                     ::tsp::addError compUnit "::tsp::volatile pragma not a proper list: $line"
                 } else {
                     set vars [lrange $line 1 end]
-                    dict set compUnit volatile $vars
+                    ::tsp::append_volatile_list compUnit $vars
                 }
             }
             
@@ -142,6 +142,19 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
         dict set compUnit lineNum [incr lineNum]
     } 
 }
+
+
+#########################################################
+# add variables to volatile list
+# ensure variables are not repeated
+
+proc ::tsp::append_volatile_list {compUnitDict varList} {
+    upvar $compUnitDict compUnit
+    set vlist [dict get $compUnit volatile]
+    set vlist [lsort -unique [concat $vlist $varList]]
+    dict set compUnit volatile $vlist
+}
+
 
 #########################################################
 # parse a proc definition

@@ -79,6 +79,8 @@ proc ::tsp::parse_body {compUnitDict range} {
             append gencode $cmdCode
 
             # reload volatile variables that were spilled into tcl
+            # get volatile list length again, could have been modified!
+            set volatileLen [llength $volatile]
             if {$volatileLen > 0} {
                 append gencode [::tsp::gen_load_vars compUnit $volatile]
             }

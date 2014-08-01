@@ -1,6 +1,18 @@
 
 #  var scope commands
-#  upvar, global, variable
+#  upvar, global, variable, unset (unset causes error)
+
+
+#########################################################
+# generate code for "unset" command (assumed to be first parse word)
+# currently, this causes a compile error
+# note that if programmer really wants unset, use "::unset varName ?... varName?"
+#
+proc ::tsp::gen_command_unset {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+    ::tsp::addError compUnit "unset command currently not supported"
+    return [list void "" ""]
+}
 
 
 #########################################################

@@ -1,6 +1,8 @@
-FIX: global/upvar/variable - if loading directly into var, should preserve(), and not go thru checking
-FIX: perhaps put the load_vars error handling into the finally block
-
+0. what to do with unset?  - probably generate a compile error.
+0. add 'preparse' so that command with vars that need to be volaile are spilled and loaded..
+   prob not needed.  just have commands that use 'varname' check if varname was in volatile list, if
+   not, then spill var, and then add to volatile list in order to have it reloaded.
+0. check that all "var" typed user variables are initialized to ""??
 
 
 
@@ -22,10 +24,9 @@ FIX: perhaps put the load_vars error handling into the finally block
 5. DONE-(fixed in genereted code) interp.newCallFrame() needs to be public, and/or add new CallFrame constructor to hook into interp
    with minimal fuss.
 
-6. parsing ::tsp::procdef - allow missing 'args:' if arglist is empty
+6. parsing ::tsp::procdef - allow missing 'args:' if arglist is empty.  Or, should we force empty args as "void"??
 
 
-20. implement control commands: foreach, switch, case, catch, upvar 
 
 30. implement: expr list, lxxxxx, string, concat, append, join
 

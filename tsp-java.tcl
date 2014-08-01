@@ -663,6 +663,16 @@ proc ::tsp::lang_append_string {targetVarName source} {
 
 
 ##############################################
+# append a string to a var
+# source should either be a native string variable or
+# quoted string constant
+#
+proc ::tsp::lang_append_var {targetVarName source} {
+    return "TclString.append($targetVarName, $source);\n"
+}
+
+
+##############################################
 # allocate a TclObject objv array
 #
 proc ::tsp::lang_alloc_objv_array {size} {
@@ -710,7 +720,15 @@ proc ::tsp::lang_alloc_objv_list {} {
 # append a TclObject var to a TclObject objv list
 #
 proc ::tsp::lang_append_objv {obj} {
-    return "TclList.append(null, argObjvList, $obj);\n"
+    return "TclList.append(interp, argObjvList, $obj);\n"
+}
+
+
+##############################################
+# append a TclObject var to list
+#
+proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
+    return "TclList.append(interp, $targetVarname, $sourceVarName);\n"
 }
 
 
@@ -1243,7 +1261,13 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             set pre __
         }
         append buf "// interp.setVar $var \n"
-        append buf "interp.setVar([::tsp::lang_quote_string  $var], null, $pre$var, 0);\n"
+        if {$type eq "var"} {
+            append buf "if ($pre$var != null) \{\n"
+            append buf "    interp.setVar([::tsp::lang_quote_string  $var], null, $pre$var, 0);\n"
+            append buf "\}\n"
+        } else {
+            append buf "interp.setVar([::tsp::lang_quote_string  $var], null, $pre$var, 0);\n"
+        }
     }
     return $buf
 }
@@ -1279,29 +1303,30 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
         }
         if {$type eq "var"} {
             set interpVar $pre$var
+            set isvar 1
         } else {
             #FIXME: use dirty checking, reset shadowed vars as not dirty here
             #FIXME: code a ::tsp::get_shadow_var proc
             set interpVar [::tsp::get_tmpvar compUnit var $var]
+            set isvar 0
         }
         append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
         append buf [::tsp::lang_safe_release $interpVar]
         append buf "try \{\n"
         append buf "    $interpVar = null;\n"
         append buf "    $interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
+        append buf "    [::tsp::lang_preserve $interpVar]"
+        if {! $isvar} {
+            # for not-var types, convert into native type
+            append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1]
+        } 
         append buf "\} catch (TclException te) \{\n"
-        append buf "    // missing variable checked outside of try/catch\n"
+        append buf "    // failed to get interp var, set native vars as a empty (var types are left as null)\n"
+        if {! $isvar} {
+            append buf [::tsp::indent compUnit  [::tsp::lang_assign_empty_zero $pre$var $type] 1]
+        }
         append buf "\}\n"
 
-        #FIXME: in some cases, an empty var is expected, such as upvar or global and the global
-        #       doesn't yet exists.  other cases, such as a volatile spill/load is a likely error (??)
-        #       add a flag for var exists checking 
-
-        append buf "if ($interpVar != null) \{\n"
-        append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1] 
-        append buf "\n\} else \{\n"
-        append buf [::tsp::indent compUnit  [::tsp::lang_assign_empty_zero $pre$var $type] 1]
-        append buf "\}\n"
     }
     return $buf
 }

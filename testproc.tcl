@@ -48,8 +48,9 @@ source tsp.tcl
 set bing yeah
 ::tsp::proc foo3 {} {
   #::tsp::procdef returns: void args:
-  global bing
-  puts $bing
+  upvar #0 bing foo
+  puts $foo
+  set foo didit!
 }
 
 
