@@ -39,10 +39,10 @@ proc __initCompUnit {body} {
     ::tsp::isValidIdent @!abc
 } -result {0}
 
-::tcltest::test isValidIdent-2 {invalid ident 2} -setup {
+::tcltest::test isValidIdent-2 {valid ident 2} -setup {
 } -body {
     ::tsp::isValidIdent __foo
-} -result {0}
+} -result {1}
 
 ::tcltest::test isValidIdent-3 {valid ident 3} -setup {
 } -body {
@@ -191,8 +191,8 @@ proc __initCompUnit {body} {
     }
     set compUnit [__initCompUnit $body]
     ::tsp::parse_pragma compUnit $body
-    dict get $compUnit volatile
-} -result {foo bar}
+    lsort [dict get $compUnit volatile]
+} -result {bar foo}
 
 ::tcltest::test parse_pragma-3 {parse_pragma-3} -setup {
 } -body {

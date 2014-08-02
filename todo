@@ -2,7 +2,6 @@
 0. add 'preparse' so that command with vars that need to be volaile are spilled and loaded..
    prob not needed.  just have commands that use 'varname' check if varname was in volatile list, if
    not, then spill var, and then add to volatile list in order to have it reloaded.
-0. check that all "var" typed user variables are initialized to ""??
 
 
 

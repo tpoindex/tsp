@@ -324,13 +324,13 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { "foo" == "bar" }
-} -result {boolean {TclFunc.StringEq("foo", "bar")}}
+} -result {boolean {TspFunc.StringEq("foo", "bar")}}
 
 ::tcltest::test binary-string-ops-literals-2 {binary string eq ne with string} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { "foo" ne "bar" }
-} -result {boolean {TclFunc.StringNe("foo", "bar")}}
+} -result {boolean {TspFunc.StringNe("foo", "bar")}}
 
 ::tcltest::test binary-string-ops-literals-3 {binary string eq ne with mixed} -setup {
     set compUnit [mkVars]
@@ -352,13 +352,13 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { $foo == $bar }
-} -result {boolean {TclFunc.StringEq(__foo, __bar)}}
+} -result {boolean {TspFunc.StringEq(__foo, __bar)}}
 
 ::tcltest::test binary-string-ops-vars-2 {binary string eq ne with string} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { $foo ne $bar }
-} -result {boolean {TclFunc.StringNe(__foo, __bar)}}
+} -result {boolean {TspFunc.StringNe(__foo, __bar)}}
 
 ::tcltest::test binary-string-ops-vars-3 {binary string eq ne with mixed} -setup {
     set compUnit [mkVars]
@@ -393,7 +393,7 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { 5 % 3 }
-} -result {int {TclFunc.IntMod(5, 3)}}
+} -result {int {TspFunc.IntMod(5, 3)}}
 
 ::tcltest::test binary-integer-ops-literals-4 {binary integer ops % with mixed} -setup {
     set compUnit [mkVars]
@@ -421,7 +421,7 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { $i % $j }
-} -result {int {TclFunc.IntMod(__i, __j)}}
+} -result {int {TspFunc.IntMod(__i, __j)}}
 
 ::tcltest::test binary-integer-ops-vars-4 {binary integer ops % with mixed} -setup {
     set compUnit [mkVars]
@@ -466,25 +466,25 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { 4 / 2 }
-} -result {int {TclFunc.IntDiv(4, 2)}}
+} -result {int {TspFunc.IntDiv(4, 2)}}
 
 ::tcltest::test binary-mixed-ops-literals-6 {binary mixed ops / with int boolean} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { 6 / (1==1) }
-} -result {int {TclFunc.IntDiv(6, ((1 == 1) ? 1 : 0))}}
+} -result {int {TspFunc.IntDiv(6, ((1 == 1) ? 1 : 0))}}
 
 ::tcltest::test binary-mixed-ops-literals-7 {binary mixed ops / with int double} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { 6 / 3.4 }
-} -result {double {TclFunc.DoubleDiv(6, 3.4)}}
+} -result {double {TspFunc.DoubleDiv(6, 3.4)}}
 
 ::tcltest::test binary-mixed-ops-literals-8 {binary mixed ops / with double double} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { 6.1 / 3.4 }
-} -result {double {TclFunc.DoubleDiv(6.1, 3.4)}}
+} -result {double {TspFunc.DoubleDiv(6.1, 3.4)}}
 
 
 ## binary-mixed-ops-vars-  #################################################
@@ -498,13 +498,13 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { $i / $j }
-} -result {int {TclFunc.IntDiv(__i, __j)}}
+} -result {int {TspFunc.IntDiv(__i, __j)}}
 
 ::tcltest::test binary-mixed-ops-vars-2 {binary mixed ops / with int double} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { $i / $z }
-} -result {double {TclFunc.DoubleDiv(__i, __z)}}
+} -result {double {TspFunc.DoubleDiv(__i, __z)}}
 
 
 
@@ -566,7 +566,7 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { rand() }
-} -result {double TclFunc.Rand()}
+} -result {double TspFunc.Rand()}
 
 ::tcltest::test func-zero-args-2 {function with zero args} -setup {
     set compUnit [mkVars]
@@ -580,25 +580,25 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { srand(2.3) }
-} -result {double TclFunc.IntSrand((int)2.3)}
+} -result {double TspFunc.IntSrand((int)2.3)}
 
 ::tcltest::test func-one-arg-2 {function with one arg abs int} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { abs(-3) }
-} -result {int TclFunc.IntAbs((-(3)))}
+} -result {int TspFunc.IntAbs((-(3)))}
 
 ::tcltest::test func-one-arg-3 {function with one arg abs double} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { abs(-3.3) }
-} -result {double TclFunc.DoubleAbs((-(3.3)))}
+} -result {double TspFunc.DoubleAbs((-(3.3)))}
 
 ::tcltest::test func-one-arg-4 {function with one args tan} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { tan(2) }
-} -result {double TclFunc.Tan(2)}
+} -result {double TspFunc.Tan(2)}
 
 ::tcltest::test func-one-arg-5 {function with one args int int} -setup {
     set compUnit [mkVars]
@@ -634,7 +634,7 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { round(3.2) }
-} -result {int TclFunc.Round(3.2)}
+} -result {int TspFunc.Round(3.2)}
 
 
 ## func-two-args-  #################################################
@@ -642,31 +642,31 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { atan2(0.3,3.4 ) }
-} -result {double {TclFunc.Atan2(0.3, 3.4)}}
+} -result {double {TspFunc.Atan2(0.3, 3.4)}}
 
 ::tcltest::test func-two-args-2 {function with two args pow int int} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { pow(3,4) }
-} -result {double {TclFunc.DoubleIntPow((double)3, 4)}}
+} -result {double {TspFunc.DoubleIntPow((double)3, 4)}}
 
 ::tcltest::test func-two-args-3 {function with two args pow double double} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { pow(3.3,4.4) }
-} -result {double {TclFunc.DoublePow(3.3, 4.4)}}
+} -result {double {TspFunc.DoublePow(3.3, 4.4)}}
 
 ::tcltest::test func-two-args-4 {function with two args pow double int} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { pow(3.3,4) }
-} -result {double {TclFunc.DoubleIntPow(3.3, 4)}}
+} -result {double {TspFunc.DoubleIntPow(3.3, 4)}}
 
 ::tcltest::test func-two-args-5 {function with two args pow int double} -setup {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileExpr compUnit { pow(3,4.4) }
-} -result {double {TclFunc.DoublePow((double)3, 4.4)}}
+} -result {double {TspFunc.DoublePow((double)3, 4.4)}}
 
 
 ##################################################################
@@ -683,7 +683,7 @@ proc mkVars {args} {
     set compUnit [mkVars]
 } -body {
     ::tsp::compileBooleanExpr compUnit { $i % $j }
-} -result {boolean {TclFunc.IntMod(__i, __j) != 0 ? 1 : 0}}
+} -result {boolean {TspFunc.IntMod(__i, __j) != 0 ? true : false}}
 
 ::tcltest::test compileBoolean-3 {compile as boolean with string} -setup {
     set compUnit [mkVars]
