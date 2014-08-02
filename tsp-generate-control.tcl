@@ -368,6 +368,18 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     ::tsp::copyVars compUnit dummyUnit
     set argCode [::tsp::gen_command_set dummyUnit $setTree]
     set code [lindex $argCode 2]
+
+    # newer version
+    set argVar [::tsp::get_tmpvar compUnit $returnType]
+    set argVarComponents [list text $argVar $argVar]
+    set returnNodeComponents [::tsp::parse_word compUnit [lindex $tree 1]]
+    set returnNodeType [lindex [lindex $returnNodeComponents 0] 0]
+    if {$returnNodeType eq "invalid" || $returnNodeType eq "command"} {
+        ::tsp::addError compUnit "return argument parsed as \"$returnNodeType\""
+        return [list void "" ""]
+    }
+    set code [lindex [::tsp::produce_set compUnit $argVarComponents $returnNodeComponents] 2]
+
     # vi return arg is a var, preserve it from being disposed/freed in this method/function
     if {$returnType eq "var"} {
         append code [::tsp::lang_preserve $argVar]\n
