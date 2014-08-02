@@ -34,7 +34,7 @@ proc __initCompUnit {body args} {
     lassign [parse command $body {0 end}] x x x tree
     ::tsp::gen_command_set compUnit $tree
     ::tsp::getErrors compUnit
-} -result {{1: set target is not a scalar or array variable name: "[a]"} {1: set arg 1 unexpected target type: "command"}}
+} -result {{1: set target is not a scalar or array variable name: "[a]"}}
 
 ::tcltest::test generate-set-error-3 {generate set error command word as var} -setup {
 } -body {

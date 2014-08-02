@@ -81,6 +81,21 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
         }
     }
 
+    if {$errors} {
+        return [list void "" ""]
+    }
+    return [::tsp::produce_set compUnit $targetComponents $sourceComponents]
+}
+
+
+
+#########################################################
+# produce the set command from target and source components (from parse_word)
+#
+proc ::tsp::produce_set {compUnitDict targetComponents sourceComponents} {
+    upvar $compUnitDict compUnit
+    set errors 0
+
     # determine target variable name a type
     set targetComponent [lindex $targetComponents 0]
     set targetWordType [lindex $targetComponent 0]
