@@ -1216,7 +1216,7 @@ proc ::tsp::lang_expr {exprAssignment} {
     append result "    String msg = te.getMessage();\n"
     append result "    if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {\n"
     append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DIVZERO {divide by zero}\"));\n"
-    append result "        throw new TclException(interp, \"divide by zero\")\n"
+    append result "        throw new TclException(interp, \"divide by zero\");\n"
     append result "    } else if (msg != null && msg.equals(TspFunc.DOMAIN_ERROR)) {\n"
     append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DOMAIN {domain error: argument not in valid range}\"));\n"
     append result "        throw new TclException(interp, \"domain error: argument not in valid range\");\n"
@@ -1224,7 +1224,7 @@ proc ::tsp::lang_expr {exprAssignment} {
     append result "        throw te;\n"
     append result "   }\n"
     append result "} catch (Exception ex) {\n"
-    append result "   throw new TclException(interp, \"expr caught Java Exception: \" + ex.getMessage())\n"
+    append result "   throw new TclException(interp, \"expr caught Java Exception: \" + ex.getMessage());\n"
     append result "}\n"
     append result "\n"
     return $result

@@ -371,23 +371,24 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
 
     # newer version
     set argVar [::tsp::get_tmpvar compUnit $returnType]
-    set argVarComponents [list text $argVar $argVar]
+    set argVarComponents [list [list text $argVar $argVar]]
     set returnNodeComponents [::tsp::parse_word compUnit [lindex $tree 1]]
     set returnNodeType [lindex [lindex $returnNodeComponents 0] 0]
     if {$returnNodeType eq "invalid" || $returnNodeType eq "command"} {
         ::tsp::addError compUnit "return argument parsed as \"$returnNodeType\""
         return [list void "" ""]
     }
-    set code [lindex [::tsp::produce_set compUnit $argVarComponents $returnNodeComponents] 2]
+    set setTree ""  ;# tree only needed for command parse types, so ok to make it empty here
+    set code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $returnNodeComponents] 2]
 
     # vi return arg is a var, preserve it from being disposed/freed in this method/function
     if {$returnType eq "var"} {
         append code [::tsp::lang_preserve $argVar]\n
     }
     append result "\n/***** ::tsp::gen_command_return */\n"
-    append result "/* spill vars back into interp */\n
-    append result ::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 1]
-    append result "/* return proc value */\n
+    append result "/* spill vars back into interp */\n"
+    append result [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 1]
+    append result "/* return proc value */\n"
     append result "\n${code}return $argVar;\n"
     return [list void "" $result]
 }

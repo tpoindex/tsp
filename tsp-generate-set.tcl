@@ -84,7 +84,7 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
     if {$errors} {
         return [list void "" ""]
     }
-    return [::tsp::produce_set compUnit $targetComponents $sourceComponents]
+    return [::tsp::produce_set compUnit $tree $targetComponents $sourceComponents]
 }
 
 
@@ -92,7 +92,7 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
 #########################################################
 # produce the set command from target and source components (from parse_word)
 #
-proc ::tsp::produce_set {compUnitDict targetComponents sourceComponents} {
+proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
     upvar $compUnitDict compUnit
     set errors 0
 

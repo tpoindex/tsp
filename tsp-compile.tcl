@@ -61,6 +61,7 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     set result ""
     set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} result]
+    set errInf $::errorInfo
 
     if {$rc != 0} {
         if {$result eq "nocompile"} {
@@ -68,7 +69,7 @@ proc ::tsp::compile_proc {file name procargs body} {
             return
         } else {
             # some other error
-            error "parse_body error: $result"
+            error "parse_body error: $result\ncaused by:\n$errInf"
         }
     }
 
