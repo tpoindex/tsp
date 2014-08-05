@@ -58,7 +58,7 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     if {[llength $tree] < 2} {
-        ::tsp::addError compUnit "wrong # args: should be \"append varName ?value value ...?\""
+        ::tsp::addError compUnit "wrong # args: should be \"lappend varName ?value value ...?\""
         return [list void "" ""]
     }
 
@@ -111,6 +111,70 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
 }
 
 
+
+#########################################################
+# generate code for "llength" command (assumed to be first parse word)
+# varName must be a var type; string, int, boolean, double cause compile error
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_llength {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] != 2} {
+        ::tsp::addError compUnit "wrong # args: should be \"llength list\""
+        return [list void "" ""]
+    }
+
+    set code "\n/***** ::tsp::gen_command_llength */\n"
+    
+    set argComponents [::tsp::parse_word compUnit [lindex $tree 1]]
+    set argComponentType [lindex [lindex $argComponents 0] 0]
+
+    if {$argComponentType eq "invalid" || $argComponentType eq "command"} {
+        ::tsp::addError compUnit "invalid argument for llength, parsed as: $argComponentType"
+        return [list void "" ""]
+    }
+    if {$argComponentType eq "scalar"} {
+        set argVar [lindex [lindex $argComponents 0] 1]
+        set argType [::tsp::getVarType compUnit $argVar]
+        if {$argType eq "boolean" || $argType eq "int" || $argType eq "double"} {
+            # these have a length of 1 :-)
+            append code "/* llength of $argType : 1*/\n"
+            return [list int 1 $code]
+        } elseif {$argType eq "array"} {
+            ::tsp::addError compUnit "llength argument must be type var, defined as : $argType"
+            return [list void "" ""]
+        } elseif {$argType eq "undefined"} {
+            ::tsp::addWarning compUnit "llength argument \"$argVar\" is undefined"
+            return [list void "" ""]
+        } elseif {$argType eq "string"} {
+            # conver the string into a tmp var
+            set argTmpVar [::tsp::get_tmpvar compUnit var]
+            append code [::tsp::lang_assign_var_string $argTmpVar $argVar]
+            set argVar $argTmpVar
+        } elseif {$argType eq "var"} {
+            set argVar __$argVar
+        } else {
+            error "llength: unexpected type: $argType"
+        }
+        
+    } else {
+        # it's text, or an array reference, convert into a var
+        set argTmpVar [::tsp::get_tmpvar compUnit var]
+        set argTmpComponents [list [list scalar $argTmpVar]]
+
+        set setTree ""
+        append code [lindex [::tsp::produce_set compUnit $setTree $argTmpComponents $argComponents] 2]
+
+        set argVar $argTmpVar
+    }
+
+    set returnVar [::tsp::get_tmpvar compUnit int]
+    append code [::tsp::lang_llength $returnVar $argVar \
+        [::tsp::lang_quote_string [::tsp::gen_runtime_error compUnit "llength: can't convert argument to a list"]]]
+    return [list int $returnVar $code]
+
+}
 
 
 

@@ -733,6 +733,20 @@ proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
 
 
 ##############################################
+# llength TclObject
+#
+proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
+    append code "// lang_llength\n"
+    append code "try {\n"
+    append code "    $returnVar = TclList.getLength(interp, $argVar);\n"
+    append code "} catch (TclException te) {\n"
+    append code "    throw new TclException(interp, $errMsg);\n"
+    append code "}\n"
+    return $code
+}
+
+
+##############################################
 # invoke a tcl command via the interp
 #  assumes argObjvArray has been constructed
 # NOTE - return assign var as list of {cmdResultObj istmp}
