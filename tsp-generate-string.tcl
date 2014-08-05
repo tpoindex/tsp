@@ -71,8 +71,10 @@ proc ::tsp::gen_command_scan {compUnitDict tree} {
         return [list void "" ""]
     }
 
-#FIXME - compile scan for simple cases of %d %ld $Ld %f %e %g
-# current impl just invokes tcl scan
+#FIXME - compile scan for simple cases of %d %ld $Ld %f %e %g and one var
+
+#FIXME: check for vars to be reloaded on command completion, just 
+#        add to volatile list. no need to spill first.
 
     return [::tsp::gen_invoke_tcl compUnit $tree]
 }

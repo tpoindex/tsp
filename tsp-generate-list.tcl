@@ -81,6 +81,13 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         append code [::tsp::lang_assign_empty_zero $varname var]
     }
 
+    # if varname was not previously included as volatile, spill variable here and add to volatile list
+    if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
+        append code [::tsp::lang_spill_vars compUnit $varname] \n
+        ::tsp::append_volatile_list compUnit $varname
+    }
+
+
     # append to var
     set argVar [::tsp::get_tmpvar compUnit var]
     set argVarComponents [list [list text $argVar $argVar]]
