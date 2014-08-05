@@ -91,6 +91,7 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
 
 #########################################################
 # produce the set command from target and source components (from parse_word)
+# note - tree can be empty when sourceComponents is not a [command]
 #
 proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
     upvar $compUnitDict compUnit

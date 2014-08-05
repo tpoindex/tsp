@@ -1212,7 +1212,7 @@ proc ::tsp::lang_builtin_refs {} {
 proc ::tsp::lang_expr {exprAssignment} {
     append result "try {\n"
     append result "    $exprAssignment"
-    append result "} catch (TclException te) {\n"
+    append result "\n} catch (TclException te) {\n"
     append result "    String msg = te.getMessage();\n"
     append result "    if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {\n"
     append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DIVZERO {divide by zero}\"));\n"

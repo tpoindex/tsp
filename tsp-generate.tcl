@@ -245,17 +245,17 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
         # else arg is different type, or is var, or is array, or is a constant, so
         # we assign into a tmp var 
 
-        set argrange [lindex $node 1]
-        lassign $argrange start end
-        set end [expr {$start + $end - 1}]
-        set argtext [string range $body $start $end]
         set argVar [::tsp::get_tmpvar compUnit $argType]
-        set setBody "set $argVar $argtext"
-        set dummyUnit [::tsp::init_compunit dummy dummy "" $setBody]
-        lassign [parse command $setBody {0 end}] x x x setTree
-        ::tsp::copyVars compUnit dummyUnit
-        set argCode [::tsp::gen_command_set dummyUnit $setTree]
-        append result [lindex $argCode 2]
+        set argVarComponents [list [list text $argVar $argVar]]
+        set appendNodeComponents [::tsp::parse_word compUnit $node]
+        set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
+        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            return [list void "" ""]
+        }
+        set setTree ""
+        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
+
         append result [::tsp::lang_assign_objv $idx $argVar]
         lappend argVarList $argVar
         incr idx
@@ -279,18 +279,17 @@ proc ::tsp::gen_objv_array {compUnitDict argTree} {
 
     set idx 0
     foreach node $argTree {
-        set argrange [lindex $node 1]
-        lassign $argrange start end
-        set end [expr {$start + $end - 1}]
-        set argtext [string range $body $start $end]
         set argVar [::tsp::get_tmpvar compUnit var]
-        set setBody "set $argVar $argtext"
-        set dummyUnit [::tsp::init_compunit dummy dummy "" $setBody]
-        lassign [parse command $setBody {0 end}] x x x setTree
-        ::tsp::copyVars compUnit dummyUnit
-        set argCode [::tsp::gen_command_set dummyUnit $setTree]
-        append result [lindex $argCode 2]
-        #append result [::tsp::preserve $argVar]
+        set argVarComponents [list [list text $argVar $argVar]]
+        set appendNodeComponents [::tsp::parse_word compUnit $node]
+        set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
+        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            return [list void "" ""]
+        }
+        set setTree ""
+        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
+
         append result [::tsp::lang_assign_objv $idx $argVar]
         incr idx
     }
@@ -313,19 +312,17 @@ proc ::tsp::gen_objv_list {compUnitDict argTree} {
     append result [::tsp::lang_alloc_objv_list]
 
     foreach node $argTree {
-        set argrange [lindex $node 1]
-        lassign $argrange start end
-        set end [expr {$start + $end - 1}]
-        set argtext [string range $body $start $end]
         set argVar [::tsp::get_tmpvar compUnit var]
-        set setBody "set $argVar $argtext"
-        set dummyUnit [::tsp::init_compunit dummy dummy "" $setBody]
-        lassign [parse command $setBody {0 end}] x x x setTree
-        ::tsp::copyVars compUnit dummyUnit
-        ::tsp::setVarType dummyUnit $argVar var
-        set argCode [::tsp::gen_command_set dummyUnit $setTree]
-        append result [lindex $argCode 2]
-        #append result [::tsp::preserve $argVar]
+        set argVarComponents [list [list text $argVar $argVar]]
+        set appendNodeComponents [::tsp::parse_word compUnit $node]
+        set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
+        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            return [list void "" ""]
+        }
+        set setTree ""
+        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
+
         append result [::tsp::lang_append_objv $argVar]
     }
     return $result

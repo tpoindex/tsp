@@ -353,23 +353,8 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     }
 
 
-    #FIXME: should probably check for proper return type, literal or variable, and
-    #       not try to always assign into a temp var
-    set body [dict get $compUnit body]
-    set node [lindex $tree 1]
-    set argrange [lindex $node 1]
-    lassign $argrange start end
-    set end [expr {$start + $end - 1}]
-    set argtext [string range $body $start $end]
-    set argVar [::tsp::get_tmpvar compUnit $returnType]
-    set setBody "set $argVar $argtext"
-    set dummyUnit [::tsp::init_compunit dummy dummy "" $setBody]
-    lassign [parse command $setBody {0 end}] x x x setTree
-    ::tsp::copyVars compUnit dummyUnit
-    set argCode [::tsp::gen_command_set dummyUnit $setTree]
-    set code [lindex $argCode 2]
-
-    # newer version
+    # generate assignment to a tmp var that will be the return type
+    # FIXME: probably should just return the return argument when it's the same type
     set argVar [::tsp::get_tmpvar compUnit $returnType]
     set argVarComponents [list [list text $argVar $argVar]]
     set returnNodeComponents [::tsp::parse_word compUnit [lindex $tree 1]]

@@ -81,21 +81,22 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         append code [::tsp::lang_assign_empty_zero $varname var]
     }
 
-    set tmpvar [::tsp::get_tmpvar compUnit var]
-    set body [dict get $compUnit body]
+    # append to var
+    set argVar [::tsp::get_tmpvar compUnit var]
+    set argVarComponents [list [list text $argVar $argVar]]
     foreach node [lrange $tree 2 end] {
-        # append to var
-        set argrange [lindex $node 1]
-        lassign $argrange start end
-        set end [expr {$start + $end - 1}]
-        set argtext [string range $body $start $end]
-        set setBody "set $tmpvar $argtext"
-        set dummyUnit [::tsp::init_compunit dummy dummy "" $setBody]
-        lassign [parse command $setBody {0 end}] x x x setTree
-        ::tsp::copyVars compUnit dummyUnit
-        set setCode [::tsp::gen_command_set dummyUnit $setTree]
-        append code [lindex $setCode 2]
-        append code [::tsp::lang_lappend_var  __$varname $tmpvar]
+
+        # assign arg into a tmp var type
+        set appendNodeComponents [::tsp::parse_word compUnit $node]
+        set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
+        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            return [list void "" ""]
+        }
+        set setTree ""
+        append code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
+
+        append code [::tsp::lang_lappend_var  __$varname $argVar]
     }
     
     # return the value
