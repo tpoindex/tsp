@@ -212,7 +212,6 @@ proc ::tsp::gen_invoke_tcl {compUnitDict tree} {
 #
 proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
     upvar $compUnitDict compUnit
-    set body [dict get $compUnit body]
     set result ""
     set argVarList [list]
     set preserveVarList [list]
@@ -270,7 +269,6 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
 #
 proc ::tsp::gen_objv_array {compUnitDict argTree} {
     upvar $compUnitDict compUnit
-    set body [dict get $compUnit body]
     set result ""
     ::tsp::reset_tmpvarsUsed compUnit
     set max [llength $argTree]
@@ -302,17 +300,16 @@ proc ::tsp::gen_objv_array {compUnitDict argTree} {
 # parse argTree is the command list in raw parse tree form
 # returns code
 #
-proc ::tsp::gen_objv_list {compUnitDict argTree} {
+proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
     upvar $compUnitDict compUnit
-    set body [dict get $compUnit body]
     set result ""
-    ::tsp::reset_tmpvarsUsed compUnit
     set max [llength $argTree]
     
-    append result [::tsp::lang_alloc_objv_list]
+    append result [::tsp::lang_alloc_objv_list $varName]
+    set argVar [::tsp::get_tmpvar compUnit var]
 
     foreach node $argTree {
-        set argVar [::tsp::get_tmpvar compUnit var]
+        append result [::tsp::lang_safe_release $argVar]
         set argVarComponents [list [list text $argVar $argVar]]
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
@@ -323,7 +320,7 @@ proc ::tsp::gen_objv_list {compUnitDict argTree} {
         set setTree ""
         append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
-        append result [::tsp::lang_append_objv $argVar]
+        append result [::tsp::lang_lappend_var $varName $argVar]
     }
     return $result
 }

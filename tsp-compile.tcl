@@ -61,7 +61,7 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     set result ""
     set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} result]
-    set errInf $::errorInfo
+    set errInf $result
 
     if {$rc != 0} {
         if {$result eq "nocompile"} {
@@ -80,14 +80,14 @@ proc ::tsp::compile_proc {file name procargs body} {
     if {$numErrors > 0 } {
         if {$compileResult eq "assertcompile"} {
             ::tsp::logErrorsWarnings compUnit
-            error "assertcompile: proc $name, but resulted in errors:\n$errors"
+            error "assertcompile: proc $name, but resulted in errors:\n$errors\n$errInf"
         } elseif {$compileResult eq "nocompile"} {
             # pragma says not to compile this proc, so no big deal
             # don't record any errors or warnings
             uplevel [list ::proc $name $procargs $body]
         } else {
             ::tsp::logErrorsWarnings compUnit
-            error "assertcompile: proc $name, but resulted in errors:\n$errors"
+            uplevel [list ::proc $name $procargs $body]
         }
     } else {
         # parse_body ok, let's see if we can compile it

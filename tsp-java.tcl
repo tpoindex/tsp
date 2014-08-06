@@ -711,16 +711,8 @@ proc ::tsp::lang_invoke_builtin {cmd} {
 ##############################################
 # allocate a TclObject objv list
 #
-proc ::tsp::lang_alloc_objv_list {} {
-    return "argObjvList = TclList.newInstance();\n"
-}
-
-
-##############################################
-# append a TclObject var to a TclObject objv list
-#
-proc ::tsp::lang_append_objv {obj} {
-    return "TclList.append(interp, argObjvList, $obj);\n"
+proc ::tsp::lang_alloc_objv_list {varName} {
+    return "$varName = TclList.newInstance();\n"
 }
 
 
@@ -733,12 +725,28 @@ proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
 
 
 ##############################################
-# llength TclObject
+# llength TclObject var
 #
 proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
+    #FIXME: should we just let getLength() provide the error message?
     append code "// lang_llength\n"
     append code "try {\n"
     append code "    $returnVar = TclList.getLength(interp, $argVar);\n"
+    append code "} catch (TclException te) {\n"
+    append code "    throw new TclException(interp, $errMsg);\n"
+    append code "}\n"
+    return $code
+}
+
+
+##############################################
+# lindex TclObject var
+#
+proc ::tsp::lang_lindex {returnVar argVar idx {errMsg {""}}} {
+    #FIXME: should we just let getLength() provide the error message?
+    append code "// lang_llength\n"
+    append code "try {\n"
+    append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
     append code "} catch (TclException te) {\n"
     append code "    throw new TclException(interp, $errMsg);\n"
     append code "}\n"

@@ -91,8 +91,8 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
     # append to var
     set argVar [::tsp::get_tmpvar compUnit var]
     set argVarComponents [list [list text $argVar $argVar]]
-    foreach node [lrange $tree 2 end] {
 
+    foreach node [lrange $tree 2 end] {
         # assign arg into a tmp var type
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
@@ -148,7 +148,7 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
             ::tsp::addWarning compUnit "llength argument \"$argVar\" is undefined"
             return [list void "" ""]
         } elseif {$argType eq "string"} {
-            # conver the string into a tmp var
+            # convert the string into a tmp var
             set argTmpVar [::tsp::get_tmpvar compUnit var]
             append code [::tsp::lang_assign_var_string $argTmpVar $argVar]
             set argVar $argTmpVar
@@ -161,7 +161,7 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
     } else {
         # it's text, or an array reference, convert into a var
         set argTmpVar [::tsp::get_tmpvar compUnit var]
-        set argTmpComponents [list [list scalar $argTmpVar]]
+        set argTmpComponents [list [list text $argTmpVar $argTmpVar]]
 
         set setTree ""
         append code [lindex [::tsp::produce_set compUnit $setTree $argTmpComponents $argComponents] 2]
@@ -177,6 +177,98 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
 }
 
 
+#########################################################
+# generate code for "list" command (assumed to be first parse word)
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_list {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    set code "\n/***** ::tsp::gen_command_list */\n"
+
+    set varName [::tsp::get_tmpvar compUnit var]
+    append code [::tsp::lang_safe_release $varName]
+    append code [::tsp::gen_objv_list compUnit [lrange $tree 1 end] $varName]
+    return [list var $varName $code]
+    
+}
 
 
-#FIXME: compile other list commands
+#########################################################
+# generate code for "lindex" command (assumed to be first parse word)
+# varName must be a var type 
+# only compile simple case of one index, and only where index is an int or integer constant
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_lindex {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] < 2} {
+        ::tsp::addError compUnit "wrong # args: should be \"lindex list ?index...?\""
+        return [list void "" ""]
+    }
+
+    set code "\n/***** ::tsp::gen_command_lindex */\n"
+
+    if {[llength $tree] != 3} {
+        # no index or multiple indexes, pass this to the lindex command
+        # generate the code to call the command, and append to existing code
+        set directResult [::tsp::gen_direct_tcl compUnit $tree]
+        lassign [lindex $directResult] type rhsvar
+        append code [lindex $directResult 2]
+        return [list $type $rhsvar $code]
+    }
+
+    # list argument, make sure it is a list
+    # we'll assign it to another var if already a var :-(
+    set argComponents [::tsp::parse_word compUnit [lindex $tree 1]]
+    set argTmpVar [::tsp::get_tmpvar compUnit var]
+    set argTmpComponents [list [list text $argTmpVar $argTmpVar]]
+    set setTree ""
+    append code [lindex [::tsp::produce_set compUnit $setTree $argTmpComponents $argComponents] 2]
+
+
+    # index component, can either be an int type or an integer constant, anything else,
+    # let lindex have at it.
+    set idxComponents [::tsp::parse_word compUnit [lindex $tree 2]]
+    set idxComponentType [lindex [lindex $argComponents 0] 0]
+    if {$idxComponentType ne "scalar" && $idxComponentType ne "text"} {
+        # not a scalar or text, just pass it on to lindex
+        set directResult [::tsp::gen_direct_tcl compUnit $tree]
+        lassign [lindex $directResult] type rhsvar 
+        append code [lindex $directResult 2]
+        return [list $type $rhsvar $code]
+    }
+
+    if {$idxComponentType eq "text"} {
+        set idxConst [lindex [lindex $idxComponents 0] 2]
+        if {! [::tsp::literalExprTypes $idxConst]} {
+            # not an int constant, could be "end-n"
+            # FIXME: compile this someday
+            set directResult [::tsp::gen_direct_tcl compUnit $tree]
+            lassign [lindex $directResult] type rhsvar 
+            append code [lindex $directResult 2]
+            return [list $type $rhsvar $code]
+        }
+        set idxVar $idxConst
+        set idxVarType int
+    } else {
+        # scalar 
+        set idxVar [lindex [lindex $idxComponents 0] 1]
+        set idxVarType [::tsp::getVarType compUnit $idxVar]
+        if {$idxVarType ne "int"} {
+            # not an int
+            set directResult [::tsp::gen_direct_tcl compUnit $tree]
+            lassign [lindex $directResult] type rhsvar 
+            append code [lindex $directResult 2]
+            return [list $type $rhsvar $code]
+        }
+        set idxVar __$idxVar 
+    } 
+
+    set returnVar [::tsp::get_tmpvar compUnit var]
+    append code [::tsp::lang_lindex $returnVar $argTmpVar $idxVar \
+        [::tsp::lang_quote_string [::tsp::gen_runtime_error compUnit "lindex: can't convert argument to a list or index out of bounds"]]]
+
+    return [list var $returnVar $code]
+}

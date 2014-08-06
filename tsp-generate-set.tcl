@@ -154,7 +154,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
         }
     } else {
         set errors 1
-        ::tsp::addError compUnit "set arg 1 unexpected target type: \"$targetWordType\""
+        ::tsp::addError compUnit "set arg 1 unexpected target type: \"$targetWordType: $targetComponents\""
     }
 
     if {$errors} {
@@ -371,7 +371,6 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
                 # mostly same as a scalar from scalar assignment
 		set sourceVarName $sourceRhsVar
                 append result "\n/***** ::tsp::generate_set assign from command */\n"
-                append result "{\n"
                 append code $sourceCode
 		set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
 
@@ -391,8 +390,8 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 		} else {
 		    error "unexpected target word type: $targetWordType"
 		}
-                append result [::tsp::indent compUnit $code 1]
-                append result "\n}\n"
+                append result $code
+                append result "\n"
                 return [list void "" $result]
 
             } else {
