@@ -744,9 +744,13 @@ proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
 #
 proc ::tsp::lang_lindex {returnVar argVar idx {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
-    append code "// lang_llength\n"
+    append code "// lang_lindex\n"
     append code "try {\n"
     append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
+    append code "    if ($returnVar == null) {\n"
+    append code "        [::tsp::lang_new_var_string $returnVar {""}]"
+    append code "    }\n"
+    append code "    $returnVar.preserve();\n"
     append code "} catch (TclException te) {\n"
     append code "    throw new TclException(interp, $errMsg);\n"
     append code "}\n"
@@ -1017,6 +1021,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set nativeTypedArgs ""
     set declProcArgs ""
     set argVarAssignments ""
+    set innerVarPreserves ""
     set procArgsCleanup ""
     set comma ""
     set i 0
@@ -1030,6 +1035,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         if {$type eq "var"} {
             append argVarAssignments [::tsp::lang_assign_var_var $arg  argv\[$i\]]
             append procArgsCleanup [::tsp::lang_safe_release $arg]
+            append innerVarPreserves [::tsp::lang_preserve $arg]
         } else {
             append argVarAssignments [::tsp::lang_convert_${type}_var $arg argv\[$i\] "can't convert arg $i to $type"]
         }
@@ -1126,6 +1132,9 @@ public class ${name}Cmd implements Command {
 
         // variables defined in proc, plus temp vars
         [::tsp::indent compUnit $procVarsDecls 2 \n]
+
+        // any "var" arguments need to be preserved, since they are release in finally block
+        [::tsp::indent compUnit $innerVarPreserves 2 \n]
 
         try {
             frame = pushNewCallFrame(interp);
