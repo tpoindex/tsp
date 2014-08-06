@@ -747,6 +747,7 @@ proc ::tsp::lang_lindex {returnVar argVar idx {errMsg {""}}} {
     append code "// lang_llength\n"
     append code "try {\n"
     append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
+    append code "    $returnVar.preserve();\n"
     append code "} catch (TclException te) {\n"
     append code "    throw new TclException(interp, $errMsg);\n"
     append code "}\n"
