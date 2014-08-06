@@ -353,22 +353,57 @@ proc ::tsp::gen_runtime_error {compUnitDict msg} {
 }
 
 
+#########################################################
+# parse a index, node is from [parse command], valid are:
+# an integer literal
+# a scalar of type int
+# end-integer
+# end-scalar
+# returns: list of: invalid reason
+# returns: list of: valid indexRef endMinus
+# where valid is "1" if valid, "0" if invalid
+# and indexRef is either an integer literal
+# or a scalar int, endMinus is 1 if "end-x", 0 otherwise
+#
+proc ::tsp::get_index {compUnitDict node} {
+    upvar $compUnitDict compUnit
 
-
-
-
-proc ::tsp::gen_command_if {compUnitDict tree} {
-}
-proc ::tsp::gen_command_foreach {compUnitDict tree} {
-}
-proc ::tsp::gen_command_break {compUnitDict tree} {
-}
-proc ::tsp::gen_command_continue {compUnitDict tree} {
-}
-proc ::tsp::gen_command_return {compUnitDict tree} {
-}
-proc ::tsp::gen_command_incr {compUnitDict tree} {
-}
-proc ::tsp::gen_command_list {compUnitDict tree} {
+    set nodeComponents [::tsp::parse_word compUnit $node]
+    set firstType [lindex $nodeComponents 0 0]
+    if {[llength $nodeComponents] == 1} {
+        if {$firstType eq "text"} {
+            lassign [lindex $nodeComponents 0] type rawtext text
+            if {$rawtext eq "end"} {
+                return [list 1 0 1]
+            } elseif {[regexp {^end-([0-9]+)$} $rawtext match intvalue]} {
+                return [list 1 $intvalue 1]
+            } elseif {[::tsp::literalExprTypes $rawtext] eq "int"} {
+                return [list 1 $rawtext 0]
+            } else {
+                return [list 0 "can't parse index: $rawtext"]
+            }
+        } elseif {$firstType eq "scalar"} {
+            lassign [lindex $nodeComponents 0] type varname
+            set type [::tsp::getVarType compUnit $varname]
+            if {$type eq "int"} {
+                return [list 1 $varname 0]
+            } else {
+                return [list 0 "index scalar not an int, was type: $type"]
+            }
+        }
+    } elseif {[llength $nodeComponents] == 2} {
+        lassign $nodeComponents firstNode secondNode
+        lassign $firstNode firstType rawtext text
+        lassign $secondNode secondType varname
+        set type [::tsp::getVarType compUnit $varname]
+        if {$firstType eq "text" && $rawtext eq "end-" && \
+                $secondType eq "scalar" && $type eq "int"} {
+            return [list 1 $varname 1]
+        } else {
+            return [list 0 "can't parse node as an index"]
+        }
+    } else {
+        return [list 0 "can't parse node as an index"]
+    }
 }
 
