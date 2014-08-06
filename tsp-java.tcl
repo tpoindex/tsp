@@ -620,7 +620,7 @@ proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
     append result "if ($targetVarName != null) {\n"
     append result "    [::tsp::lang_release $targetVarName]"
     append result "}\n"
-    # FIXME - probably don't have to duplicate soourceVarName object
+    # FIXME - probably don't have to duplicate sourceVarName object
     #         just assign and preserve()
     append result "$targetVarName = $sourceVarName.duplicate();\n"
     if {$preserve} {
@@ -747,7 +747,6 @@ proc ::tsp::lang_lindex {returnVar argVar idx {errMsg {""}}} {
     append code "// lang_llength\n"
     append code "try {\n"
     append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
-    append code "    $returnVar.preserve();\n"
     append code "} catch (TclException te) {\n"
     append code "    throw new TclException(interp, $errMsg);\n"
     append code "}\n"
