@@ -230,44 +230,23 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
 
     # index component, can either be an int type or an integer constant, anything else,
     # let lindex have at it.
-    set idxComponents [::tsp::parse_word compUnit [lindex $tree 2]]
-    set idxComponentType [lindex [lindex $argComponents 0] 0]
-    if {$idxComponentType ne "scalar" && $idxComponentType ne "text"} {
-        # not a scalar or text, just pass it on to lindex
+    set idxResult [::tsp::get_index compUnit [lindex $tree 2]]
+    lassign $idxResult idxValid idxRef idxIsFromEnd
+
+    if {! $idxValid} {
         set directResult [::tsp::gen_direct_tcl compUnit $tree]
-        lassign [lindex $directResult] type rhsvar 
+        lassign [lindex $directResult] type rhsvar
         append code [lindex $directResult 2]
         return [list $type $rhsvar $code]
+    } else {
+        if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {
+            # not a int literal, so it must be a scalar, prefix it with "__"
+            set idxRef __$idxRef
+        }
     }
 
-    if {$idxComponentType eq "text"} {
-        set idxConst [lindex [lindex $idxComponents 0] 2]
-        if {! [::tsp::literalExprTypes $idxConst]} {
-            # not an int constant, could be "end-n"
-            # FIXME: compile this someday
-            set directResult [::tsp::gen_direct_tcl compUnit $tree]
-            lassign [lindex $directResult] type rhsvar 
-            append code [lindex $directResult 2]
-            return [list $type $rhsvar $code]
-        }
-        set idxVar $idxConst
-        set idxVarType int
-    } else {
-        # scalar 
-        set idxVar [lindex [lindex $idxComponents 0] 1]
-        set idxVarType [::tsp::getVarType compUnit $idxVar]
-        if {$idxVarType ne "int"} {
-            # not an int
-            set directResult [::tsp::gen_direct_tcl compUnit $tree]
-            lassign [lindex $directResult] type rhsvar 
-            append code [lindex $directResult 2]
-            return [list $type $rhsvar $code]
-        }
-        set idxVar __$idxVar 
-    } 
-
     set returnVar [::tsp::get_tmpvar compUnit var]
-    append code [::tsp::lang_lindex $returnVar $argTmpVar $idxVar \
+    append code [::tsp::lang_lindex $returnVar $argTmpVar $idxRef $idxIsFromEnd \
         [::tsp::lang_quote_string [::tsp::gen_runtime_error compUnit "lindex: can't convert argument to a list or index out of bounds"]]]
 
     return [list var $returnVar $code]
