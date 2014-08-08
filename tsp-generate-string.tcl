@@ -42,7 +42,7 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
         if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\""
             return [list void "" ""]
         }
         set setTree ""
@@ -71,15 +71,86 @@ proc ::tsp::gen_command_scan {compUnitDict tree} {
         return [list void "" ""]
     }
 
-#FIXME - compile scan for simple cases of %d %ld $Ld %f %e %g and one var
+    # FIXME - implements simple cases
+    # compile scan for simple cases of %d %ld %Ld %f %e %g and one var
 
-#FIXME: check for vars to be reloaded on command completion, just 
-#        add to volatile list. no need to spill first.
+
+    set varlist [list]
+    foreach node [lrange $tree 3 end] {
+        set nodeComponents [::tsp::parse_word compUnit $node]
+        set nodeType [lindex $nodeComponents 0 0]
+        if {[llength $nodeComponents] == 1 && $nodeType eq "text"} {
+            lassign [lindex $nodeComponents 0] nodeType varname text
+            if {[::tsp::isValidIdent $varname]} {
+                set vartype [::tsp::getVarType compUnit $varname]
+                if {$vartype ne "undefined"} {
+                    # make sure variable will be loaded after command finishes
+                    lappend varlist $varname
+                } else {
+                    # identifier not defined, bail
+                }
+            } else {
+                # bad identifier, bail
+            }
+        } else {
+            # not simple text, can't be a var we use
+        }
+    }
+
+    # make sure variable will be loaded after command finishes
+    ::tsp::append_volatile_list compUnit $varlist
+
+    return [::tsp::gen_invoke_tcl compUnit $tree]
+}
+
+ 
+#########################################################
+# generate code for "binary scan" command (assumed to be first parse word)
+# just look at vars to make sure they get loaded after the command
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_binary {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] < 4} {
+        ::tsp::addError compUnit "wrong # args: should be \"binary scan value formatString ?varName varName ...?\""
+        return [list void "" ""]
+    }
+
+    set subcommandNode [lindex $tree 1]
+    set subcommandNodeComponents [::tsp::parse_word compUnit $subcommandNode]
+    lassign [lindex $subcommandNodeComponents 0] type rawtext text
+    if {[llength $subcommandNodeComponents] == 1 && $type eq "text"} {
+        if {$rawtext eq "scan"} {
+            set varlist [list]
+            foreach node [lrange $tree 4 end] {
+                set nodeComponents [::tsp::parse_word compUnit $node]
+                set nodeType [lindex $nodeComponents 0 0]
+                if {[llength $nodeComponents] == 1 && $nodeType eq "text"} {
+                    lassign [lindex $nodeComponents 0] nodeType varname text
+                    if {[::tsp::isValidIdent $varname]} {
+                        set vartype [::tsp::getVarType compUnit $varname]
+                        if {$vartype ne "undefined"} {
+                            # make sure variable will be loaded after command finishes
+                            lappend varlist $varname
+                        } else {
+                            # identifier not defined, bail
+                        }
+                    } else {
+                        # bad identifier, bail
+                    }
+                } else {
+                    # not simple text, can't be a var we use
+                }
+            }
+        }
+    }
+
+    # make sure variable will be loaded after command finishes
+    ::tsp::append_volatile_list compUnit $varlist
 
     return [::tsp::gen_invoke_tcl compUnit $tree]
 }
 
 
 
-#FIXME: format, simple cases
-#FIXME: string - optimize by using generated code.
