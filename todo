@@ -1,24 +1,10 @@
-!!!!! assigning a var from a command with the same var has deallocation error:
-      perhaps only a problem on vars from arguments?
-
-tsp::proc foo3 {l i} {
-    #tsp::procdef returns: var args: var int
-    set l [lindex $l $i]
-    return $l
-}
-
-
-this also an error; perhaps is has to do with TclList?
-tsp::proc foo4 {l i} {
-    #tsp::procdef returns: int args: var int
-    set v [lindex $l $i]
-    return $i
-}
-
-
+0. dict - subcommands that set vars, spill + load
+0. lassign - load vars on exit
+0. generalize code that spills and reloads variables, based on
+   command or command-subcommand.
+0. add 'preparse' so that command with vars that need to be volaile are spilled and loaded..
 
 0. what to do with unset?  - probably generate a compile error.
-0. add 'preparse' so that command with vars that need to be volaile are spilled and loaded..
    prob not needed.  just have commands that use 'varname' check if varname was in volatile list, if
    not, then spill var, and then add to volatile list in order to have it reloaded.
 
