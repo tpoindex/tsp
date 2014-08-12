@@ -1,6 +1,8 @@
-0. dict - subcommands that set vars, spill + load
-0. lassign - load vars on exit
-0. generalize code that spills and reloads variables, based on
+0. test spill/load, remove "lightly" compiled commands, eg. "scan", etc.
+
+0. DONE dict - subcommands that set vars, spill + load
+0. DONE lassign - load vars on exit
+0. DONE generalize code that spills and reloads variables, based on
    command or command-subcommand.
 0. add 'preparse' so that command with vars that need to be volaile are spilled and loaded..
 
