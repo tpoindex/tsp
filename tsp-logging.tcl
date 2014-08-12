@@ -87,6 +87,7 @@ proc ::tsp::addCompiledProc {compUnitDict} {
     dict set ::tsp::COMPILED_PROCS $name [list $returns $argTypes $compiledReference]
 }
 
+
 #########################################################
 # check if name is a legal identifier for compilation
 # return "" if valid, other return error condition
@@ -119,6 +120,7 @@ proc ::tsp::logErrorsWarnings {compUnitDict} {
     dict set ::tsp::COMPILER_LOG  _              [dict create errors $errors warnings $warnings]
 }
 
+
 #########################################################
 # print errors and warnins to a filehandle
 # optional filehandle, defaults to stderr
@@ -140,5 +142,52 @@ proc ::tsp::printErrorsWarnings {{fd stderr} {patt *,*}} {
             puts $fd ""
         }
     }
+}
+
+
+#########################################################
+# make a tmp directory, partially borrowed from wiki.tcl.tk/772
+#
+proc ::tsp::mktmpdir {} {
+
+    if {[catch {set tmp $::env(java.io.tmpdir)}] && \
+        [catch {set tmp $::env(TMP)}] && \
+        [catch {set tmp $::env(TEMP)}]} {
+ 
+        if {$::tcl_platform(platform) eq "windows"} {
+            set tmp C:/temp
+        } else {
+            set tmp /tmp
+        }
+    }
+
+    set chars abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+    for {set i 0} {$i < 10} {incr i} {
+        set path $tmp/tcl_
+        for {set j 0} {$j < 40} {incr j} {
+            append path [string index $chars [expr {int(rand() * 62)}]]
+        }
+        if {![file exists $path]} {
+            file mkdir $path
+            return $path
+        }
+    }
+    error "failed to find an unused temporary directory name"
+}
+
+
+#########################################################
+# set a directory for debug
+#
+proc ::tsp::debug {{dir ""}} {
+    if {$dir eq ""} {
+        set dir [::tsp::::tsp::mktmpdir]
+    } else {
+        if {! [file isdirectory $dir] || ! [file writable $dir]} {
+            error "debug pathname \"$dir\" not writable, or is not a directory"
+        }
+    }
+    variable ::tsp::DEBUG_DIR
+    set ::tsp::DEBUG_DIR $dir
 }
 
