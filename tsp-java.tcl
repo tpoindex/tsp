@@ -8,9 +8,20 @@ hyde::configure -writecache 0
 hyde::configure -runtime forcecompile
 
 
+# BUILTIN_TCL_COMMANDS
 # interpreter builtin commands that we can call directly
 # note: this is all compiled commands, since some tsp_compiled
 # command may defer to the builtin ones.
+
+# SPILL_LOAD_COMMANDS
+# commands that specify variables by name, requiring spill/load
+# each element is a list of: command subcommand-or-option start end vartype spill-load-type.  
+# if variable naem is not previously defined, it will be defined as the first type
+# listed in vartype.  
+# note: this list only for commands not otherwise compiled, and also not for array
+# variable names, since they are always kept in the interp ("file stat"), 
+# and not for introspection commands ("info").  See ::tsp::check_varname_args
+# for details
 
 namespace eval ::tsp {
     variable BUILTIN_TCL_COMMANDS [list					\
@@ -30,7 +41,25 @@ namespace eval ::tsp {
         set         socket      source      split       string      	\
         subst       switch      tell        time        trace       	\
         unset       update      uplevel     upvar       variable    	\
-        vwait       while						]
+        vwait       while						\
+    ]
+
+    variable SPILL_LOAD_COMMANDS [list                               \
+	[list binary     scan       4  end    var      load]         \
+        [list dict       append     2  2      var      spill/load]   \
+        [list dict       incr       2  2      var      spill/load]   \
+        [list dict       lappend    2  2      var      spill/load]   \
+        [list dict       set        2  2      var      spill/load]   \
+        [list dict       unset      2  2      var      spill/load]   \
+        [list dict       update     2  2      var      spill/load]   \
+        [list dict       with       2  2      var      spill/load]   \
+        [list gets       ""         1  1      var      spill/load]   \
+        [list lassign    ""         2  end    var      load]         \
+        [list lset       ""         1  1      var      spill/load]   \
+        [list regexp     --        +2  end    var      spill/load]   \
+        [list regsub     --        +3  end    var      spill/load]   \
+        [list scan       ""         3  end    var      load]         \
+    ]
 }
 
 # BUILTIN_TCL_COMMANDS was derived as:

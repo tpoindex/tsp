@@ -21,6 +21,20 @@ proc ::tsp::parse_body {compUnitDict range} {
         # parse the next comments and command
         set parseResults [parse command $body $range]
         lassign $parseResults commentRange commandRange restRange tree
+
+        # check spill/load variables that command might use and can be implicitly defined
+        set spillLoadType ""
+        set loadvarnames ""
+        if {[llength $tree] > 1} {
+            set spillLoadList [::tsp::check_varname_args compUnit $tree]
+            set loadvarnames [lassign $spillLoadList spillLoadType spillVartype]
+            if {$spillLoadType eq "spill/load"} {
+                ::tsp::append_volatile_list compUnit $loadvarnames
+            }
+            # if spillLoadType is "load", the loadvarnames will be non-null and 
+            # added below for loading after the command is executed
+        }
+        
         
         # process comments for tsp pragmas
         lassign $commentRange commentFirst commentLast
@@ -69,7 +83,7 @@ proc ::tsp::parse_body {compUnitDict range} {
             
             # if tsp::volatile pragma found, or command added variables as volatile, 
             # spill variables into tcl interp before command
-            set volatile [lsort -unique [dict get $compUnit volatile]]
+            set volatile [dict get $compUnit volatile]
             set volatileLen [llength $volatile]
             if {$volatileLen > 0} {
                 append gencode [::tsp::gen_spill_vars compUnit $volatile]
@@ -78,8 +92,14 @@ proc ::tsp::parse_body {compUnitDict range} {
             # generated command code
             append gencode $cmdCode
 
+            # if command loads any implicitly defined volatile, add them here, see above
+            if {[llength $loadvarnames] > 0} {
+                ::tsp::append_volatile_list compUnit $loadvarnames
+            }
+
             # reload volatile variables that were spilled into tcl
             # get volatile list length again, could have been modified!
+            set volatile [dict get $compUnit volatile]
             set volatileLen [llength $volatile]
             if {$volatileLen > 0} {
                 append gencode [::tsp::gen_load_vars compUnit $volatile]

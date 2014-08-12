@@ -407,3 +407,139 @@ proc ::tsp::get_index {compUnitDict node} {
     }
 }
 
+
+
+#########################################################
+# check which commands define/use variables by name, rather than by value.
+# if a command it found, return "load" or "spill/load" if variables need
+# only loading after the command ("scan", "binary scan", etc.), or spilling 
+# to interp before the command as well ("lset", etc.).  Only for 
+# commands that are not otherwise compiled, e.g. "append", "lappend", etc.
+# are compiled and perform their own function
+#
+proc ::tsp::check_varname_args {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    set cmdLength [llength $tree]
+    set cmdNode [lindex $tree 0]
+    set cmdNodeComponents [::tsp::parse_word compUnit $cmdNode]
+    if {[llength $cmdNodeComponents] > 1 || [lindex $cmdNodeComponents 0 0] ne "text"} { 
+        return ""
+    }
+    set cmd [lindex $cmdNodeComponents 0 1]
+
+    foreach spillElement $::tsp::SPILL_LOAD_COMMANDS {
+        lassign $spillElement spillCmd subcmdOption start end vartype spilltype
+        set spillNames  [list $spilltype $vartype]
+
+        if {$spillCmd eq $cmd} {
+            # subcommand, pickout the varnames by absolute index
+            if {$subcmdOption eq ""} {
+                foreach node [lrange $tree $start $end] {
+                    set varname [::tsp::nodeText compUnit $node]
+                    if {$varname ne ""} {
+                        if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                            ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
+                            ::tsp::setVarType compUnit $varname $vartype
+                        }
+                        lappend spillNames $varname
+                    }
+                }
+                return $spillNames
+
+            } elseif {$subcmdOption eq "--"} {
+                # end of options, pickout the varnames by relative index 
+                for {set i 1} {$i < $cmdLength} {incr i} {
+                    set node [lindex $tree $i]
+                    set nodeComponents [::tsp::parse_word compUnit $node]
+                    if {[llength $nodeComponents] == 1 && [lindex $nodeComponents 0 0] eq "text"} {
+                        set rawtext [lindex $nodeComponents 0 1]
+                        if {[string range $rawtext 0 0] eq "-"} {
+                            continue
+                        }
+                        if {$start ne "end"} {
+                            incr start $i
+                        }
+                        if {$end ne "end"} {
+                            incr end $i
+                        }
+                        foreach node [lrange $tree $start $end] {
+                            set varname [::tsp::nodeText compUnit $node]
+                            if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                                ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
+                                ::tsp::setVarType compUnit $varname $vartype
+                            }
+                            if {$varname ne ""} {
+                                lappend spillNames $varname
+                            }
+                        }
+                        return $spillNames
+                    }
+                }   
+
+            } elseif {[string range $subcmdOption 0 0] eq "-"} {
+                # end of options, pickout the varnames by relative index
+                for {set i 1} {$i < $cmdLength} {incr i} {
+                    set node [lindex $tree $i]
+                    set nodeComponents [::tsp::parse_word compUnit $node]
+                    if {[llength $nodeComponents] == 1 && [lindex $nodeComponents 0 0] eq "text"} {
+                        set rawtext [lindex $nodeComponents 0 1]
+                        if {[string range $rawtext 0 0] eq $subcmdOption} {
+                            if {$start ne "end"} {
+                                incr start $i
+                            }
+                            if {$end ne "end} {
+                                incr end $i
+                            }
+                            foreach node [lrange $tree $start $end] {
+                                set varname [::tsp::nodeText compUnit $node]
+                                if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                                    ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
+                                    ::tsp::setVarType compUnit $varname $vartype
+                                }
+                                if {$varname ne ""} {
+                                    lappend spillNames $varname
+                                }
+                            }
+                            return $spillNames
+                        }
+                    }
+                }   
+            } else {
+                # whole command, pick out the varnames by absolute index
+                foreach node [lrange $tree $start $end] {
+                    set varname [::tsp::nodeText compUnit $node]
+                    if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                        ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
+                        ::tsp::setVarType compUnit $varname $vartype
+                    }
+                    if {$varname ne ""} {
+                        lappend spillNames $varname
+                    }
+                }
+                return $spillNames
+            }
+        }
+    }
+    return ""
+}
+
+#########################################################
+# return rawtext if and only if it is a single node, text
+# and not quoted.
+#
+proc ::tsp::nodeText {compUnitDict node} {
+    upvar $compUnitDict compUnit
+    set nodeComponents [::tsp::parse_word compUnit $node]
+    if {[llength $nodeComponents] > 1 || [lindex $nodeComponents 0 0] ne "text"} {
+        return ""
+    }
+    lassign [lindex $nodeComponents 0] type rawtext text
+    if {$rawtext eq $text && [::tsp::isValidIdent $rawtext]} {
+        return $rawtext
+    } 
+    return ""
+}
+
+
+
