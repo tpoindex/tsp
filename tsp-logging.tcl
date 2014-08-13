@@ -89,20 +89,10 @@ proc ::tsp::addCompiledProc {compUnitDict} {
 
 
 #########################################################
-# check if name is a legal identifier for compilation
-# return "" if valid, other return error condition
+# get the names of the compile proces
 #
-proc ::tsp::validProcName {name} {
-    if {! [::tsp::isValidIdent $name]} {
-        return "invalid proc name: \"$name\" is not a valid identifier"
-    }
-    if {[info commands ::tsp::gen_command_$name] eq $name} {
-        return "invalid proc name: \"$name\" has been previously defined and compiled"
-    }
-    if {[info exists ::tsp::BUILTIN_TCL_COMMANDS($name)]} {
-        return "invalid proc name: \"$name\" is builtin Tcl command"
-    }
-    return ""
+proc ::tsp::getCompiledProcs {} {
+    return [dict keys $::tsp::COMPILED_PROCS]
 }
 
 
@@ -118,6 +108,31 @@ proc ::tsp::logErrorsWarnings {compUnitDict} {
     set name [dict get $compUnit name]
     dict set ::tsp::COMPILER_LOG $filename,$name [dict create errors $errors warnings $warnings]
     dict set ::tsp::COMPILER_LOG  _              [dict create errors $errors warnings $warnings]
+    
+    if {$::tsp::DEBUG_DIR eq ""} {
+        return
+    }
+    set path [file join $::tsp::DEBUG_DIR $filename,$name.log]
+    set fd [open $path w]
+    ::tsp::printErrorsWarnings $fd $filename,$name
+    close $fd 
+}
+
+#########################################################
+# log the compilable source, only if debug directory is set
+#
+proc ::tsp::logCompilable {compUnitDict compilable} {
+    if {$::tsp::DEBUG_DIR eq ""} {
+        return
+    }
+    upvar $compUnitDict compUnit
+    set filename [dict get $compUnit file]
+    set name [dict get $compUnit name]
+    
+    set path [file join $::tsp::DEBUG_DIR $filename,$name.src]
+    set fd [open $path w]
+    puts $fd $compilable
+    close $fd 
 }
 
 
@@ -164,7 +179,7 @@ proc ::tsp::mktmpdir {} {
     set chars abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
     for {set i 0} {$i < 10} {incr i} {
         set path $tmp/tcl_
-        for {set j 0} {$j < 40} {incr j} {
+        for {set j 0} {$j < 10} {incr j} {
             append path [string index $chars [expr {int(rand() * 62)}]]
         }
         if {![file exists $path]} {
@@ -180,14 +195,16 @@ proc ::tsp::mktmpdir {} {
 # set a directory for debug
 #
 proc ::tsp::debug {{dir ""}} {
+    if {$::tsp::DEBUG_DIR ne ""} {
+        error "debug directory already set as: $::tsp::DEBUG_DIR"
+    }
     if {$dir eq ""} {
-        set dir [::tsp::::tsp::mktmpdir]
+        set dir [::tsp::mktmpdir]
     } else {
         if {! [file isdirectory $dir] || ! [file writable $dir]} {
             error "debug pathname \"$dir\" not writable, or is not a directory"
         }
     }
-    variable ::tsp::DEBUG_DIR
     set ::tsp::DEBUG_DIR $dir
 }
 

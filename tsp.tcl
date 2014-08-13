@@ -14,6 +14,9 @@ namespace eval ::tsp {
     # dict of compiled procs, entries are list of: returns argTypes compiledReference
     variable COMPILED_PROCS [dict create]
 
+    # directory name of debug output, if any
+    variable DEBUG_DIR ""
+
     # other ::tsp namespace variables are set in language specific files, 
     # e.g., tsp-java.tcl, tsp-clang.tcl
 } 

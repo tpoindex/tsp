@@ -59,7 +59,16 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     set compUnit [::tsp::init_compunit $file $name $procargs $body]
 
+    set procValid [::tsp::validProcName $name]
+    if {$procValid ne ""} {
+        ::tsp::addError compUnit compUnit $procValid
+        ::tsp::logErrorsWarnings compUnit
+        uplevel [list ::proc $name $procargs $body]
+        return
+    }
+
     set result ""
+
     set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} result]
     set errInf $result
 
@@ -71,6 +80,11 @@ proc ::tsp::compile_proc {file name procargs body} {
             # some other error
             error "parse_body error: $result\ncaused by:\n$errInf"
         }
+    }
+
+    set returnType [dict get $compUnit returns]
+    if {$returnType eq ""} {
+        ::tsp::addError compUnit "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
     }
 
     set errors [::tsp::getErrors compUnit]
@@ -95,15 +109,34 @@ proc ::tsp::compile_proc {file name procargs body} {
         set rc [::tsp::lang_compile compUnit $compilable]
         if {$rc == 0} {
             ::tsp::lang_interp_define compUnit
+            ::tsp::addCompiledProc compUnit
         } else {
             uplevel [list ::proc $name $procargs $body]
         }
-#FIXME: probably should check a debug variable before adding compilable as a warning
-        ::tsp::addWarning compUnit $compilable
+
+        ::tsp::logCompilable compUnit $compilable
         ::tsp::logErrorsWarnings compUnit
     }
    
 }
+
+#########################################################
+# check if name is a legal identifier for compilation
+# return "" if valid, other return error condition
+#
+proc ::tsp::validProcName {name} {
+    if {! [::tsp::isValidIdent $name]} {
+        return "invalid proc name: \"$name\" is not a valid identifier"
+    }
+    if {[lsearch [::tsp::getCompiledProcs] $name] >= 0} {
+        return "invalid proc name: \"$name\" has been previously defined and compiled"
+    }
+    if {[lsearch ::tsp::BUILTIN_TCL_COMMANDS $name] >= 0} {
+        return "invalid proc name: \"$name\" is builtin Tcl command"
+    }
+    return ""
+}
+
 
 
 #########################################################
@@ -112,6 +145,9 @@ proc ::tsp::compile_proc {file name procargs body} {
 
 proc ::tsp::proc {name argList body} {
     set scriptfile [info script]
+    if {$scriptfile eq ""} {
+        set scriptfile _
+    }
     ::tsp::compile_proc $scriptfile $name $argList $body
     return ""
 }
