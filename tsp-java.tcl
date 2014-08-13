@@ -1116,7 +1116,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 package tsp.cmd;
 import tcl.lang.*;
 import tcl.lang.cmd.*;
-//import tcl.pkg.tsp.util.*;
+import tsp.util.*;
 //import tcl.pkg.tsp.math.*;
 
 public class ${name}Cmd implements Command {
@@ -1280,10 +1280,10 @@ proc ::tsp::lang_expr {exprAssignment} {
     append result "\n} catch (TclException te) {\n"
     append result "    String msg = te.getMessage();\n"
     append result "    if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {\n"
-    append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DIVZERO {divide by zero}\"));\n"
+    append result "        interp.setErrorCode(TclString.newInstance(\"ARITH DIVZERO {divide by zero}\"));\n"
     append result "        throw new TclException(interp, \"divide by zero\");\n"
     append result "    } else if (msg != null && msg.equals(TspFunc.DOMAIN_ERROR)) {\n"
-    append result "        interp.setErrorCode(TclString().newInstance(\"ARITH DOMAIN {domain error: argument not in valid range}\"));\n"
+    append result "        interp.setErrorCode(TclString.newInstance(\"ARITH DOMAIN {domain error: argument not in valid range}\"));\n"
     append result "        throw new TclException(interp, \"domain error: argument not in valid range\");\n"
     append result "    } else { \n"
     append result "        throw te;\n"
