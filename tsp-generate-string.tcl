@@ -163,10 +163,10 @@ proc ::tsp::gen_command_binary {compUnitDict tree} {
 proc ::tsp::gen_command_string {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
-    set results [::tsp::lang_string compUnit $tree]
+    set result [::tsp::lang_string compUnit $tree]
 
     if {[llength $result] > 0} {
-        return $results
+        return $result
     } else {
         return [::tsp::gen_direct_tcl compUnit $tree]
     }
