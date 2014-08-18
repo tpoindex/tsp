@@ -100,7 +100,7 @@ proc ::tsp::gen_command_scan {compUnitDict tree} {
     # make sure variable will be loaded after command finishes
     ::tsp::append_volatile_list compUnit $varlist
 
-    return [::tsp::gen_invoke_tcl compUnit $tree]
+    return [::tsp::gen_direct_tcl compUnit $tree]
 }
 
  
@@ -149,8 +149,27 @@ proc ::tsp::gen_command_binary {compUnitDict tree} {
     # make sure variable will be loaded after command finishes
     ::tsp::append_volatile_list compUnit $varlist
 
-    return [::tsp::gen_invoke_tcl compUnit $tree]
+    return [::tsp::gen_direct_tcl compUnit $tree]
 }
 
+
+
+#########################################################
+# generate code for "string" command (assumed to be first parse word)
+# lang_string determines whether or not the subcommand is compiled 
+# default is to invoke interp string command
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_command_string {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    set results [::tsp::lang_string compUnit $tree]
+
+    if {[llength $result] > 0} {
+        return $results
+    } else {
+        return [::tsp::gen_direct_tcl compUnit $tree]
+    }
+}
 
 

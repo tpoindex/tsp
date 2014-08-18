@@ -702,6 +702,14 @@ proc ::tsp::lang_append_var {targetVarName source} {
 
 
 ##############################################
+# append a TclObject var to list
+#
+proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
+    return "TclList.append(interp, $targetVarname, $sourceVarName);\n"
+}
+
+
+##############################################
 # allocate a TclObject objv array
 #
 proc ::tsp::lang_alloc_objv_array {size} {
@@ -742,53 +750,6 @@ proc ::tsp::lang_invoke_builtin {cmd} {
 #
 proc ::tsp::lang_alloc_objv_list {varName} {
     return "$varName = TclList.newInstance();\n"
-}
-
-
-##############################################
-# append a TclObject var to list
-#
-proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
-    return "TclList.append(interp, $targetVarname, $sourceVarName);\n"
-}
-
-
-##############################################
-# llength TclObject var
-#
-proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
-    #FIXME: should we just let getLength() provide the error message?
-    append code "// lang_llength\n"
-    append code "try {\n"
-    append code "    $returnVar = TclList.getLength(interp, $argVar);\n"
-    append code "} catch (TclException te) {\n"
-    append code "    throw new TclException(interp, $errMsg);\n"
-    append code "}\n"
-    return $code
-}
-
-
-##############################################
-# lindex TclObject var
-#
-proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
-    #FIXME: should we just let getLength() provide the error message?
-    append code "// lang_lindex\n"
-    append code "try {\n"
-    if {$isFromEnd} {
-        append code "    int listLength = TclList.getLength(interp, $argVar);\n"
-        append code "    $returnVar = TclList.index(interp, $argVar, (int) (listLength - 1 - $idx));\n"
-    } else {
-        append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
-    }
-    append code "    if ($returnVar == null) {\n"
-    append code "        [::tsp::lang_new_var_string $returnVar {""}]"
-    append code "    }\n"
-    append code "    $returnVar.preserve();\n"
-    append code "} catch (TclException te) {\n"
-    append code "    throw new TclException(interp, $errMsg);\n"
-    append code "}\n"
-    return $code
 }
 
 
@@ -844,162 +805,6 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
     return $code
 }
 
-
-##############################################
-# generate a catch command
-#
-proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
-    upvar $compUnitDict compUnit
-    append code "// ::tsp::lang_catch\n"
-    append code "interp.resetResult();\n"
-    append code "try \{\n"
-    append code "[::tsp::indent compUnit $bodyCode]\n\n"
-    append code "    // ::tsp::lang_catch: rc = 0, success \n"
-    append code "    $returnVar = 0;\n"
-    append code "\} catch (TclException te) \{\n"
-    append code "    // ::tsp::lang_catch: rc = 1, error \n"
-    append code "    $returnVar = 1;\n"
-    append code "\}\n"
-    if {$var ne ""} {
-        if {$varType eq "var"} {
-            append code [::tsp::lang_assign_${varType}_var $var interp.getResult()]
-        } else {
-            append code [::tsp::lang_convert_${varType}_var $var interp.getResult() "unable to convert var to $varType"]
-        }
-    }
-    return $code
-}
-
-
-##############################################
-# generate a switch command.
-# switchVar is a scalar, pattScriptList is list of patterns and scripts
-#
-proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
-    upvar $compUnitDict compUnit
-
-    if {$switchVarType eq "var"} {
-        set switchVar __$switchVar.toString()
-    } else {
-        set switchVar __$switchVar
-    }
-    append code "// ::tsp::lang_switch\n"
-    set match ""
-    set or ""
-    set else ""
-    foreach {patt script} $pattCodeList {
-        if {$patt eq "default"} {
-            append match " $or true /*default*/ "
-        } else {
-            if {$switchVarType eq "string" || $switchVarType eq "var"} {
-                append match "$or ([::tsp::lang_quote_string $patt].equals($switchVar)) "
-            } elseif {$switchVarType eq "boolean"} {
-                if {$patt} {
-                    append match "$or (true == $switchVar) "
-                } else {
-                    append match "$or (false == $switchVar) "
-                }
-            } else {
-                # int or double
-                append match "$or ($patt == $switchVar) "
-            }
-	}
-
-        if {$script eq "-"} {
-            set or ||
-        } else {
-            append code "${else}if ( $match ) \{\n"
-            append code [::tsp::indent compUnit $script 1]
-            append code "\n\} "
-            set else "else "
-            set match ""
-            set or ""
-        }
-
-    }
-    append code "\n"
-    return $code
-}
-
-##############################################
-# generate a foreach command.
-# varList is list of vars to be assigned from list elements
-# dataList is scalar var of data or dataString is literal data string
-# body is already indented compiled code of the body
-#
-proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
-    upvar $compUnitDict compUnit
-
-    append code "// ::tsp::lang_foreach\n"
-
-    set idx [::tsp::get_tmpvar compUnit int]
-    set len [::tsp::get_tmpvar compUnit int]
-
-    
-    # dataList or dataString?
-    if {$dataList ne ""} {
-        set dataListType [::tsp::getVarType compUnit $dataList]
-        if {$dataListType eq "boolean" || $dataListType eq "int" || $dataListType eq "double"} {
-            # code to assign one variable, the rest as null/zero, execute body
-            set target [lindex $varList 0]
-            set targetType [::tsp::getVarType compUnit $target]
-            set rest [lrange $varList 1 end]
-            
-            if {$targetType eq $dataListType} {
-                append code "$target = __$dataList;\n"
-            } else {
-                append code [::tsp::lang_convert_${targetType}_${dataListType} __$target __$dataList "unable to convert $dataListType to $targetType"]
-            }
-            # zero out any remaining vars
-            foreach v $rest {
-                set type [::tsp::getVarType compUnit $v]
-                append code [::tsp::lang_assign_empty_zero __$v $type]
-            }
-            append code $body
-            return $body
-
-        } else {
-            if {$dataListType eq "string"} {
-                set dataVar [::tsp::get_tmpvar compUnit var]
-                append code "[::tsp::lang_safe_release $dataList]\n"
-                append code "[::tsp::lang_new_var_string $dataVar __$dataList]\n"
-                append code "[::tsp::lang_preserve $dataVar]\n"
-            } else {
-                # must be var
-                set dataVar __$dataList
-            }
-        }
-    } else {
-        # assumed to be a braced list string literal
-        # FIXME: can we just iterate/flatten through this literal list instead? 
-        set dataVar [::tsp::get_tmpvar compUnit var]
-        set dataVar var
-        append code "[::tsp::lang_safe_release $dataVar]\n"
-        append code "[::tsp::lang_new_var_string $dataVar [::tsp::lang_quote_string $dataString]]\n"
-        append code "[::tsp::lang_preserve $dataVar]\n"
-    }
-
-    append code "$len = TclList.getLength(interp, $dataVar);\n"
-    append code "$idx = 0;\n"
-    append code "while ($idx < $len) \{\n"
-    foreach var $varList {
-        append code "    // set var $var\n"
-        set type [::tsp::getVarType compUnit $var]
-        append code "    if (${idx}++ < $len) \{\n"
-        if {$type eq "var"} {
-            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
-        } else {
-            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
-        }
-        append code "    \} else \{\n"
-        append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 2]\n"
-        append code "    \}\n"
-    }
-    append code [::tsp::indent compUnit $body]
-    append code "\n\}\n\n"
-
-    return $code
-}
 
 
 ##############################################
@@ -1398,4 +1203,222 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
 
 
 
+################################################################################################
+# specific compiled commands below here
+#
 
+##############################################
+# llength TclObject var
+# implement the tcl 'llength' command
+#
+proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
+    #FIXME: should we just let getLength() provide the error message?
+    append code "// lang_llength\n"
+    append code "try {\n"
+    append code "    $returnVar = TclList.getLength(interp, $argVar);\n"
+    append code "} catch (TclException te) {\n"
+    append code "    throw new TclException(interp, $errMsg);\n"
+    append code "}\n"
+    return $code
+}
+
+
+##############################################
+# lindex TclObject var
+# implement the tcl 'lindex' command
+#
+proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
+    #FIXME: should we just let getLength() provide the error message?
+    append code "// lang_lindex\n"
+    append code "try {\n"
+    if {$isFromEnd} {
+        append code "    int listLength = TclList.getLength(interp, $argVar);\n"
+        append code "    $returnVar = TclList.index(interp, $argVar, (int) (listLength - 1 - $idx));\n"
+    } else {
+        append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
+    }
+    append code "    if ($returnVar == null) {\n"
+    append code "        [::tsp::lang_new_var_string $returnVar {""}]"
+    append code "    }\n"
+    append code "    $returnVar.preserve();\n"
+    append code "} catch (TclException te) {\n"
+    append code "    throw new TclException(interp, $errMsg);\n"
+    append code "}\n"
+    return $code
+}
+
+
+##############################################
+# generate a catch command
+# implement the tcl 'catch' command
+#
+proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
+    upvar $compUnitDict compUnit
+    append code "// ::tsp::lang_catch\n"
+    append code "interp.resetResult();\n"
+    append code "try \{\n"
+    append code "[::tsp::indent compUnit $bodyCode]\n\n"
+    append code "    // ::tsp::lang_catch: rc = 0, success \n"
+    append code "    $returnVar = 0;\n"
+    append code "\} catch (TclException te) \{\n"
+    append code "    // ::tsp::lang_catch: rc = 1, error \n"
+    append code "    $returnVar = 1;\n"
+    append code "\}\n"
+    if {$var ne ""} {
+        if {$varType eq "var"} {
+            append code [::tsp::lang_assign_${varType}_var $var interp.getResult()]
+        } else {
+            append code [::tsp::lang_convert_${varType}_var $var interp.getResult() "unable to convert var to $varType"]
+        }
+    }
+    return $code
+}
+
+
+##############################################
+# generate a switch command.
+# implement the tcl 'switch' command
+# switchVar is a scalar, pattScriptList is list of patterns and scripts
+#
+proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
+    upvar $compUnitDict compUnit
+
+    if {$switchVarType eq "var"} {
+        set switchVar __$switchVar.toString()
+    } else {
+        set switchVar __$switchVar
+    }
+    append code "// ::tsp::lang_switch\n"
+    set match ""
+    set or ""
+    set else ""
+    foreach {patt script} $pattCodeList {
+        if {$patt eq "default"} {
+            append match " $or true /*default*/ "
+        } else {
+            if {$switchVarType eq "string" || $switchVarType eq "var"} {
+                append match "$or ([::tsp::lang_quote_string $patt].equals($switchVar)) "
+            } elseif {$switchVarType eq "boolean"} {
+                if {$patt} {
+                    append match "$or (true == $switchVar) "
+                } else {
+                    append match "$or (false == $switchVar) "
+                }
+            } else {
+                # int or double
+                append match "$or ($patt == $switchVar) "
+            }
+	}
+
+        if {$script eq "-"} {
+            set or ||
+        } else {
+            append code "${else}if ( $match ) \{\n"
+            append code [::tsp::indent compUnit $script 1]
+            append code "\n\} "
+            set else "else "
+            set match ""
+            set or ""
+        }
+
+    }
+    append code "\n"
+    return $code
+}
+
+
+
+##############################################
+# generate a foreach command.
+# implement the tcl 'foreach' command
+# varList is list of vars to be assigned from list elements
+# dataList is scalar var of data or dataString is literal data string
+# body is already indented compiled code of the body
+#
+proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
+    upvar $compUnitDict compUnit
+
+    append code "// ::tsp::lang_foreach\n"
+
+    set idx [::tsp::get_tmpvar compUnit int]
+    set len [::tsp::get_tmpvar compUnit int]
+
+    
+    # dataList or dataString?
+    if {$dataList ne ""} {
+        set dataListType [::tsp::getVarType compUnit $dataList]
+        if {$dataListType eq "boolean" || $dataListType eq "int" || $dataListType eq "double"} {
+            # code to assign one variable, the rest as null/zero, execute body
+            set target [lindex $varList 0]
+            set targetType [::tsp::getVarType compUnit $target]
+            set rest [lrange $varList 1 end]
+            
+            if {$targetType eq $dataListType} {
+                append code "$target = __$dataList;\n"
+            } else {
+                append code [::tsp::lang_convert_${targetType}_${dataListType} __$target __$dataList "unable to convert $dataListType to $targetType"]
+            }
+            # zero out any remaining vars
+            foreach v $rest {
+                set type [::tsp::getVarType compUnit $v]
+                append code [::tsp::lang_assign_empty_zero __$v $type]
+            }
+            append code $body
+            return $body
+
+        } else {
+            if {$dataListType eq "string"} {
+                set dataVar [::tsp::get_tmpvar compUnit var]
+                append code "[::tsp::lang_safe_release $dataList]\n"
+                append code "[::tsp::lang_new_var_string $dataVar __$dataList]\n"
+                append code "[::tsp::lang_preserve $dataVar]\n"
+            } else {
+                # must be var
+                set dataVar __$dataList
+            }
+        }
+    } else {
+        # assumed to be a braced list string literal
+        # FIXME: can we just iterate/flatten through this literal list instead? 
+        set dataVar [::tsp::get_tmpvar compUnit var]
+        set dataVar var
+        append code "[::tsp::lang_safe_release $dataVar]\n"
+        append code "[::tsp::lang_new_var_string $dataVar [::tsp::lang_quote_string $dataString]]\n"
+        append code "[::tsp::lang_preserve $dataVar]\n"
+    }
+
+    append code "$len = TclList.getLength(interp, $dataVar);\n"
+    append code "$idx = 0;\n"
+    append code "while ($idx < $len) \{\n"
+    foreach var $varList {
+        append code "    // set var $var\n"
+        set type [::tsp::getVarType compUnit $var]
+        append code "    if (${idx}++ < $len) \{\n"
+        if {$type eq "var"} {
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
+        } else {
+            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
+        }
+        append code "    \} else \{\n"
+        append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 2]\n"
+        append code "    \}\n"
+    }
+    append code [::tsp::indent compUnit $body]
+    append code "\n\}\n\n"
+
+    return $code
+}
+
+
+##############################################
+# generate a string command.
+# implement the tcl 'string' command
+# various subcommands may or may not be compiled,
+# default is to return "", so that gen_command_string
+# will invoke the tcl string command
+#
+proc ::tsp::lang_string {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    return [list]
+}
