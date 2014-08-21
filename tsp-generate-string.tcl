@@ -163,7 +163,41 @@ proc ::tsp::gen_command_binary {compUnitDict tree} {
 proc ::tsp::gen_command_string {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
-    set result [::tsp::lang_string compUnit $tree]
+    set result ""
+#FIXME: implement various string subcommands in the lang files
+
+    # get the string subcommand
+    set subcommandNode [lindex $tree 1]
+    set subcommandNodeComponents [::tsp::parse_word compUnit $subcommandNode]
+    lassign [lindex $subcommandNodeComponents 0] type rawtext text
+    if {[llength $subcommandNodeComponents] == 1 && $type eq "text"} {
+        set cmd $rawtext
+        switch $cmd {
+            bytelength {}
+            compare {}
+            equal {}
+            first {}
+            index {}
+            is {}
+            last {}
+            length {}
+            map {}
+            match {}
+            range {}
+            repeat {}
+            replace {}
+            tolower {}
+            toupper {}
+            totitle {}
+            trim {}
+            trimleft {}
+            trimright {}
+            wordend {}
+            wordstart {}
+        }
+    }
+
+    #set result [::tsp::lang_string compUnit $tree]
 
     if {[llength $result] > 0} {
         return $result
