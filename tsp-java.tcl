@@ -498,6 +498,7 @@ proc ::tsp::lang_false_const {} {
 # assign empty/zero
 # 
 proc ::tsp::lang_assign_empty_zero {var type} {
+    set code "//::tsp::lang_assign_empty_zero\n"
     switch $type {
         boolean {append code "$var = false;\n"}
         int -
@@ -1134,7 +1135,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
         set type [::tsp::getVarType compUnit $var]
         if {$type eq "undefined"} {
             set type var
-            :tsp::setVarType compUnit $var $type
+            ::tsp::setVarType compUnit $var $type
         }
         if {$type eq "array"} {
             # array variables are already in interp
@@ -1176,7 +1177,7 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
         set type [::tsp::getVarType compUnit $var]
         if {$type eq "undefined"} {
             set type var
-            :tsp::setVarType compUnit $var $type
+            ::tsp::setVarType compUnit $var $type
         }
         if {$type eq "array"} {
             # array variables are already in interp

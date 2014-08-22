@@ -61,12 +61,12 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         ::tsp::addError compUnit "wrong # args: should be \"lappend varName ?value value ...?\""
         return [list void "" ""]
     }
-
+    
     # varname must be text, must exists
-    set varComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    lassign $varComponent type rawtext varname
-    if {$type ne "text"} {
-        ::tsp::addError compUnit "append varName not a text word: \"$rawtext\""
+    set varname [::tsp::nodeText compUnit [lindex $tree 1]]
+
+    if {$varname eq ""} {
+        ::tsp::addError compUnit "lappend varName not a text word"
         return [list void "" ""]
     }
 
@@ -78,13 +78,16 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
     }
     if {$type eq "undefined"} {
         ::tsp::addWarning compUnit "lappend varName \"$varname\" defined as var"
-        append code [::tsp::lang_assign_empty_zero $varname var]
-    }
-
-    # if varname was not previously included as volatile, spill variable here and add to volatile list
-    if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
-        append code [::tsp::lang_spill_vars compUnit $varname] \n
-        ::tsp::append_volatile_list compUnit $varname
+        ::tsp::setVarType compUnit $varname var
+        append code [::tsp::lang_assign_empty_zero __$varname var]
+        append code [::tsp::lang_preserve __$varname]
+    } else {
+        # varname exists
+        # if varname was not previously included as volatile, spill variable here and add to volatile list
+        if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
+            append code [::tsp::lang_spill_vars compUnit $varname] \n
+            ::tsp::append_volatile_list compUnit $varname
+        }
     }
 
 
