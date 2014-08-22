@@ -170,6 +170,7 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
     set subcommandNode [lindex $tree 1]
     set subcommandNodeComponents [::tsp::parse_word compUnit $subcommandNode]
     lassign [lindex $subcommandNodeComponents 0] type rawtext text
+
     if {[llength $subcommandNodeComponents] == 1 && $type eq "text"} {
         set cmd $rawtext
         switch $cmd {

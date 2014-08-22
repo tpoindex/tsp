@@ -360,10 +360,11 @@ proc ::tsp::gen_runtime_error {compUnitDict msg} {
 # end-integer
 # end-scalar
 # returns: list of: invalid reason
-# returns: list of: valid indexRef endMinus
+# returns: list of: valid indexRef endMinus code
 # where valid is "1" if valid, "0" if invalid
-# and indexRef is either an integer literal
-# or a scalar int, endMinus is 1 if "end-x", 0 otherwise
+# indexRef is either an integer literal or a scalar int.
+# endMinus is 1 if "end-x", 0 otherwise.
+# code is populated if any type conversion is needed, otherwise empty string.
 #
 proc ::tsp::get_index {compUnitDict node} {
     upvar $compUnitDict compUnit
@@ -374,11 +375,11 @@ proc ::tsp::get_index {compUnitDict node} {
         if {$firstType eq "text"} {
             lassign [lindex $nodeComponents 0] type rawtext text
             if {$rawtext eq "end"} {
-                return [list 1 0 1]
+                return [list 1 0 1 ""]
             } elseif {[regexp {^end-([0-9]+)$} $rawtext match intvalue]} {
-                return [list 1 $intvalue 1]
+                return [list 1 $intvalue 1 ""]
             } elseif {[::tsp::literalExprTypes $rawtext] eq "int"} {
-                return [list 1 $rawtext 0]
+                return [list 1 $rawtext 0 ""]
             } else {
                 return [list 0 "can't parse index: $rawtext"]
             }
@@ -386,9 +387,11 @@ proc ::tsp::get_index {compUnitDict node} {
             lassign [lindex $nodeComponents 0] type varname
             set type [::tsp::getVarType compUnit $varname]
             if {$type eq "int"} {
-                return [list 1 $varname 0]
+                return [list 1 $varname 0 ""]
             } else {
-                return [list 0 "index scalar not an int, was type: $type"]
+                set intVar [::tsp::get_tmpvar compUnit int]
+                set code [::tsp::lang_convert_int_$type $intVar $varname]
+                return [list 1 $intVar 0 $code]
             }
         }
     } elseif {[llength $nodeComponents] == 2} {
@@ -396,9 +399,14 @@ proc ::tsp::get_index {compUnitDict node} {
         lassign $firstNode firstType rawtext text
         lassign $secondNode secondType varname
         set type [::tsp::getVarType compUnit $varname]
-        if {$firstType eq "text" && $rawtext eq "end-" && \
-                $secondType eq "scalar" && $type eq "int"} {
-            return [list 1 $varname 1]
+        if {$firstType eq "text" && $rawtext eq "end-" && $secondType eq "scalar"} {
+            if {$type eq "int"} {
+                return [list 1 $varname 1 ""]
+            } else {
+                set intVar [::tsp::get_tmpvar compUnit int]
+                set code [::tsp::lang_convert_int_$type $intVar $varname]
+                return [list 1 $intVar 0 $code]
+            }
         } else {
             return [list 0 "can't parse node as an index"]
         }

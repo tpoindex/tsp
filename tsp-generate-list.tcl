@@ -231,7 +231,7 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
     # index component, can either be an int type or an integer constant, anything else,
     # let lindex have at it.
     set idxResult [::tsp::get_index compUnit [lindex $tree 2]]
-    lassign $idxResult idxValid idxRef idxIsFromEnd
+    lassign $idxResult idxValid idxRef idxIsFromEnd convertCode
 
     if {! $idxValid} {
         set directResult [::tsp::gen_direct_tcl compUnit $tree]
@@ -240,9 +240,13 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
         return [list $type $rhsvar $code]
     } else {
         if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {
-            # not a int literal, so it must be a scalar, prefix it with "__"
-            set idxRef __$idxRef
+            # not a int literal, so it must be a scalar
+            if {! [::tsp::is_tmpvar $idxRef]} {
+                # not a tmp var, prefix it with "__"
+                set idxRef __$idxRef
+            }
         }
+        append code $convertCode
     }
 
     set returnVar [::tsp::get_tmpvar compUnit var]

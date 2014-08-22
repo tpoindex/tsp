@@ -256,6 +256,24 @@ proc ::tsp::lang_convert_int_string {targetVarName sourceVarName errMsg} {
 }
 
 ##############################################
+# convert a int from a boolean value
+#
+proc ::tsp::lang_convert_int_boolean {targetVarName sourceVarName} {
+    append result "// ::tsp::lang_convert_int_boolean\n"
+    append result "$targetVarName = $sourceVarName ? 1 : 0;\n"
+    return $result
+}
+
+##############################################
+# convert a int from a double value
+#
+proc ::tsp::lang_convert_int_double {targetVarName sourceVarName} {
+    append result "// ::tsp::lang_convert_int_double\n"
+    append result "$targetVarName = (int) $sourceVarName;\n"
+    return $result
+}
+
+##############################################
 # convert a double from a string value
 # note that errMsg should be passed unquoetd (done here)
 #
