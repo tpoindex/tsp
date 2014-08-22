@@ -390,7 +390,10 @@ proc ::tsp::get_index {compUnitDict node} {
                 return [list 1 $varname 0 ""]
             } else {
                 set intVar [::tsp::get_tmpvar compUnit int]
-                set code [::tsp::lang_convert_int_$type $intVar $varname]
+                if {! [::tsp::is_tmpvar $varname]} {
+                    set varname __$varname
+                }
+                set code [::tsp::lang_convert_int_$type $intVar $varname "can't convert from $type to int"]
                 return [list 1 $intVar 0 $code]
             }
         }
@@ -404,8 +407,11 @@ proc ::tsp::get_index {compUnitDict node} {
                 return [list 1 $varname 1 ""]
             } else {
                 set intVar [::tsp::get_tmpvar compUnit int]
+                if {! [::tsp::is_tmpvar $varname]} {
+                    set varname __$varname
+                }
                 set code [::tsp::lang_convert_int_$type $intVar $varname]
-                return [list 1 $intVar 0 $code]
+                return [list 1 $intVar 1 $code]
             }
         } else {
             return [list 0 "can't parse node as an index"]

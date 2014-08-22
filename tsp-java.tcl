@@ -258,7 +258,7 @@ proc ::tsp::lang_convert_int_string {targetVarName sourceVarName errMsg} {
 ##############################################
 # convert a int from a boolean value
 #
-proc ::tsp::lang_convert_int_boolean {targetVarName sourceVarName} {
+proc ::tsp::lang_convert_int_boolean {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_int_boolean\n"
     append result "$targetVarName = $sourceVarName ? 1 : 0;\n"
     return $result
@@ -267,9 +267,9 @@ proc ::tsp::lang_convert_int_boolean {targetVarName sourceVarName} {
 ##############################################
 # convert a int from a double value
 #
-proc ::tsp::lang_convert_int_double {targetVarName sourceVarName} {
+proc ::tsp::lang_convert_int_double {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_int_double\n"
-    append result "$targetVarName = (int) $sourceVarName;\n"
+    append result "$targetVarName = (long) $sourceVarName;\n"
     return $result
 }
 
