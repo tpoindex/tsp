@@ -16,24 +16,33 @@ proc ::tsp::gen_command_lset {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    # varname must be text, must exists
-    set varComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    lassign $varComponent type rawtext varname
-    if {$type ne "text"} {
-        ::tsp::addError compUnit "append varName not a text word: \"$rawtext\""
+    set code "\n/***** ::tsp::gen_command_lset */\n"
+    set varname [::tsp::nodeText compUnit [lindex $tree 1]]
+
+    if {$varname eq ""} {
+        ::tsp::addError compUnit "lset varName not a text word"
         return [list void "" ""]
     }
+
     set type [::tsp::getVarType compUnit $varname]
-    if {$type eq "undefined"} {
-        ::tsp::addError compUnit "can't read \"$varname\": no such variable"
-        return [list void "" ""]
-    }
     if {$type eq "array" || $type eq "string" || $type eq "boolean" || $type eq "int" || $type eq "double"} {
         ::tsp::addError compUnit "lset varName must be type var, defined as : $type"
         return [list void "" ""]
     }
-    
-    set code "\n/***** ::tsp::gen_command_lset */\n"
+    if {$type eq "undefined"} {
+        ::tsp::addWarning compUnit "lset varName \"$varname\" defined as var"
+        ::tsp::setVarType compUnit $varname var
+        append code [::tsp::lang_assign_empty_zero __$varname var]
+        append code [::tsp::lang_preserve __$varname]
+    } else {
+        # varname exists
+        # if varname was not previously included as volatile, spill variable here and add to volatile list
+        if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
+            append code [::tsp::lang_spill_vars compUnit $varname] \n
+            ::tsp::append_volatile_list compUnit $varname
+        }
+    }
+
     # if varname was not previously included as volatile, spill variable here and add to volatile list
     if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
         append code [::tsp::lang_spill_vars compUnit $varname] \n
@@ -62,7 +71,6 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         return [list void "" ""]
     }
     
-    # varname must be text, must exists
     set varname [::tsp::nodeText compUnit [lindex $tree 1]]
 
     if {$varname eq ""} {
