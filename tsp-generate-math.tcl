@@ -47,9 +47,8 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    set varComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    lassign $varComponent type rawtext varname
-    if {$type ne "text"} {
+    set varname [::tsp::nodeText compUnit [lindex $tree 1]]
+    if {$varname eq ""} {
         ::tsp::addError compUnit "incr varName argument requires a scalar varName"
         return [list void "" ""]
     }
