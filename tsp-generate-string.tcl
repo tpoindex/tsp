@@ -189,7 +189,7 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
             index      { set rc [catch {set result [::tsp::gen_string_index compUnit $tree]} errMsg] }
             is         { }
             last       { }
-            length     { }
+            length     { set rc [catch {set result [::tsp::gen_string_length compUnit $tree]} errMsg] }
             map        { }
             match      { }
             range      { }
@@ -234,7 +234,7 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
         error "#wrong # args: should be \"string index string charIndex\""
     }
 
-    set code "/* ::tsp::gen_command_string_index */\n"
+    set code "/***** ::tsp::gen_command_string_index */\n"
     
     # get the string
     set strResult [::tsp::get_string compUnit [lindex $tree 2]]
@@ -273,3 +273,35 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
 
 
 
+#########################################################
+# generate code for "string length"
+# raise error if wrong arguments, etc.
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_string_length {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] != 3} {
+        error "#wrong # args: should be \"string length string\""
+    }
+
+    set code "/***** ::tsp::gen_command_string_length */\n"
+    
+    # get the string
+    set strResult [::tsp::get_string compUnit [lindex $tree 2]]
+    lassign $strResult result strVar convertCode
+    if {$result ==  0} {
+        error $strVar
+    }  else {
+        if {! [::tsp::is_tmpvar $strVar]} {
+            # not a tmp var, prefix it with "__"
+            set strVar __$strVar
+        }
+    }
+    append code $convertCode
+    
+    # get the length 
+    set returnVar [::tsp::get_tmpvar compUnit int]
+    append code [::tsp::lang_string_length $returnVar $strVar]
+    return [list int $returnVar $code]
+}

@@ -1291,6 +1291,18 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
 
 
 ##############################################
+# string length
+# implement the tcl 'string length' command
+# returnVar is int and argVar is string
+#
+proc ::tsp::lang_string_length {returnVar argVar} {
+    append code "// lang_string_length\n"
+    append code "$returnVar = $argVar.length();\n"
+    return $code
+}
+
+
+##############################################
 # generate a catch command
 # implement the tcl 'catch' command
 #
