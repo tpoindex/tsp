@@ -354,6 +354,53 @@ proc ::tsp::gen_runtime_error {compUnitDict msg} {
 
 
 #########################################################
+# parse a string node, node is from [parse command], valid are:
+# returns: list of: invalid reason
+# returns: list of: valid strRef code
+# where valid is "1" if valid, "0" if invalid
+# strRef is either string variable
+# code is populated if any type conversion is needed, otherwise empty string.
+#
+proc ::tsp::get_string {compUnitDict node} {
+    upvar $compUnitDict compUnit
+
+    set strComponents [::tsp::parse_word compUnit $node]
+    if {[llength $strComponents] == 1} {
+        lassign [lindex $strComponents 0] type textOrVar text
+        if {$type eq "scalar"} {
+            set varName $textOrVar
+            set varType [::tsp::getVarType compUnit $varName]
+            if {$varType eq "undefined"} {
+                return [list 0 "variable is undefined: $varName"]
+            } elseif {$varType eq "string"} {
+                return [list 1 $varName ""]
+            } else {
+                set strVar [::tsp::get_tmpvar compUnit string]
+                set convertCode [::tsp::lang_convert_string_$varType $strVar $varName "can't convert to string from type: $varType"]
+                return [list 1 $strVar $convertCode]
+            }
+        } elseif {$type eq "text"} {
+            set strVar [::tsp::get_tmpvar compUnit string]
+            set convertCode [::tsp::lang_assign_string_const $strVar $text]
+            return [list 1 $strVar $convertCode]
+        } else {
+            return [list 0 "::tsp::get_string: unexpected parse type: $type" ""]
+        }
+    } else {
+        # interpolated text or array var
+        set strVar [::tsp::get_tmpvar compUnit string]
+        set strVarComponents [list [list text $strVar $strVar]]
+        set convertCode [lindex [::tsp::produce_set compUnit "" $strVarComponents $strComponents] 2]
+        if {$convertCode eq ""} {
+            return [list 0 "can't convert to string from node: $strComponents" ""]
+        } else {
+            return [list 1 $strVar $convertCode]
+        }
+    }
+    error "::tsp::get_string: unexpected result"
+}
+
+#########################################################
 # parse a index, node is from [parse command], valid are:
 # an integer literal
 # a scalar of type int

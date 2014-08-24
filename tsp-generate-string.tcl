@@ -164,7 +164,14 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     set result ""
-#FIXME: implement various string subcommands in the lang files
+    set errMsg ""
+    set rc 0
+
+    # quick arg length check, all string commands need at least 3 args
+    if {[llength $tree] < 3} {
+        ::tsp::addError compUnit "string command doesn't have enough arguments"
+        return [list void "" ""]
+    }
 
     # get the string subcommand
     set subcommandNode [lindex $tree 1]
@@ -173,32 +180,39 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
 
     if {[llength $subcommandNodeComponents] == 1 && $type eq "text"} {
         set cmd $rawtext
+        
         switch $cmd {
-            bytelength {}
-            compare {}
-            equal {}
-            first {}
-            index {}
-            is {}
-            last {}
-            length {}
-            map {}
-            match {}
-            range {}
-            repeat {}
-            replace {}
-            tolower {}
-            toupper {}
-            totitle {}
-            trim {}
-            trimleft {}
-            trimright {}
-            wordend {}
-            wordstart {}
+            bytelength { }
+            compare    { }
+            equal      { }
+            first      { }
+            index      { set rc [catch {set result [::tsp::gen_string_index compUnit $tree]} errMsg] }
+            is         { }
+            last       { }
+            length     { }
+            map        { }
+            match      { }
+            range      { }
+            repeat     { }
+            replace    { }
+            tolower    { }
+            toupper    { }
+            totitle    { }
+            trim       { }
+            trimleft   { }
+            trimright  { }
+            wordend    { }
+            wordstart  { }
         }
+    } else {
+        ::tsp::addError compUnit "string subcommand is not simple text"
+        return [list void "" ""]
     }
 
-    #set result [::tsp::lang_string compUnit $tree]
+    if {$rc != 0} {
+        ::tsp::addErrorMsg compUnit $errMsg
+        return [list void "" ""]
+    }
 
     if {[llength $result] > 0} {
         return $result
@@ -206,5 +220,56 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
         return [::tsp::gen_direct_tcl compUnit $tree]
     }
 }
+
+
+#########################################################
+# generate code for "string index"
+# raise error if wrong arguments, etc.
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_string_index {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] != 4} {
+        error "#wrong # args: should be \"string index string charIndex\""
+    }
+
+    set code "/* ::tsp::gen_command_string_index */\n"
+    
+    # get the string
+    set strResult [::tsp::get_string compUnit [lindex $tree 2]]
+    lassign $strResult result strVar convertCode
+    if {$result ==  0} {
+        error $strVar
+    }  else {
+        if {! [::tsp::is_tmpvar $strVar]} {
+            # not a tmp var, prefix it with "__"
+            set strVar __$strVar
+        }
+    }
+    append code $convertCode
+    
+    # get the index 
+    set idxResult [::tsp::get_index compUnit [lindex $tree 3]]
+    lassign $idxResult idxValid idxRef idxIsFromEnd convertCode
+
+    if {! $idxValid} {
+        error $idxRef
+    } else {
+        if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {
+            # not a int literal, so it must be a scalar
+            if {! [::tsp::is_tmpvar $idxRef]} {
+                # not a tmp var, prefix it with "__"
+                set idxRef __$idxRef
+            }
+        }
+        append code $convertCode
+    }
+
+    set returnVar [::tsp::get_tmpvar compUnit string]
+    append code [::tsp::lang_string_index $returnVar $idxRef $idxIsFromEnd $strVar]
+    return [list string $returnVar $code]
+}
+
 
 

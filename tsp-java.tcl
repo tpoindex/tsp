@@ -1268,6 +1268,29 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
 
 
 ##############################################
+# string index
+# implement the tcl 'string index' command
+# returnVar and argVar are string vars
+#
+proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
+    append code "// lang_string_index\n"
+    # note: make this a new string, in java 1.6 and early 1.7 versions, substring() doesn't create new string,
+    # so ensure that we're not keeping references to large some char[] buf 
+    if {$isFromEnd} {
+        append code "if (($argVar.length() - 1 - $idx >= 0) && ($argVar.length() - 1 - $idx < $argVar.length())) \{\n"
+        append code "    $returnVar = new String($argVar.substring($argVar.length() - 1 - $idx, $argVar.length() - $idx));\n"
+    } else {
+        append code "if (($idx >= 0) && ($idx < $argVar.length())) \{\n"
+        append code "    $returnVar = new String($argVar.substring($idx, $idx + 1));\n"
+    }
+    append code "\} else \{\n"
+    append code "    $returnVar = \"\";\n"
+    append code "\}\n"
+    return $code
+}
+
+
+##############################################
 # generate a catch command
 # implement the tcl 'catch' command
 #
