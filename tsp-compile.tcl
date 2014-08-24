@@ -63,7 +63,7 @@ proc ::tsp::compile_proc {file name procargs body} {
     if {$procValid ne ""} {
         ::tsp::addError compUnit compUnit $procValid
         ::tsp::logErrorsWarnings compUnit
-        uplevel [list ::proc $name $procargs $body]
+        uplevel #0 [list ::proc $name $procargs $body]
         return
     }
 
@@ -74,17 +74,19 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     if {$rc != 0} {
         if {$result eq "nocompile"} {
-            uplevel [list ::proc $name $procargs $body]
+            uplevel #0 [list ::proc $name $procargs $body]
             return
         } else {
             # some other error
-            error "parse_body error: $result\ncaused by:\n$errInf"
+            error "tsp internal error: parse_body error: $result\ncaused by:\n$errInf"
         }
     }
 
     set returnType [dict get $compUnit returns]
     if {$returnType eq ""} {
         ::tsp::addError compUnit "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
+        uplevel #0 [list ::proc $name $procargs $body]
+        return
     }
 
     set errors [::tsp::getErrors compUnit]
@@ -98,10 +100,10 @@ proc ::tsp::compile_proc {file name procargs body} {
         } elseif {$compileResult eq "nocompile"} {
             # pragma says not to compile this proc, so no big deal
             # don't record any errors or warnings
-            uplevel [list ::proc $name $procargs $body]
+            uplevel #0 [list ::proc $name $procargs $body]
         } else {
             ::tsp::logErrorsWarnings compUnit
-            uplevel [list ::proc $name $procargs $body]
+            uplevel #0 [list ::proc $name $procargs $body]
         }
     } else {
         # parse_body ok, let's see if we can compile it
@@ -111,7 +113,7 @@ proc ::tsp::compile_proc {file name procargs body} {
             ::tsp::lang_interp_define compUnit
             ::tsp::addCompiledProc compUnit
         } else {
-            uplevel [list ::proc $name $procargs $body]
+            uplevel #0 [list ::proc $name $procargs $body]
         }
 
         ::tsp::logCompilable compUnit $compilable

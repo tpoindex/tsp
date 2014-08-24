@@ -1278,10 +1278,10 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
     # so ensure that we're not keeping references to large some char[] buf 
     if {$isFromEnd} {
         append code "if (($argVar.length() - 1 - $idx >= 0) && ($argVar.length() - 1 - $idx < $argVar.length())) \{\n"
-        append code "    $returnVar = new String($argVar.substring($argVar.length() - 1 - $idx, $argVar.length() - $idx));\n"
+        append code "    $returnVar = new String((int) $argVar.substring($argVar.length() - 1 - $idx, (int) $argVar.length() - $idx));\n"
     } else {
         append code "if (($idx >= 0) && ($idx < $argVar.length())) \{\n"
-        append code "    $returnVar = new String($argVar.substring($idx, $idx + 1));\n"
+        append code "    $returnVar = new String($argVar.substring((int) $idx, (int) $idx + 1));\n"
     }
     append code "\} else \{\n"
     append code "    $returnVar = \"\";\n"
@@ -1298,6 +1298,41 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
 proc ::tsp::lang_string_length {returnVar argVar} {
     append code "// lang_string_length\n"
     append code "$returnVar = $argVar.length();\n"
+    return $code
+}
+
+
+##############################################
+# string range
+# implement the tcl 'string range' command
+# returnVar and argVar are string vars
+#
+proc ::tsp::lang_string_range {returnVar firstIdx firstIsFromEnd lastIdx lastIsFromEnd argVar} {
+    append code "// lang_string_range\n"
+    # note: make this a new string, in java 1.6 and early 1.7 versions, substring() doesn't create new string,
+    # so ensure that we're not keeping references to large some char[] buf 
+    # using local temp vars, so enclose in a block
+    append code "\{\n"
+    append code "    int strLen = $argVar.length();\n"
+    if {$firstIsFromEnd} {
+        append code "    long firstIdx = (strLen - 1 - ($firstIdx)) < 0 ? 0 : (strLen - 1 - ($firstIdx));\n"
+    } else {
+        append code "    long firstIdx = ($firstIdx) < 0 ? 0 : $firstIdx;\n"
+    }
+    if {$lastIsFromEnd} {
+        append code "    long lastIdx = (strLen - 1 - ($lastIdx));\n"
+    } else {
+        append code "    long lastIdx = $lastIdx;\n"
+    }
+    append code "    if (firstIdx >= strLen || firstIdx > lastIdx || lastIdx < 0 || strLen == 0) \{\n"
+    append code "        $returnVar = \"\";\n"
+    append code "    \} else \{\n"
+    append code "        if (lastIdx >= strLen) \{\n"
+    append code "            lastIdx = strLen - 1;\n"
+    append code "        \}\n"
+    append code "        $returnVar = $argVar.substring((int) firstIdx, (int) lastIdx + 1);\n"
+    append code "    \}\n"
+    append code "\}\n"
     return $code
 }
 

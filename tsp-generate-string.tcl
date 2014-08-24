@@ -192,7 +192,7 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
             length     { set rc [catch {set result [::tsp::gen_string_length compUnit $tree]} errMsg] }
             map        { }
             match      { }
-            range      { }
+            range      { set rc [catch {set result [::tsp::gen_string_range compUnit $tree]} errMsg] }
             repeat     { }
             replace    { }
             tolower    { }
@@ -210,7 +210,7 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
     }
 
     if {$rc != 0} {
-        ::tsp::addErrorMsg compUnit $errMsg
+        ::tsp::addError compUnit $errMsg
         return [list void "" ""]
     }
 
@@ -305,3 +305,72 @@ proc ::tsp::gen_string_length {compUnitDict tree} {
     append code [::tsp::lang_string_length $returnVar $strVar]
     return [list int $returnVar $code]
 }
+
+
+#########################################################
+# generate code for "string range"
+# raise error if wrong arguments, etc.
+# return list of: type rhsVarName code
+#
+proc ::tsp::gen_string_range {compUnitDict tree} {
+    upvar $compUnitDict compUnit
+
+    if {[llength $tree] != 5} {
+        error "#wrong # args: should be \"string range string first last\""
+    }
+
+    set code "/***** ::tsp::gen_command_string_range */\n"
+    
+    # get the string
+    set strResult [::tsp::get_string compUnit [lindex $tree 2]]
+    lassign $strResult result strVar convertCode
+    if {$result ==  0} {
+        error $strVar
+    }  else {
+        if {! [::tsp::is_tmpvar $strVar]} {
+            # not a tmp var, prefix it with "__"
+            set strVar __$strVar
+        }
+    }
+    append code $convertCode
+    
+    # get the first index 
+    set idxResult [::tsp::get_index compUnit [lindex $tree 3]]
+    lassign $idxResult firstIdxValid firstIdxRef firstIdxIsFromEnd convertCode
+
+    if {! $firstIdxValid} {
+        error $firstIdxRef
+    } else {
+        if {[::tsp::literalExprTypes $firstIdxRef] eq "stringliteral"} {
+            # not a int literal, so it must be a scalar
+            if {! [::tsp::is_tmpvar $firstIdxRef]} {
+                # not a tmp var, prefix it with "__"
+                set firstIdxRef __$firstIdxRef
+            }
+        }
+        append code $convertCode
+    }
+    
+    # get the last index 
+    set idxResult [::tsp::get_index compUnit [lindex $tree 4]]
+    lassign $idxResult lastIdxValid lastIdxRef lastIdxIsFromEnd convertCode
+
+    if {! $lastIdxValid} {
+        error $lastIdxRef
+    } else {
+        if {[::tsp::literalExprTypes $lastIdxRef] eq "stringliteral"} {
+            # not a int literal, so it must be a scalar
+            if {! [::tsp::is_tmpvar $lastIdxRef]} {
+                # not a tmp var, prefix it with "__"
+                set lastIdxRef __$lastIdxRef
+            }
+        }
+        append code $convertCode
+    }
+
+    set returnVar [::tsp::get_tmpvar compUnit string]
+    append code [::tsp::lang_string_range $returnVar $firstIdxRef $firstIdxIsFromEnd $lastIdxRef $lastIdxIsFromEnd $strVar]
+    return [list string $returnVar $code]
+}
+
+
