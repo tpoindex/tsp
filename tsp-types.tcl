@@ -203,6 +203,10 @@ proc ::tsp::parse_procDefs {compUnitDict def} {
     set defArgs [lrange $def 4 end]
     set defArgsLen [llength $defArgs]
     set procArgsLen [llength $procArgs]
+    if {$defArgsLen == 1 && $defArgs eq "void" && $procArgsLen == 0} {
+        # void is allowed
+        return
+    }
     if {$defArgsLen != $procArgsLen} {
         ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: \
             number of arg types $defArgsLen does not match number of args $procArgsLen"
