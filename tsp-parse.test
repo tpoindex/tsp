@@ -424,10 +424,10 @@ proc ::tsp::gen_invoke_proc {compUnit body tree} {
 ::tcltest::test parse_body-8 {parse body pragmas and multiple commands} -setup {
 } -body {
     set body {
-       #::tsp::vardef int i j k
+       #::tsp::def int i j k
        set i 1
        cmd1 $i 
-       #::tsp::vardef string s t
+       #::tsp::def string s t
        set s hello
        cmd2 $s 
        cmd3

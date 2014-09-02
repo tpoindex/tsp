@@ -136,25 +136,25 @@ proc __initCompUnit {body} {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::vardef foo x y z "
+    ::tsp::parse_varDefs compUnit "#::tsp::def foo x y z "
     dict get $compUnit errors
-} -result {{1: ::tsp::vardef: invalid var type: "foo"}}
+} -result {{1: ::tsp::def: invalid var type: "foo"}}
 
 ::tcltest::test parse_varDefs-2 {parse_varDefs previously defined} -setup {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::vardef int x y z "
-    ::tsp::parse_varDefs compUnit "#::tsp::vardef double a b z "
+    ::tsp::parse_varDefs compUnit "#::tsp::def int x y z "
+    ::tsp::parse_varDefs compUnit "#::tsp::def double a b z "
     dict get $compUnit errors
-} -result {{1: ::tsp::vardef: var already defined: "z" as type "int"}}
+} -result {{1: ::tsp::def: var already defined: "z" as type "int"}}
 
 ::tcltest::test parse_varDefs-3 {parse_varDefs previously defined as same type} -setup {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::vardef int x y z "
-    ::tsp::parse_varDefs compUnit "#::tsp::vardef int  z "
+    ::tsp::parse_varDefs compUnit "#::tsp::def int x y z "
+    ::tsp::parse_varDefs compUnit "#::tsp::def int  z "
     dict get $compUnit errors
 } -result {}
 
@@ -162,9 +162,9 @@ proc __initCompUnit {body} {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::vardef int .zip "
+    ::tsp::parse_varDefs compUnit "#::tsp::def int .zip "
     dict get $compUnit errors
-} -result {{1: ::tsp::vardef: var is not valid identifier: ".zip"}}
+} -result {{1: ::tsp::def: var is not valid identifier: ".zip"}}
 
 
 #############################################################################
@@ -175,7 +175,7 @@ proc __initCompUnit {body} {
     set body {
         # random comment
         #::tsp::procdef returns: int args: int double
-        #tsp::vardef int a y 
+        #tsp::def int a y 
     }
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}

@@ -70,7 +70,7 @@ proc ::tsp::copyVars {fromCompUnitDict toCompUnitDict} {
 # parse comments, looking for tsp pragmas
 #
 # #::tsp::procdef returns: <type> ?args: <type> ... <type>?
-# #::tsp::vardef <type> <var> ?<var> ... <var>?
+# #::tsp::def <type> <var> ?<var> ... <var>?
 # #::tsp::volatile <var> ?<var> ... <var>?
 # #::tsp::assertcompile    -- proc must compile, or raise error
 # #::tsp::nocompile        -- parse, but don't compile proc
@@ -96,10 +96,10 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
                 }
             }
             
-            "#tsp::vardef" -
-            "#::tsp::vardef"  {
+            "#tsp::def" -
+            "#::tsp::def"  {
                 if {[catch {llength $line}]} {
-                    ::tsp::addError compUnit "::tsp::vardef pragma not a proper list: $line"
+                    ::tsp::addError compUnit "::tsp::def pragma not a proper list: $line"
                 } else {
                     ::tsp::parse_varDefs compUnit $line
                 }
@@ -242,14 +242,14 @@ proc ::tsp::parse_procDefs {compUnitDict def} {
 
 #########################################################
 # parse a variable definition
-# #tsp::vardef <type> <var> ?<var> ... <var>?
+# #tsp::def <type> <var> ?<var> ... <var>?
 
 proc ::tsp::parse_varDefs {compUnitDict def} {
     upvar $compUnitDict compUnit
 
     set len [llength $def]
     if {$len < 3} {
-        ::tsp::addError compUnit "::tsp::vardef: invalid def, missing type and/or variables"
+        ::tsp::addError compUnit "::tsp::def: invalid def, missing type and/or variables"
         return
     }
 
@@ -258,7 +258,7 @@ proc ::tsp::parse_varDefs {compUnitDict def} {
     set type [lindex $def 1]
     set found [lsearch $types $type]
     if {$found < 0} {
-        ::tsp::addError compUnit "::tsp::vardef: invalid var type: \"$type\""
+        ::tsp::addError compUnit "::tsp::def: invalid var type: \"$type\""
         return
     }
 
@@ -266,13 +266,13 @@ proc ::tsp::parse_varDefs {compUnitDict def} {
     foreach var $var_list {
         set isValid [::tsp::isValidIdent $var]
         if {! $isValid} {
-            ::tsp::addError compUnit "::tsp::vardef: var is not valid identifier: \"$var\""
+            ::tsp::addError compUnit "::tsp::def: var is not valid identifier: \"$var\""
         } else {
             set exists [dict exists $compUnit vars $var]
             if {$exists} {
                 set previous [dict get $compUnit vars $var]
                 if {$previous ne $type} {
-                    ::tsp::addError compUnit "::tsp::vardef: var already defined: \"$var\" as type \"$previous\""
+                    ::tsp::addError compUnit "::tsp::def: var already defined: \"$var\" as type \"$previous\""
                 }
             } else {
 		::tsp::setVarType compUnit $var $type
