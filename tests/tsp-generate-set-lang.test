@@ -1,7 +1,8 @@
 
 package require tcltest
 
-source tsp.tcl
+set dir ..
+source ../tsp.tcl
 
 source tsp-lang.test
 

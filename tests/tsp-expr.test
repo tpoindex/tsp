@@ -1,9 +1,9 @@
 package require tcltest
 
-
-source tsp.tcl
-source tsp-types.tcl
-source tsp-expr.tcl
+set dir ..
+source ../tsp.tcl
+source ../tsp-types.tcl
+source ../tsp-expr.tcl
 
 # force java platform so that functions are in java format for testing
 set ::tsp::PLATFORM  java

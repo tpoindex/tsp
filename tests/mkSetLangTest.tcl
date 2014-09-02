@@ -7,7 +7,8 @@ set scalarVarTypes2 [list bb2 boolean ii2 int dd2 double ss2 string vv2 var]
 puts {
 package require tcltest
 
-source tsp.tcl
+set dir ..
+source ../tsp.tcl
 
 source tsp-lang.test
 

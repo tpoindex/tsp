@@ -1,3 +1,9 @@
+package provide tsp 0.1
+
+# for dev - set the dir variable if not previously set
+if {[info vars dir] ne "dir"} {
+   set dir .
+}
 
 package require parser
 
@@ -21,23 +27,23 @@ namespace eval ::tsp {
     # e.g., tsp-java.tcl, tsp-clang.tcl
 } 
 
-#FIXME: source command should be in pkgIndex.tcl
-source tsp-logging.tcl
-source tsp-compile.tcl  
-source tsp-expr.tcl  
-source tsp-parse.tcl  
-source tsp-types.tcl
-source tsp-generate.tcl
-source tsp-generate-set.tcl
-source tsp-generate-math.tcl
-source tsp-generate-control.tcl
-source tsp-generate-var.tcl
-source tsp-generate-list.tcl
-source tsp-generate-string.tcl
+source [file join $dir tsp-logging.tcl]
+source [file join $dir tsp-compile.tcl]
+source [file join $dir tsp-expr.tcl]
+source [file join $dir tsp-parse.tcl]
+source [file join $dir tsp-types.tcl]
+source [file join $dir tsp-generate.tcl]
+source [file join $dir tsp-generate-set.tcl]
+source [file join $dir tsp-generate-math.tcl]
+source [file join $dir tsp-generate-control.tcl]
+source [file join $dir tsp-generate-var.tcl]
+source [file join $dir tsp-generate-list.tcl]
+source [file join $dir tsp-generate-string.tcl]
 
+# source the language specific module
 if {$::tcl_platform(platform) eq "java"} {
-    source tsp-java.tcl
+    source [file join $dir tsp-java.tcl]
 } else {
-    source tsp-clang.tcl
+    source [file join $dir tsp-clang.tcl]
 }
 
