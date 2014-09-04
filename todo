@@ -1,3 +1,5 @@
+00. refactor tsp-java to optionally call static methods (::tsp::inline variable ??)
+00. dirty tracking of scalars dumped to vars, don't have to always load vars for tcl call.
 
 
 0. test spill/load, remove "lightly" compiled commands, eg. "scan", etc.
