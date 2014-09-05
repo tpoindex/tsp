@@ -1,3 +1,5 @@
 #!
+/bin/rm -rf ./hyde/
 export TCLLIBPATH=`pwd`
-CLASSPATH=native/java jtcl
+export CLASSPATH=native/java
+jtcl
