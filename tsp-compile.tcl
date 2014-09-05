@@ -154,3 +154,17 @@ proc ::tsp::proc {name argList body} {
     return ""
 }
 
+
+#########################################################
+# set INLINE mode, whether we should inline generated code
+# or use functions where possible.  value is true/false
+#
+proc ::tsp::setInline {value} {
+    if {[string is -strict boolean $value]} {
+        if {$value} {
+            set ::tsp::INLINE 1
+        } else {
+            set ::tsp::INLINE 0
+        }
+    }
+}

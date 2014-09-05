@@ -55,4 +55,12 @@ set bing yeah
 
 
 
-
+source tsp.tcl
+::tsp::proc foo2 {i} {
+    #tsp::procdef returns: void args: int
+    #tsp::def int i
+    #tsp::def var v
+    set v [expr {$i + 1}]
+    puts $v
+}
+    

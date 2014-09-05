@@ -12,8 +12,7 @@ public class TspUtil {
     public static boolean lang_convert_boolean_string(Interp interp, String sourceVarName, String errMsg) 
             throws TclException {
         try {
-            boolean value = Util.getBoolean(interp, sourceVarName);
-            return value;
+            return(Util.getBoolean(interp, sourceVarName));
         } catch (TclException e) {
             throw new TclException(interp, errMsg + "\ncaused by: " + e.getMessage());
         }
@@ -22,8 +21,7 @@ public class TspUtil {
     public static boolean lang_convert_boolean_var(Interp interp, TclObject sourceVarName, String errMsg)  
             throws TclException {
         try {
-            boolean value = TclBoolean.get(interp, sourceVarName);
-            return value;
+            return(TclBoolean.get(interp, sourceVarName));
         } catch (TclException e) {
             throw new TclException(interp, errMsg + "\ncaused by: " + e.getMessage());
         }
@@ -32,8 +30,7 @@ public class TspUtil {
     public static long lang_convert_int_string(Interp interp, String sourceVarName, String errMsg)
             throws TclException {
         try {
-            long value = Util.getWideInt(interp, sourceVarName);
-            return value;
+            return(Util.getWideInt(interp, sourceVarName));
         } catch (TclException e) {
             throw new TclException(interp, errMsg + "\ncaused by: " + e.getMessage());
         }
@@ -42,8 +39,7 @@ public class TspUtil {
     public static double lang_convert_double_string(Interp interp, String sourceVarName, String errMsg)
             throws TclException {
         try {
-            double value = Util.getDouble(interp, sourceVarName);
-            return value;
+            return(Util.getDouble(interp, sourceVarName));
         } catch (TclException e) {
             throw new TclException(interp, errMsg + "\ncaused by: " + e.getMessage());
         }
@@ -54,8 +50,7 @@ public class TspUtil {
     public static long lang_convert_int_var(Interp interp, TclObject sourceVarName, String errMsg)
             throws TclException {
         try {
-            long value = TclInteger.get(interp, sourceVarName);
-            return value;
+            return(TclInteger.get(interp, sourceVarName));
         } catch (TclException e) {
             throw new TclException(interp, errMsg);
         }
@@ -64,8 +59,7 @@ public class TspUtil {
     public static double lang_convert_double_var(Interp interp, TclObject sourceVarName, String errMsg)
             throws TclException {
         try {
-            double value = TclDouble.get(interp, sourceVarName);
-            return value;
+            return(TclDouble.get(interp, sourceVarName));
         } catch (TclException e) {
             throw new TclException(interp, errMsg);
         }
@@ -74,8 +68,16 @@ public class TspUtil {
     public static TclObject lang_assign_var_array_idxvar(Interp interp, String arrVar, String idxVar, String errMsg)
             throws TclException {
         try {
-            TclObject value = interp.getVar(arrVar, idxVar, 0);
-            return value;
+            return ((TclObject) interp.getVar(arrVar, idxVar, 0));
+        } catch (TclException te) {
+            throw new TclException(interp, errMsg);
+        }
+    }
+
+    public static TclObject lang_assign_var_array_idxtext(Interp interp, String arrVar, String idxVar, String errMsg)
+            throws TclException {
+        try {
+            return ((TclObject) interp.getVar(arrVar, idxVar, 0));
         } catch (TclException te) {
             throw new TclException(interp, errMsg);
         }

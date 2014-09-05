@@ -23,6 +23,9 @@ namespace eval ::tsp {
     # directory name of debug output, if any
     variable DEBUG_DIR ""
 
+    # inline - whether to inline code or use utility methods/functions where applicable
+    variable INLINE 0
+
     # other ::tsp namespace variables are set in language specific files, 
     # e.g., tsp-java.tcl, tsp-clang.tcl
 } 

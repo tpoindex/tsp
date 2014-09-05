@@ -1,5 +1,6 @@
-package tsp.cmd;
-import tcl.lang.*;
+package tsp.util;
+
+import tcl.lang.Command;
 import tcl.lang.cmd.*;
 
 public class TspCmd {
