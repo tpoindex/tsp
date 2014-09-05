@@ -1,4 +1,5 @@
 00. dirty tracking of scalars dumped to vars, don't have to always load vars for tcl call.
+00. don't leak cmdResultObj, need to release() in finally block
 
 
 0. test spill/load, remove "lightly" compiled commands, eg. "scan", etc.
