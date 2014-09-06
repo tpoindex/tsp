@@ -1077,8 +1077,9 @@ public class ${name}Cmd implements Command {
             if (frame == null) {
                 throw new TclException(interp,"tsp internal error - pushNewCallFrame() returned null");
             }
-            // code must return a value, else will raise a compilation error
+            // code must return a value as defined by procdef (unless void), else will raise a compilation error
             [::tsp::indent compUnit $code 3]
+
         } catch (TclException te) {
             throw te;
         } finally {
@@ -1093,6 +1094,7 @@ public class ${name}Cmd implements Command {
             frame.dispose();
 
             // release var variables, if any (includes _tmp variables)
+            [::tsp::lang_safe_release cmdResultObj]
             [::tsp::indent compUnit $procVarsCleanup 3 \n]
         }
     }
