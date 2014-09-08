@@ -168,6 +168,7 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
 # generate a tcl invocation
 # tree is a raw parse tree for the command
 # cmd may should be builtin tcl command that is known in ::tsp::BUILTIN_TCL_COMMANDS
+# use the static reference to the command name as a small optimization
 # returns list of [type rhsvar code]
 #
 proc ::tsp::gen_direct_tcl {compUnitDict tree} {
@@ -177,7 +178,7 @@ proc ::tsp::gen_direct_tcl {compUnitDict tree} {
     set cmdName [lindex $cmdComponent 1]
     
     append result "\n/***** ::tsp::gen_direct_tcl $cmdName */\n"
-    append result [::tsp::gen_objv_array compUnit $tree]
+    append result [::tsp::gen_objv_array compUnit $tree [::tsp::lang_builtin_cmd_obj $cmdName]]
     lassign [::tsp::lang_invoke_builtin $cmdName] cmdResultVar code
     append result $code
 
@@ -267,7 +268,7 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
 # parse argTree is the command list in raw parse tree form
 # returns code
 #
-proc ::tsp::gen_objv_array {compUnitDict argTree} {
+proc ::tsp::gen_objv_array {compUnitDict argTree {firstObj {}}} {
     upvar $compUnitDict compUnit
     set result ""
     ::tsp::reset_tmpvarsUsed compUnit
@@ -277,16 +278,20 @@ proc ::tsp::gen_objv_array {compUnitDict argTree} {
 
     set idx 0
     foreach node $argTree {
-        set argVar [::tsp::get_tmpvar compUnit var]
-        set argVarComponents [list [list text $argVar $argVar]]
-        set appendNodeComponents [::tsp::parse_word compUnit $node]
-        set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
-        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
-            return [list void "" ""]
+        if {$idx == 0 && $firstObj ne ""} {
+            set argVar $firstObj
+        } else {
+            set argVar [::tsp::get_tmpvar compUnit var]
+            set argVarComponents [list [list text $argVar $argVar]]
+            set appendNodeComponents [::tsp::parse_word compUnit $node]
+            set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
+            if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+                ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+                return [list void "" ""]
+            }
+            set setTree ""
+            append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
         }
-        set setTree ""
-        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
         append result [::tsp::lang_assign_objv $idx $argVar]
         incr idx
