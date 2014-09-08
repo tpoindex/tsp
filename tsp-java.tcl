@@ -1159,18 +1159,30 @@ proc ::tsp::lang_interp_define {compUnitDict} {
     [java::getinterp] createCommand $name [java::new $class]
 }
 
+
 ##############################################
 # build a list of builtin command references
 # ignore commands that are tsp compiled
-# FIXME: this should be generated into a statically compiled class tsp.util.TspUtil
+# for java, this goes into TspCmd
 #
 proc ::tsp::lang_builtin_refs {} {
     set result ""
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
         if {[info procs $cmd] eq $cmd || [string match jacl* $cmd]} continue
         append result "    public static final Command builtin_$cmd = new tcl.lang.cmd.[string totitle $cmd]Cmd();\n"
+        append result "    public static final TclObject CmdStringObj[string totitle $cmd];\n"
+        append result "    static { CmdStringObj[string totitle $cmd] = TclString.newInstance(\"$cmd\"); CmdStringObj[string totitle $cmd].preserve(); }\n\n"
     }
     return $result
+}
+
+
+##############################################
+# return a builtin command string object
+# note - no checking if cmd is actually a builtin command
+#
+proc ::tsp::lang_builtin_cmd_obj {cmd} {
+    return TspCmd.CmdStringObj[string totitle $cmd];
 }
 
 
