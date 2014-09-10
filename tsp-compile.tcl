@@ -85,6 +85,7 @@ proc ::tsp::compile_proc {file name procargs body} {
     set returnType [dict get $compUnit returns]
     if {$returnType eq ""} {
         ::tsp::addError compUnit "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
+        ::tsp::logErrorsWarnings compUnit
         uplevel #0 [list ::proc $name $procargs $body]
         return
     }
