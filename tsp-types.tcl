@@ -101,76 +101,46 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
     foreach line $lines {
         set line [string trim $line]
 
-        set prag $line
-        regexp {^([^\s]*)(\s)} $line match prag
-        switch -- $prag {
+        set prag [string trimleft $line " \t#:"
+        switch -glob -- $prag {
 
-            "#tsp::procdef" -
-            "#::tsp::procdef"  {
-                if {[catch {llength $line}]} {
+            "tsp::procdef*" -
+                if {[catch {llength $prag}]} {
                     ::tsp::addError compUnit "::tsp::procdef pragma not a proper list: $line"
                 } else {
-                    ::tsp::parse_procDefs compUnit $line
+                    ::tsp::parse_procDefs compUnit $prag
                 }
             }
             
-            "#tsp::def" -
-            "#::tsp::def"  {
-                if {[catch {llength $line}]} {
+            "tsp::def*"  {
+                if {[catch {llength $prag}]} {
                     ::tsp::addError compUnit "::tsp::def pragma not a proper list: $line"
                 } else {
-                    ::tsp::parse_varDefs compUnit $line
+                    ::tsp::parse_varDefs compUnit $prag
                 }
             }
             
-            "#tsp::volatile" -
-            "#::tsp::volatile"  {
-                if {[catch {llength $line}]} {
+            "tsp::volatile*"  {
+                if {[catch {llength $prag}]} {
                     ::tsp::addError compUnit "::tsp::volatile pragma not a proper list: $line"
                 } else {
-                    set vars [lrange $line 1 end]
-                    ::tsp::append_volatile_list compUnit $vars
+                    ::tsp::parse_volatileDefs compUnit $prag
                 }
             }
             
-            "#tsp::assertcompile" -
-            "#::tsp::assertcompile"  {
-                set previousType [dict get $compUnit compileType]
-                if {$previousType ne "" && $previousType ne "assertcompile"} {
-                    ::tsp::addError compUnit "cannot set ::tsp::assertcompile', was previously set as: \"$previousType\""
+            "tsp::compile*"  {
+                if {[catch {llength $prag}]} {
+                    ::tsp::addError compUnit "::tsp::compile pragma not a proper list: $line"
                 } else {
-                    dict set compUnit compileType assertcompile
+                    ::tsp::parse_compileDefs compUnit $prag
                 }
             }
             
-            "#tsp::nocompile" -
-            "#::tsp::nocompile"  {
-                set previousType [dict get $compUnit compileType]
-                if {$previousType ne "" && $previousType ne "nocompile"} {
-                    ::tsp::addError compUnit "cannot set ::tsp::nocompile', was previously set as: \"$previousType\""
-                } else {
-                    dict set compUnit compileType nocompile
-                }
-                
-            }
-                    
         }
 
         set lineNum [dict get $compUnit lineNum]
         dict set compUnit lineNum [incr lineNum]
     } 
-}
-
-
-#########################################################
-# add variables to volatile list
-# ensure variables are not repeated
-
-proc ::tsp::append_volatile_list {compUnitDict varList} {
-    upvar $compUnitDict compUnit
-    set vlist [dict get $compUnit volatile]
-    set vlist [lsort -unique [concat $vlist $varList]]
-    dict set compUnit volatile $vlist
 }
 
 
@@ -298,6 +268,55 @@ proc ::tsp::parse_varDefs {compUnitDict def} {
         }
     }
 }
+
+
+#########################################################
+# parse a volatile definition
+# #tsp::volatile var var var ....
+
+proc ::tsp::parse_volatileDefs {compUnitDict def} {
+    upvar $compUnitDict compUnit
+
+    set vars [lrange $def 1 end]
+    ::tsp::append_volatile_list compUnit $vars
+}
+
+
+#########################################################
+# parse a compile definition
+# #tsp::compile normal|assert|none|trace
+
+proc ::tsp::parse_compileDefs {compUnitDict def} {
+    upvar $compUnitDict compUnit
+
+    set prevType [dict get $compUnit compileType]
+    set type [lindex $def 1]
+    if {[lsearch {"" normal none assert trace} $type] == -1} {
+        ::tsp::addError compUnit "invalid ::tsp::compile type: \"$type\", must be one of normal, none, assert, trace"
+    } else {
+        if {$type eq ""} {
+            set type normal
+        }
+        if {$prevType ne "" && $prevType ne $type} {
+            ::tsp::addError compUnit "cannot set ::tsp::compile as \"$type\", was previously set as: \"$prevType\""
+        } else {
+            dict set compUnit compileType $type   
+        }
+    }
+}
+
+
+#########################################################
+# add variables to volatile list
+# ensure variables are not repeated
+
+proc ::tsp::append_volatile_list {compUnitDict varList} {
+    upvar $compUnitDict compUnit
+    set vlist [dict get $compUnit volatile]
+    set vlist [lsort -unique [concat $vlist $varList]]
+    dict set compUnit volatile $vlist
+}
+
 
 #########################################################
 # check if id is a valid identifier

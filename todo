@@ -23,6 +23,8 @@
    when debug, set up traces to watch declared variables, return types
 
 
+1. implicitly defined variables should check to make sure they are not defined as procargs
+
 
 1. what to do with unset?  - probably generate a compile error.
    prob not needed.  just have commands that use 'varname' check if varname was in volatile list, if
