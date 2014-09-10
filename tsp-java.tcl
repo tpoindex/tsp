@@ -1103,33 +1103,13 @@ public class ${name}Cmd implements Command {
 proc ::tsp::lang_compile {compUnitDict code} {
     upvar $compUnitDict compUnit
     dict set compUnit buf $code
-
-    #FIXME - should use "hyde::jclass -source" when it is supported
-
-    # #################
-    # find a file we can write the code 
-    set patt [file join $::env(java.io.tmpdir) $::env(user.name)_[pid]_]
-    set name [dict get $compUnit name]
-    set dirname ${patt}[expr {int(rand()*10000)}]
-    while {[file exists $dirname]} {
-        set dirname ${patt}[expr {int(rand()*10000)}]
-    }
-    file mkdir $dirname
-    set filename [file join $dirname ${name}Cmd.java]
-    set fd [open $filename w]
-    puts $fd $code
-    close $fd
-    # #################
-    
     set rc [catch {
-        hyde::jclass ${name}Cmd -package tsp.cmd -include $filename
+        hyde::jclass ${name}Cmd -package tsp.cmd -source $code
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
     } result ]
     if {$rc} {
         ::tsp::addError compUnit $result
     }
-    file delete $filename
-    file delete $dirname
     return $rc
 }
 
@@ -1185,7 +1165,6 @@ proc ::tsp::lang_expr {exprAssignment} {
 }
 
 
-
 ##############################################
 # spill vars into interp, used for ::tsp::volatile,
 # compiled commands that use varName arguments, and
@@ -1226,7 +1205,6 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
     }
     return $buf
 }
-
 
 
 ##############################################
@@ -1281,7 +1259,6 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
     }
     return $buf
 }
-
 
 
 ################################################################################################
