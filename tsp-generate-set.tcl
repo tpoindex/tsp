@@ -1,9 +1,8 @@
 #FIXME: be consistent in quoting strings, esp those that are array index
 #       probaby ok to quote them once when recognized
 
-#FIXME: everywhere lang_decl_var is used, it probably leaks tclobjects.  this
-#       happens in code that has block-level tclobjects, and are not released.
-#       replace these with get_tmpvar so that they will be cleaned on exit
+#FIXME: use shadow var and dirty checking
+#       when converting a native type into a var
 
 #########################################################
 # generate a set command, the basic assignment command

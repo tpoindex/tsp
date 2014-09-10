@@ -3,7 +3,8 @@
 package require java
 package require hyde
 
-# hyde options
+# set hyde options:
+hyde::configure -compiler janinocp
 hyde::configure -writecache 0
 hyde::configure -runtime forcecompile
 
@@ -566,9 +567,6 @@ proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype err
     append result "    $targetObj = interp.getVar($arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], 0);\n"
     append result "} catch (TclException te) {\n"
     append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + sourceVarName + \"\\ncaused by: \" + te.getMessage());\n"
-    append result "} catch (TclRuntimeError tre) {\n"
-    append result "    throw tre;\n"
-    append result "} finally {\n"
     append result "}\n"
 
     return $result
@@ -591,9 +589,6 @@ proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
     append result "    $targetObj = interp.getVar($arrVar, $idxTxtVar, 0);\n"
     append result "} catch (TclException te) {\n"
     append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + \"\\ncaused by: \" + te.getMessage());\n"
-    append result "} catch (TclRuntimeError tre) {\n"
-    append result "    throw tre;\n"
-    append result "} finally {\n"
     append result "}\n"
     return $result
 }
@@ -778,8 +773,6 @@ proc ::tsp::lang_assign_array_var {targetArrayStr targetIdxStr var} {
     append result "    interp.setVar($targetArrayStr, $targetIdxStr, $var, 0);\n"
     append result "} catch (TclException te) {\n"
     append result "    throw te;\n"
-    append result "} catch (TclRuntimeError tre) {\n"
-    append result "    throw tre;\n"
     append result "} finally {\n"
     append result "    [::tsp::lang_release $var]"
     append result "}\n"
@@ -837,7 +830,7 @@ proc ::tsp::lang_assign_objv {n obj} {
 #        to prevent it from being prefixed
 #
 proc ::tsp::lang_invoke_builtin {cmd} {
-    append code "//  ::tsp::lang_invoke_builtin\n"
+    append code "\n//  ::tsp::lang_invoke_builtin\n"
     append code "TspCmd.builtin_$cmd.cmdProc(interp, argObjvArray);\n"
 
     #append code "builtin_$cmd.cmdProc(interp, argObjvArray);\n"
@@ -868,7 +861,7 @@ proc ::tsp::lang_alloc_objv_list {varName} {
 #        to prevent it from being prefixed
 #
 proc ::tsp::lang_invoke_tcl {} {
-    append code "//  ::tsp::lang_invoke_tcl\n"
+    append code "\n//  ::tsp::lang_invoke_tcl\n"
     append code "interp.invoke(argObjvArray, 0);\n"
     #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
     # so that we properly release/preserve cmdResultObj
@@ -890,26 +883,17 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
         append invokeArgs ", [join $argList ", "]"
     }
     append code "//  ::tsp::lang_invoke_tsp_compiled\n"
-    append code "try {\n"
-    append code "\n"
     if {$procType eq "void"} {
-        append code "    tsp.cmd.${cmdName}Cmd.${cmdName}($invokeArgs);\n"
+        append code "tsp.cmd.${cmdName}Cmd.__${cmdName}($invokeArgs);\n"
     } else {
-        append code "    $returnVar = tsp.cmd.${cmdName}Cmd.${cmdName}($invokeArgs);\n"
+        append code "$returnVar = tsp.cmd.${cmdName}Cmd.__${cmdName}($invokeArgs);\n"
     }
-    append code "} catch (TclException te) {\n"
     if {$procType eq "var"} {
-        append code "    $returnVar = TclString.newInstance(\"\");\n"
-        append code "    $returnVar.preserve();\n"
+        append code "$returnVar = TclString.newInstance(\"\");\n"
+        append code "$returnVar.preserve();\n"
     } elseif {$procType eq "string"} {
-        append code "    $returnVar = \"\";\n"
+        append code "$returnVar = \"\";\n"
     }
-    append code "    throw te;\n"
-    append code "} finally{\n"
-    foreach v $preserveArgList {
-        append code "    $v.release();\n"
-    }
-    append code "}\n"
     return $code
 }
 
@@ -1095,6 +1079,7 @@ public class ${name}Cmd implements Command {
 
             // release var variables, if any (includes _tmp variables)
             [::tsp::lang_safe_release cmdResultObj]
+            [::tsp::indent compUnit $procArgsCleanup 3 \n]
             [::tsp::indent compUnit $procVarsCleanup 3 \n]
         }
     }
@@ -1189,23 +1174,11 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 ##############################################
 # wrap an expression assignment to catch math errors
 #
-#FIXME: catch body belongs in tsp.util.TspUtil, as not to repeat code
 proc ::tsp::lang_expr {exprAssignment} {
     append result "try {\n"
     append result "    $exprAssignment"
-    append result "\n} catch (TclException te) {\n"
-    append result "    String msg = te.getMessage();\n"
-    append result "    if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {\n"
-    append result "        interp.setErrorCode(TclString.newInstance(\"ARITH DIVZERO {divide by zero}\"));\n"
-    append result "        throw new TclException(interp, \"divide by zero\");\n"
-    append result "    } else if (msg != null && msg.equals(TspFunc.DOMAIN_ERROR)) {\n"
-    append result "        interp.setErrorCode(TclString.newInstance(\"ARITH DOMAIN {domain error: argument not in valid range}\"));\n"
-    append result "        throw new TclException(interp, \"domain error: argument not in valid range\");\n"
-    append result "    } else { \n"
-    append result "        throw te;\n"
-    append result "   }\n"
-    append result "} catch (Exception ex) {\n"
-    append result "   throw new TclException(interp, \"expr caught Java Exception: \" + ex.getMessage());\n"
+    append result "\n} catch (Exception e) {\n"
+    append result "    TspFunc.ExprError(interp, e.getMessage()); // sets interp error code and throws a new TclException\n"
     append result "}\n"
     append result "\n"
     return $result
@@ -1218,6 +1191,7 @@ proc ::tsp::lang_expr {exprAssignment} {
 # compiled commands that use varName arguments, and
 # spilling final var values for upvar/global/variable.
 # returns code
+# NOTE: TclException throw if variable is already defined as an array in the interp
 #
 proc ::tsp::lang_spill_vars {compUnitDict varList} {
     upvar $compUnitDict compUnit
@@ -1259,6 +1233,8 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
 # load vars from interp, use for reloading vars after
 # ::tsp::volatile, compiled commands that use varName arguments,
 # and loading initial variables after upvar/global/variable
+# NOTE: must use shadow variables for native types, see below
+# NOTE: TclException throw if variable is unset or can't convert to native type
 # returns code
 #
 proc ::tsp::lang_load_vars {compUnitDict varList} {
@@ -1286,27 +1262,21 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
             set interpVar $pre$var
             set isvar 1
         } else {
-            #FIXME: use dirty checking, reset shadowed vars as not dirty here
-            #FIXME: code a ::tsp::get_shadow_var proc
+            # use shadow variable for native types 
+            # NOTE: SEE ::tsp::gen_load_vars where only "string" types are set clean
             set interpVar [::tsp::get_tmpvar compUnit var $var]
             set isvar 0
         }
+        # no try/catch here - if variable is deleted, or cannot be converted, allow TclException to be thrown.
+        # program needs to catch for this case
         append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
         append buf [::tsp::lang_safe_release $interpVar]
-        append buf "try \{\n"
-        append buf "    $interpVar = null;\n"
-        append buf "    $interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
-        append buf "    [::tsp::lang_preserve $interpVar]"
+        append buf "$interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
+        append buf "[::tsp::lang_preserve $interpVar]"
         if {! $isvar} {
             # for not-var types, convert into native type
-            append buf [::tsp::indent compUnit  [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1]
+            append buf [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""]
         } 
-        append buf "\} catch (TclException te) \{\n"
-        append buf "    // failed to get interp var, set native vars as a empty (var types are left as null)\n"
-        if {! $isvar} {
-            append buf [::tsp::indent compUnit  [::tsp::lang_assign_empty_zero $pre$var $type] 1]
-        }
-        append buf "\}\n"
 
     }
     return $buf
@@ -1315,7 +1285,7 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
 
 
 ################################################################################################
-# specific compiled commands below here
+# specific language implemented compiled commands below here
 #
 
 ##############################################

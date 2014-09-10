@@ -7,6 +7,9 @@
 # generate code for "lset" command (assumed to be first parse word)
 # varName must be a var type; string, int, boolean, double cause compile error
 # return list of: type rhsVarName code
+# note: no need to set rhsVarName as dirty, since we don't shadow var types
+#       and since we only "lightly" compile this command, gen_direct_tcl will
+#       handle shadow vars
 #
 proc ::tsp::gen_command_lset {compUnitDict tree} {
     upvar $compUnitDict compUnit
@@ -62,6 +65,8 @@ proc ::tsp::gen_command_lset {compUnitDict tree} {
 # generate code for "lappend" command (assumed to be first parse word)
 # varName must be a var type; string, int, boolean, double cause compile error
 # return list of: type rhsVarName code
+# note: no need to set rhsVarName as dirty, since we don't shadow var types
+#       we still will use shadow var/dirty checking for args
 #
 proc ::tsp::gen_command_lappend {compUnitDict tree} {
     upvar $compUnitDict compUnit
@@ -99,6 +104,7 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
     }
 
 
+#FIXME: use shadow var and dirty checking
     # append to var
     set argVar [::tsp::get_tmpvar compUnit var]
     set argVarComponents [list [list text $argVar $argVar]]
@@ -114,6 +120,7 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         set setTree ""
         append code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
+        # note - TclList.append with preserve() the argVar
         append code [::tsp::lang_lappend_var  __$varname $argVar]
     }
     
@@ -160,6 +167,7 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
             return [list void "" ""]
         } elseif {$argType eq "string"} {
             # convert the string into a tmp var
+#FIXME: use shadow var and dirty checking
             set argTmpVar [::tsp::get_tmpvar compUnit var]
             append code [::tsp::lang_assign_var_string $argTmpVar $argVar]
             set argVar $argTmpVar
@@ -232,6 +240,7 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
 
     # list argument, make sure it is a list
     # we'll assign it to another var if already a var :-(
+#FIXME: use shadow var and dirty checking
     set argComponents [::tsp::parse_word compUnit [lindex $tree 1]]
     set argTmpVar [::tsp::get_tmpvar compUnit var]
     set argTmpComponents [list [list text $argTmpVar $argTmpVar]]
@@ -266,3 +275,5 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
 
     return [list var $returnVar $code]
 }
+
+

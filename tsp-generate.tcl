@@ -71,6 +71,25 @@ proc ::tsp::gen_spill_vars {compUnitDict volatile} {
 #
 proc ::tsp::gen_load_vars {compUnitDict volatile} {
     upvar $compUnitDict compUnit
+    
+    foreach var $volatile {
+        set type [::tsp::getVarType compUnit $var]
+
+        # doooh!! really tempting to mark the var as clean, since we're loading
+        # it into the shadow var, but since it might not convert to the native type
+        # at runtime we don't want to mark it clean.  However, we can always convert
+        # a to a string native type, so only in the case where var is a string can
+        # we be sure.
+        # Note: ::tsp::lang_load_vars should use shadow temp variables for native types
+
+        if {$type eq "string"} {
+            ::tsp::setDirty compUnit $var 0 
+        } else {
+            ::tsp::setDirty compUnit $var 1
+        }
+    }
+
+    # now generate the code to load vars
     return [::tsp::lang_load_vars compUnit $volatile]
 }
 
@@ -125,6 +144,65 @@ proc ::tsp::gen_command {compUnitDict tree} {
 }
 
 
+##############################################
+# build a native types list from a parse tree, 
+# parse argTree is the command list in raw parse tree form
+# returns a list of: argVarList preserveVarList code
+#
+proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
+    upvar $compUnitDict compUnit
+    set result ""
+    set argVarList [list]
+    set preserveVarList [list]
+    ::tsp::reset_tmpvarsUsed compUnit
+
+    set idx 0
+    foreach node $argTree {
+        set argType [lindex $procArgTypes $idx]
+        set parsedWord [::tsp::parse_word compUnit $node]
+
+        #FIXME: do we need to copy C DString into a new string arg?
+        #       if so, make a check of arg type "string" here, and allow to
+        #       fall into coercion code
+
+        if {[lindex $parsedWord 0 0] eq "scalar"} {
+            # arg is a variable, check the type
+            set var [lindex $parsedWord 0 1]
+            set varType [::tsp::getVarType compUnit $var]   
+            if {$varType eq $argType} {
+                # perfect - we have same type of arg that proc requires
+                if {$varType eq "var"} {
+                    lappend preserveVarList __$var
+                }
+                lappend argVarList __$var
+                incr idx
+                continue
+            }
+        }
+
+        # else arg is different type, or is var, or is array, or is a constant, so
+        # we assign into a tmp var 
+
+#FIXME: if argType eq var, then use shadow/dirty
+
+        set argVar [::tsp::get_tmpvar compUnit $argType]
+        set argVarComponents [list [list text $argVar $argVar]]
+        set nodeComponents [::tsp::parse_word compUnit $node]
+        set nodeType [lindex [lindex $nodeComponents 0] 0]
+        if {$nodeType eq "invalid" || $nodeType eq "command"} {
+            ::tsp::addError compUnit "lappend argument parsed as \"$nodeType\"
+            return [list void "" ""]
+        }
+        set setTree ""
+        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
+
+        lappend argVarList $argVar
+        incr idx
+    }
+    return [list $argVarList $preserveVarList $result]
+}
+
+
 #########################################################
 # generate an invocation to a previously compiled proc
 # tree is a raw parse tree for the command
@@ -163,6 +241,7 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
 
     return [list $procType $returnVar $result]
 }
+
 
 #########################################################
 # generate a tcl invocation
@@ -206,66 +285,53 @@ proc ::tsp::gen_invoke_tcl {compUnitDict tree} {
     return [list var $cmdResultVar $result]
 }
 
+
 ##############################################
-# build a native types list from a parse tree, 
-# parse argTree is the command list in raw parse tree form
-# returns a list of: argVarList preserveVarList code
+# get temp "var" type and conversion code.
+# if varName is a scalar and a native type, use a shadow var and
+# only assign if dirty.
+# returns: list of: tmpvar conversion_code
+# or in the case of error:
+# returns: list of: invalid ""
 #
-proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
+proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
     upvar $compUnitDict compUnit
     set result ""
-    set argVarList [list]
-    set preserveVarList [list]
-    ::tsp::reset_tmpvarsUsed compUnit
-
-    set idx 0
-    foreach node $argTree {
-        set argType [lindex $procArgTypes $idx]
-        set parsedWord [::tsp::parse_word compUnit $node]
-
-#FIXME: do we need to copy C DString into a new string arg?
-#       if so, make a check of arg type "string" here, and allow to
-#       fall into coercion code
-
-        if {[lindex $parsedWord 0] eq "scalar"} {
-            # arg is a variable, check the type
-            set var [lindex $parsedWord 1]
-            set varType [::tsp::getVarType compUnit $var]   
-            if {$varType eq $argType} {
-                # perfect - we have same type of arg that proc requires
-                if {$varType eq "var"} {
-                    lappend preserveVarList $var
-                }
-                lappend argVarList $var
-                incr idx
-                continue
-            }
-        }
-
-        # else arg is different type, or is var, or is array, or is a constant, so
-        # we assign into a tmp var 
-
-        set argVar [::tsp::get_tmpvar compUnit $argType]
-        set argVarComponents [list [list text $argVar $argVar]]
-        set appendNodeComponents [::tsp::parse_word compUnit $node]
-        set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
-        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
-            return [list void "" ""]
-        }
-        set setTree ""
-        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
-
-        append result [::tsp::lang_assign_objv $idx $argVar]
-        lappend argVarList $argVar
-        incr idx
+    set nodeComponents [::tsp::parse_word compUnit $node]
+    set nodeType [lindex [lindex $nodeComponents 0] 0]
+    set nodeVarOrOther [lindex [lindex $nodeComponents 0] 1]
+    if {$nodeType eq "invalid" || $nodeType eq "command"} {
+	::tsp::addError compUnit "objv argument parsed as \"$nodeType\" "
+	return [list void "" ""]
+    } elseif {$nodeType eq "scalar" && [lsearch $::tsp::NATIVE_TYPES [::tsp::getVarType compUnit $nodeVarOrOther]] >= 0} {
+	# use shadow tmpvar, and only assign current native value if dirty
+	set argVar [::tsp::get_tmpvar compUnit var $nodeVarOrOther]
+	if {[lsearch [::tsp::getCleanList compUnit] $nodeVarOrOther] == -1} {
+	    # var is not clean (or not present, generate an assignment and mark it clean
+	    set argVarComponents [list [list text $argVar $argVar]]
+	    set setTree ""
+	    append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
+	    ::tsp::setDirty compUnit $nodeVarOrOther 0
+	} else {
+	    # var is clean no need to re-assign
+            set result "/* shadow var $nodeVarOrOther marked as clean */\n"
+	}
+    } else {
+	# just grab a regular temp var and generate an assignment
+	set argVar [::tsp::get_tmpvar compUnit var]
+	set argVarComponents [list [list text $argVar $argVar]]
+	set setTree ""
+	append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
     }
-    return [list $argVarList $preserveVarList $result]
+    return [list $argVar $result]
 }
+
 
 ##############################################
 # build an objv array from a parse tree, 
 # parse argTree is the command list in raw parse tree form
+# optional "firstObj" is used to populate a builtin Tcl command 
+# name TclString object, in the case we are called from ::tsp::gen_direct_tcl
 # returns code
 #
 proc ::tsp::gen_objv_array {compUnitDict argTree {firstObj {}}} {
@@ -281,16 +347,11 @@ proc ::tsp::gen_objv_array {compUnitDict argTree {firstObj {}}} {
         if {$idx == 0 && $firstObj ne ""} {
             set argVar $firstObj
         } else {
-            set argVar [::tsp::get_tmpvar compUnit var]
-            set argVarComponents [list [list text $argVar $argVar]]
-            set appendNodeComponents [::tsp::parse_word compUnit $node]
-            set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
-            if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-                ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            lassign [::tsp::getTmpVarAndConversion $compUnitDict $node] argVar conversionCode
+            if {$argVar eq "invalid"} {
                 return [list void "" ""]
             }
-            set setTree ""
-            append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
+            append result $conversionCode
         }
 
         append result [::tsp::lang_assign_objv $idx $argVar]

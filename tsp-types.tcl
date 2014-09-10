@@ -43,7 +43,9 @@ proc ::tsp::setDirty {compUnitDict name {isdirty 1}} {
 }
 
 #########################################################
-# get list of dirty variables
+# get list of dirty variables, these variabls have been set
+# by set or other commands, so any tmp vars will need to be
+# refreshed before giving them to the interp
 # 
 proc ::tsp::getDirtyList {compUnitDict} {
     upvar $compUnitDict compUnit
@@ -51,6 +53,22 @@ proc ::tsp::getDirtyList {compUnitDict} {
     set result [list]
     foreach {name isdirty} [dict get $compUnit dirty] {
         if {$isdirty} {
+            lappend result $name
+        }
+    }
+    return $result
+}
+
+#########################################################
+# get list of clean variables, these variables have not been
+# set since the last assignment
+# 
+proc ::tsp::getCleanList {compUnitDict} {
+    upvar $compUnitDict compUnit
+
+    set result [list]
+    foreach {name isdirty} [dict get $compUnit dirty] {
+        if {! $isdirty} {
             lappend result $name
         }
     }
@@ -358,7 +376,8 @@ proc ::tsp::typeIsNumeric {typeList} {
 
 #########################################################
 #
-# reset tmp vars used per invocation 
+# reset tmp vars used per command invocation 
+# does not effect "shadow" vars
 
 proc ::tsp::reset_tmpvarsUsed {compUnitDict} {
     upvar $compUnitDict compUnit
@@ -369,19 +388,22 @@ proc ::tsp::reset_tmpvarsUsed {compUnitDict} {
 #########################################################
 #
 # get and/or generate a temp var by type, and also defined as a var
+# compUnit key "tmpvars" is the maximum number of temp vars used 
+# in the entire proc. "tmpvarsUsed" is the total number of temp
+# vars used for any one command invocation.
 # note: temp vars defined as: _tmpVar_${type}_${n}
-# optional var suffix creates "shadow" vars
+# optional varName argument creates "shadow" vars (created as: _tmpVar_$var), 
+# so that we can optimize converting native type vars into TclObject var types
 
-proc ::tsp::get_tmpvar {compUnitDict type {var ""}} {
+proc ::tsp::get_tmpvar {compUnitDict type {varName ""}} {
     upvar $compUnitDict compUnit
 
     if {[lsearch $::tsp::VAR_TYPES $type] < 0 || $type eq "array"} {
         error "::tsp::get_tmpvar - invalid var type $type"
     }
 
-    if {$var eq ""} {
-
-	# get next var name and generate name
+    if {$varName eq ""} {
+	# get next temp var number and generate name
 	set n [dict get $compUnit tmpvarsUsed $type]
 	incr n
 	set name _tmpVar_${type}_${n}
@@ -395,12 +417,12 @@ proc ::tsp::get_tmpvar {compUnitDict type {var ""}} {
 	    dict set compUnit tmpvars $type $n
 	}
     } else {
-        set name _tmpVar_$var
+        set name _tmpVar_$varName
         set existing [::tsp::getVarType compUnit $name]
         if {$existing eq "undefined"} {
             ::tsp::setVarType compUnit $name $type
         } elseif {$existing ne $type} {
-            error "redefined temp var $var, was type: $existing, trying to set as $type"
+            error "redefined temp var $varName, was type: $existing, trying to set as $type"
         }
     }
     return $name

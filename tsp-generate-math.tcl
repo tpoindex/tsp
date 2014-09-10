@@ -106,8 +106,6 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
     # if target is a var, use a temp var for increment and assignment rhsVar
     if {$vartype eq "var"} {
         set rhsVar [::tsp::get_tmpvar compUnit int]
-        #set rhsVar [::tsp::get_tmpvar compUnit int $varname]
-        ::tsp::setDirty compUnit $varname 0
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to convert var to int, \"$varname\", value: "]]
         append code [::tsp::lang_convert_int_var $rhsVar $varname $errMsg]
     } else {
@@ -118,8 +116,6 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
     if {$incrvar ne ""} {
         if {$incrtype eq "var"} {
             set incrsource [::tsp::get_tmpvar compUnit int]
-            #set incrsource [::tsp::get_tmpvar compUnit int $incrvar]
-            ::tsp::setDirty compUnit $incrvar 0
             set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to convert var to int, \"$incrvar\", value: "]]
             append code [::tsp::lang_convert_int_var $incrsource $incrvar $errMsg]
         } else {
@@ -135,6 +131,9 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
     if {$vartype eq "var"} {
         append code [::tsp::lang_assign_var_int $varname $rhsVar]
     }
+
+    # native var has been assigned, so mark it as dirty
+    ::tsp::setDirty compUnit $varname
 
     return [list int $rhsVar $code]
 }
