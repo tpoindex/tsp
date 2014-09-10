@@ -1103,6 +1103,7 @@ public class ${name}Cmd implements Command {
 proc ::tsp::lang_compile {compUnitDict code} {
     upvar $compUnitDict compUnit
     dict set compUnit buf $code
+    set name [dict get $compUnit name]
     set rc [catch {
         hyde::jclass ${name}Cmd -package tsp.cmd -source $code
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
