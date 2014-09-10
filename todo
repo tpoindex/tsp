@@ -1,40 +1,36 @@
-00. dirty tracking of scalars dumped to vars, don't have to always load vars for tcl call.
-00. don't leak cmdResultObj, need to release() in finally block
+
+0. rework pragmas:
+   -allow any number of leading whitespace space and #
+   #tsp::def ....
+   # ::tsp::def ...
+   ####tsp::def ....
+   # # # tsp::def ....
 
 
-0. test spill/load, remove "lightly" compiled commands, eg. "scan", etc.
+   -tsp::prodef returntype -args arg1 arg2 ..
+   # ... # ::tsp::procdef int 
+   # ... # ::tsp::procdef void -args void
+   # ... # ::tsp::procdef var -args var var int
 
-0. DONE dict - subcommands that set vars, spill + load
-0. DONE lassign - load vars on exit
-0. DONE generalize code that spills and reloads variables, based on
-   command or command-subcommand.
-0. add 'preparse' so that command with vars that need to be volaile are spilled and loaded..
+   -replace tsp::assertcompile, tsp::nocompile with...
+   #tsp::compile normal|none|assert|debug
 
-0. what to do with unset?  - probably generate a compile error.
+   -actual commands:
+   allow tsp::compile outside of proc:
+   tsp::compile normal|none|assert|debug  procname procname procname ...
+
+   -commands as pragmas, don't require leading comment character
+   when debug, set up traces to watch declared variables, return types
+
+
+
+1. what to do with unset?  - probably generate a compile error.
    prob not needed.  just have commands that use 'varname' check if varname was in volatile list, if
    not, then spill var, and then add to volatile list in order to have it reloaded.
 
 
-
-0. PROB NOT (just let gc do it's job on new generation) declare shadow vars as static, to reuse.  shadow vars not released at end of code body.  Command proc
-   should implement CommandWithDispose so that shadow vars can be collected
-
-1. PROB NOT (same as above) tcl direct & indirect: use shadow vars if recursive count == 1, otherwise use per-invocation tmpVars (on
-   stack)
-
 2. allocate tcl direct arrays for each number of arguments, or allocate largest used and Arrays.copyRangeOf() 
    to get the size needed for smaller sizes.
-
-3. NO- for tcl indirect, perhaps builds array, then use Arrays.asList to get a list, 
-   instead of allocating a new TclObject list.
-
-4. on volatile reload, get or duplicate tcl variable into shadow var and reload native from that (saves dirty
-   step).
-
-5. DONE-(fixed in genereted code) interp.newCallFrame() needs to be public, and/or add new CallFrame constructor to hook into interp
-   with minimal fuss.
-
-6. parsing ::tsp::procdef - allow missing 'args:' if arglist is empty.  Or, should we force empty args as "void"??
 
 
 
