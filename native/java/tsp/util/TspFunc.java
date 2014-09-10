@@ -1,7 +1,9 @@
 package tsp.util;
 
-import java.util.Random;
+import tcl.lang.Interp;
+import tcl.lang.TclString;
 import tcl.lang.TclException;
+import java.util.Random;
 
 public class TspFunc {
     // since we don't have access to interp, we have to throw a
@@ -12,6 +14,21 @@ public class TspFunc {
 
     // we need our own private Random so we can seed it with srand()
     private static final Random randomInstance = new Random();
+
+    // set a Tcl error code and throw exception, called from try/catch block that
+    // actually evaluates the expression.
+    public static void ExprError(Interp interp, String msg) throws TclException {
+	if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {
+	    interp.setErrorCode(TclString.newInstance("ARITH DIVZERO {divide by zero}"));
+	    throw new TclException(interp, "divide by zero");
+	} else if (msg != null && msg.equals(TspFunc.DOMAIN_ERROR)) {
+	    interp.setErrorCode(TclString.newInstance("ARITH DOMAIN {domain error: argument not in valid range}"));
+	    throw new TclException(interp, "domain error: argument not in valid range");
+	} else { 
+	    interp.setErrorCode(TclString.newInstance("ARITH ERROR {unknown error message}"));
+	    throw new TclException(interp,"unknown error message: " + msg);
+	}
+    }
 
     public static long    IntDiv(long dividend, long divisor) throws TclException {
         // Note - this basically comes directly from tcl.lang.Expression
