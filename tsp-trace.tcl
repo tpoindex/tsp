@@ -78,9 +78,10 @@ proc ::tsp::trace_arg {procName argName argType value} {
         var     {return}
     }
     set value "[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]"
-    puts $::tsp::TRACE_FD "-------------------------------------------------------------------------------------"
-    puts $::tsp::TRACE_FD "proc: $procName\targ: $argName\tdefined: $argType\tvalue: $value\ttypes: $typeList"
-    puts $::tsp::TRACE_FD [::tsp::stacktrace]
+    append msg "-------------------------------------------------------------------------------------" \n
+    append msg "PROC ARG: proc: $procName\targ: $argName\tdefined: $argType\tvalue: $value\ttypes: $typeList" \n
+    append msg [::tsp::stacktrace] \n
+    puts $::tsp::TRACE_FD $msg
     flush $::tsp::TRACE_FD
 }
 
@@ -107,9 +108,10 @@ proc ::tsp::trace_var {procName varName varType name1 name2 op} {
         var     {return}
     }
     set value "[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]"
-    puts $::tsp::TRACE_FD "-------------------------------------------------------------------------------------"
-    puts $::tsp::TRACE_FD "proc: $procName\tvar: $varName\tdefined: $varType\tvalue: $value\ttypes: $typeList"
-    puts $::tsp::TRACE_FD [::tsp::stacktrace]
+    append msg "-------------------------------------------------------------------------------------" \n
+    append msg "VAR ASSIGN: proc: $procName\tvar: $varName\tdefined: $varType\tvalue: $value\ttypes: $typeList" \n
+    append msg [::tsp::stacktrace] \n
+    puts $::tsp::TRACE_FD $msg
     flush $::tsp::TRACE_FD
 }
 
@@ -119,6 +121,7 @@ proc ::tsp::trace_var {procName varName varType name1 name2 op} {
 # trace_return - record the most current return type
 #
 proc ::tsp::trace_return {procName returnType command code result op} {
+puts $::tsp::TRACE_FD "::tsp::trace_return $procName $returnType $command $code $result $op"
     if {! [dict exists $::tsp::COMPILER_LOG $procName]} {
         return
     }
@@ -131,7 +134,7 @@ proc ::tsp::trace_return {procName returnType command code result op} {
 # trace_return_check - check the most current return type 
 # and cancel return tracing
 #
-proc ::tsp::trace_return_check {procName procReturntype command code result op} {
+proc ::tsp::trace_return_check {procName procReturnType command code result op} {
     if {! [dict exists $::tsp::COMPILER_LOG $procName]} {
         return
     }
@@ -139,28 +142,47 @@ proc ::tsp::trace_return_check {procName procReturntype command code result op} 
     set returnType [lindex $::tsp::TRACE_PROC 1]
     set value      [lindex $::tsp::TRACE_PROC 2]
 
+    # make sure this trace invocation is the onw we should expect
+#FIXME: need to track proc enter as well (?)
+#FIXME: need to strack ::tsp::TRACE_PROC to get proper nesting
+    if {$returnName ne $procName} {
+        return
+    }
+
     set ::tsp::TRACE_PROC ""
-    trace remove execution return leave "::tsp::trace_return_check $procName $procReturnType"
+
+    # remove the trace 
+    trace remove execution return leave "::tsp::trace_return $procName $procReturnType"
 
     if {$procReturnType eq "void" && $value eq ""} {
         return
     }
+
+    if {$returnName eq ""} {
+        set value "[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]"
+        append msg "-------------------------------------------------------------------------------------" \n
+        append msg "PROC RETURN: proc: $procName\texiting without return command, expected return type: $procReturnType" \n
+        append msg [::tsp::stacktrace] \n
+        puts $::tsp::TRACE_FD  $msg
+        flush $::tsp::TRACE_FD
+    }
+
     set typeList [::tsp::literalTypes $value]
-        switch -- $argType {
+        switch -- $returnType {
         int     {if {[::tsp::typeIsInt     $typeList]} {return}}
         double  {if {[::tsp::typeIsDouble  $typeList] || [::tsp::typeIsInt     $typeList]} {return}}
         boolean {if {[::tsp::typeIsBoolean $typeList]} {return}}
         string  {return}
         var     {return}
     }
+
     set value "[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]"
-    puts $::tsp::TRACE_FD "-------------------------------------------------------------------------------------"
-    puts $::tsp::TRACE_FD "proc: $procName\treturn type defined: $procReturnType\tvalue: $typeList"
-    puts $::tsp::TRACE_FD [::tsp::stacktrace]
+    append msg "-------------------------------------------------------------------------------------" \n
+    append msg "PROC RETURN: proc: $procName\treturn type defined: $procReturnType\tvalue: $value\ttypes: $typeList" \n
+    append msg [::tsp::stacktrace] \n
+    puts $::tsp::TRACE_FD  $msg
     flush $::tsp::TRACE_FD
+
 }
-
-
-
 
 
