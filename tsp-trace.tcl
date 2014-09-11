@@ -121,8 +121,8 @@ proc ::tsp::trace_var {procName varName varType name1 name2 op} {
 # trace_return - record the most current return type
 #
 proc ::tsp::trace_return {procName returnType command code result op} {
-puts $::tsp::TRACE_FD "::tsp::trace_return $procName $returnType $command $code $result $op"
     if {! [dict exists $::tsp::COMPILER_LOG $procName]} {
+        puts $::tsp::TRACE_FD "NOT COMPILED PROC: ::tsp::trace_return $procName $returnType $command $code $result $op"
         return
     }
     set ::tsp::TRACE_PROC [list $procName $returnType $result]
@@ -135,19 +135,10 @@ puts $::tsp::TRACE_FD "::tsp::trace_return $procName $returnType $command $code 
 # and cancel return tracing
 #
 proc ::tsp::trace_return_check {procName procReturnType command code result op} {
-    if {! [dict exists $::tsp::COMPILER_LOG $procName]} {
-        return
-    }
+
     set returnName [lindex $::tsp::TRACE_PROC 0]
     set returnType [lindex $::tsp::TRACE_PROC 1]
     set value      [lindex $::tsp::TRACE_PROC 2]
-
-    # make sure this trace invocation is the onw we should expect
-#FIXME: need to track proc enter as well (?)
-#FIXME: need to strack ::tsp::TRACE_PROC to get proper nesting
-    if {$returnName ne $procName} {
-        return
-    }
 
     set ::tsp::TRACE_PROC ""
 
