@@ -23,6 +23,13 @@ namespace eval ::tsp {
     # directory name of debug output, if any
     variable DEBUG_DIR ""
 
+    # output of traces, default stderr
+    # when ::tsp::debug is called, a file is created in that directory
+    variable TRACE_FD stderr
+
+    # the last traced proc that returned a value (or void), so the we can check their return types
+    variable TRACE_PROC ""
+
     # inline - whether to inline code or use utility methods/functions where applicable
     variable INLINE 0
 
@@ -32,6 +39,7 @@ namespace eval ::tsp {
 
 source [file join $dir tsp-logging.tcl]
 source [file join $dir tsp-compile.tcl]
+source [file join $dir tsp-trace.tcl]
 source [file join $dir tsp-expr.tcl]
 source [file join $dir tsp-parse.tcl]
 source [file join $dir tsp-types.tcl]

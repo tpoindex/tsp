@@ -22,7 +22,7 @@
 # lineNum - current line number
 # errors - list of errors
 # warnings - list of warnings
-# compileType - "" = compile if able, nocompile = don't compile, assertcompile = Tcl error if not compilable
+# compileType - normal = compile if able, none = don't compile, assert = Tcl error if not compilable, trace = enable Tcl tracing
 # compiledReference - the Java class name or C function 
 
 
@@ -67,61 +67,76 @@ proc ::tsp::compile_proc {file name procargs body} {
         return
     }
 
-    set result ""
+    set code ""
+    set errInf ""
 
-    set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} result]
-    set errInf $result
+    set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} errInf]
+    set compileType [dict get $compUnit compileType]
 
     if {$rc != 0} {
-        if {$result eq "nocompile"} {
-            uplevel #0 [list ::proc $name $procargs $body]
-            return
-        } else {
-            # some other error
-            error "tsp internal error: parse_body error: $result\ncaused by:\n$errInf"
-        }
+        error "tsp internal error: parse_body error: $errInf"
     }
 
+    set errors [::tsp::getErrors compUnit]
+    set numErrors [llength $errors]
     set returnType [dict get $compUnit returns]
-    if {$returnType eq ""} {
-        ::tsp::addError compUnit "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
+
+    if {$code eq "" || $compileType eq "none"} {
+        ::tsp::addWarning compUnit "compileType none"
         ::tsp::logErrorsWarnings compUnit
         uplevel #0 [list ::proc $name $procargs $body]
         return
     }
 
-    set errors [::tsp::getErrors compUnit]
-    set numErrors [llength $errors]
-    
-    set compileResult [dict get $compUnit compileType]
-    if {$numErrors > 0 } {
-        if {$compileResult eq "assertcompile"} {
-            ::tsp::logErrorsWarnings compUnit
-            error "assertcompile: proc $name, but resulted in errors:\n$errors\n$errInf"
-        } elseif {$compileResult eq "nocompile"} {
-            # pragma says not to compile this proc, so no big deal
-            # don't record any errors or warnings
+    if {$returnType eq ""} {
+        ::tsp::addError compUnit "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
+        ::tsp::logErrorsWarnings compUnit
+        if {$compileType eq "none" || $compileType eq "normal" || $compileType eq ""} {
             uplevel #0 [list ::proc $name $procargs $body]
+            return
         } else {
-            ::tsp::logErrorsWarnings compUnit
-            uplevel #0 [list ::proc $name $procargs $body]
+            error "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
         }
-    } else {
-        # parse_body ok, let's see if we can compile it
-        set compilable [::tsp::lang_create_compilable compUnit $code]
-        set rc [::tsp::lang_compile compUnit $compilable]
-        if {$rc == 0} {
-            ::tsp::lang_interp_define compUnit
-            ::tsp::addCompiledProc compUnit
-        } else {
-            uplevel #0 [list ::proc $name $procargs $body]
-        }
+        return
+    }
 
-        ::tsp::logCompilable compUnit $compilable
+    
+    if {$numErrors > 0 } {
+        if {$compileType eq "assert" || $compileType eq "trace"} {
+            error "compile type: $compileType, proc $name, but resulted in errors:\n[join $errors \n]"
+            uplevel #0 [list ::proc $name $procargs $body]
+        } else {
+            # it's normal (or undefined), just define it
+            uplevel #0 [list ::proc $name $procargs $body]
+        }
+        ::tsp::logErrorsWarnings compUnit
+    } else {
+        if {$compileType eq "trace"} {
+            # define proc with tracing commands
+            lassign [::tsp::init_traces compUnit $name $returnType] traces procTrace
+            append traces $body
+            uplevel #0 [list ::proc $name $procargs $traces]
+            uplevel #0 $procTrace
+            ::tsp::logErrorsWarnings compUnit
+        } else {
+            # parse_body ok, let's see if we can compile it
+            set compilable [::tsp::lang_create_compilable compUnit $code]
+            set rc [::tsp::lang_compile compUnit $compilable]
+            if {$rc == 0} {
+                ::tsp::lang_interp_define compUnit
+                ::tsp::addCompiledProc compUnit
+            } else {
+                # compile error, define as regular proc
+                uplevel #0 [list ::proc $name $procargs $body]
+                ::tsp::logCompilable compUnit $compilable
+            }
+
+        }
         ::tsp::logErrorsWarnings compUnit
     }
    
 }
+
 
 #########################################################
 # check if name is a legal identifier for compilation

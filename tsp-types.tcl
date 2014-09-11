@@ -85,13 +85,12 @@ proc ::tsp::copyVars {fromCompUnitDict toCompUnitDict} {
 }
 
 #########################################################
-# parse comments, looking for tsp pragmas
+# parse comments or tsp pragma commands 
 #
-# #::tsp::procdef returns: <type> ?args: <type> ... <type>?
+# #::tsp::procdef <type> -args <type> ... <type>?
 # #::tsp::def <type> <var> ?<var> ... <var>?
 # #::tsp::volatile <var> ?<var> ... <var>?
-# #::tsp::assertcompile    -- proc must compile, or raise error
-# #::tsp::nocompile        -- parse, but don't compile proc
+# #::tsp::compile   normal|none|assert|trace     
 
 proc ::tsp::parse_pragma {compUnitDict comments} {
 
@@ -99,12 +98,10 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
 
     set lines [split $comments \n]
     foreach line $lines {
-        set line [string trim $line]
-
-        set prag [string trimleft $line " \t#:"
+        set prag [string trim $line " \t#:"]
         switch -glob -- $prag {
 
-            "tsp::procdef*" -
+            "tsp::procdef*" {
                 if {[catch {llength $prag}]} {
                     ::tsp::addError compUnit "::tsp::procdef pragma not a proper list: $line"
                 } else {
@@ -161,15 +158,10 @@ proc ::tsp::parse_procDefs {compUnitDict def} {
 
     set len [llength $def]
     if {$len < 2} {
-        ::tsp::addError compUnit "::tsp::procdef: invalid proc definition, missing \"returns:\" keyword"
+        ::tsp::addError compUnit "::tsp::procdef: invalid proc definition, missing return type"
         return
     }
-    set returnsKeyword [lindex $def 1]
-    if {$returnsKeyword ne "returns:"} {
-        ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: missing \"returns:\" keyword"
-        return
-    }
-    set type [lindex $def 2]
+    set type [lindex $def 1]
     if {$type eq ""} {
         set type missing
     }
@@ -181,23 +173,39 @@ proc ::tsp::parse_procDefs {compUnitDict def} {
     dict set compUnit returns $type
     set argTypesList [list]
     set procArgs [dict get $compUnit args]
+    set procArgsLen [llength $procArgs]
 
-    set argsKeyword [lindex $def 3]
-    if {$argsKeyword ne "args:"} {
-        ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: missing \"args:\" keyword"
+    if {$len == 2} {
+        if {$procArgsLen == 0} {
+            # no definded args, valid (but only in the case where proc args are void
+            return
+        } else {
+            ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: missing \"-args\" option"
+            ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: \
+                number of arg types: 0 does not match number of args: $procArgsLen"
+            return
+        }
+    }
+
+    set argsKeyword [lindex $def 2]
+    if {$argsKeyword ne "-args"} {
+        ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: missing \"-args\" option"
         return
     }
 
-    set defArgs [lrange $def 4 end]
+    set defArgs [lrange $def 3 end]
     set defArgsLen [llength $defArgs]
-    set procArgsLen [llength $procArgs]
     if {$defArgsLen == 1 && $defArgs eq "void" && $procArgsLen == 0} {
         # void is allowed
         return
+    } elseif {$defArgs eq "void" && $procArgsLen > 0} {
+        ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: \
+                number of arg types: 0 does not match number of args: \"void\""
     }
+
     if {$defArgsLen != $procArgsLen} {
         ::tsp::addError compUnit "::tsp::procdef: invalid proc definition: \
-            number of arg types $defArgsLen does not match number of args $procArgsLen"
+            number of arg: types $defArgsLen does not match number of args: $procArgsLen"
     } else {
         set i -1
         foreach arg $procArgs {
@@ -278,7 +286,25 @@ proc ::tsp::parse_volatileDefs {compUnitDict def} {
     upvar $compUnitDict compUnit
 
     set vars [lrange $def 1 end]
+    foreach var $vars {
+        set isValid [::tsp::isValidIdent $var]
+        if {! $isValid} {
+            ::tsp::addError compUnit "::tsp::volatile var is not valid identifier: \"$var\""
+        }
+    }
     ::tsp::append_volatile_list compUnit $vars
+}
+
+
+#########################################################
+# add variables to volatile list
+# ensure variables are not repeated
+
+proc ::tsp::append_volatile_list {compUnitDict varList} {
+    upvar $compUnitDict compUnit
+    set vlist [dict get $compUnit volatile]
+    set vlist [lsort -unique [concat $vlist $varList]]
+    dict set compUnit volatile $vlist
 }
 
 
@@ -303,18 +329,6 @@ proc ::tsp::parse_compileDefs {compUnitDict def} {
             dict set compUnit compileType $type   
         }
     }
-}
-
-
-#########################################################
-# add variables to volatile list
-# ensure variables are not repeated
-
-proc ::tsp::append_volatile_list {compUnitDict varList} {
-    upvar $compUnitDict compUnit
-    set vlist [dict get $compUnit volatile]
-    set vlist [lsort -unique [concat $vlist $varList]]
-    dict set compUnit volatile $vlist
 }
 
 

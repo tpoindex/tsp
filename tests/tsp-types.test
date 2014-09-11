@@ -69,7 +69,7 @@ proc __initCompUnit {body} {
     set body ""
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: int args: int double"
+    ::tsp::parse_procDefs compUnit "#::tsp::procdef int -args int double"
     list [dict get $compUnit returns] [dict get $compUnit argTypes]
 } -result {int {int double}}
 
@@ -78,17 +78,17 @@ proc __initCompUnit {body} {
     set body ""
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: int args: int double"
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: double args: int double"
+    ::tsp::parse_procDefs compUnit "#::tsp::procdef int -args int double"
+    ::tsp::parse_procDefs compUnit "#::tsp::procdef double -args int double"
     dict get $compUnit errors
-} -result {{1: ::tsp::procdef: attempt to redefine proc: #::tsp::procdef returns: double args: int double}}
+} -result {{1: ::tsp::procdef: attempt to redefine proc: #::tsp::procdef double -args int double}}
 
 ::tcltest::test parse_procDef-3 {parse_procDef invalid return type} -setup {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: foo args: int double"
+    ::tsp::parse_procDefs compUnit "#::tsp::procdef foo -args int double"
     dict get $compUnit errors
 } -result {{1: ::tsp::procdef: invalid return type: foo}}
 
@@ -97,9 +97,9 @@ proc __initCompUnit {body} {
     set body ""
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: void args: int"
+    ::tsp::parse_procDefs compUnit "#::tsp::procdef void -args int"
     dict get $compUnit errors
-} -result {{1: ::tsp::procdef: invalid proc definition:  number of arg types 1 does not match number of args 2}}
+} -result {{1: ::tsp::procdef: invalid proc definition:  number of arg: types 1 does not match number of args: 2}}
 
 ::tcltest::test parse_procDef-5 {parse_procDef args type previously defined} -setup {
 } -body {
@@ -107,7 +107,7 @@ proc __initCompUnit {body} {
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}
     ::tsp::setVarType compUnit i double
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: void args: int double"
+    ::tsp::parse_procDefs compUnit "#::tsp::procdef void -args int double"
     dict get $compUnit errors
 } -result {{1: ::tsp::procdef: var already defined: arg "i" as type "double"}}
 
@@ -118,16 +118,8 @@ proc __initCompUnit {body} {
     dict set compUnit args {i x}
     ::tsp::parse_procDefs compUnit "#::tsp::procdef"
     dict get $compUnit errors
-} -result {{1: ::tsp::procdef: invalid proc definition, missing "returns:" keyword}}
+} -result {{1: ::tsp::procdef: invalid proc definition, missing return type}}
 
-::tcltest::test parse_procDef-7 {empty procdef returns} -setup {
-} -body {
-    set body ""
-    set compUnit [__initCompUnit $body]
-    dict set compUnit args {i x}
-    ::tsp::parse_procDefs compUnit "#::tsp::procdef returns: "
-    dict get $compUnit errors
-} -result {{1: ::tsp::procdef: invalid return type: missing}}
 
 
 #############################################################################
@@ -175,7 +167,7 @@ proc __initCompUnit {body} {
 } -body {
     set body {
         # random comment
-        #::tsp::procdef returns: int args: int double
+        #::tsp::procdef int -args int double
         #tsp::def int a y 
     }
     set compUnit [__initCompUnit $body]
@@ -197,37 +189,44 @@ proc __initCompUnit {body} {
 
 ::tcltest::test parse_pragma-3 {parse_pragma-3} -setup {
 } -body {
-    set body { #tsp::nocompile }
+    set body { #tsp::compile none}
     set compUnit [__initCompUnit $body]
     ::tsp::parse_pragma compUnit $body
     dict get $compUnit compileType
-} -result {nocompile}
+} -result {none}
 
 ::tcltest::test parse_pragma-4 {parse_pragma-4} -setup {
 } -body {
-    set body { #tsp::assertcompile }
+    set body { #tsp::compile assert}
     set compUnit [__initCompUnit $body]
     ::tsp::parse_pragma compUnit $body
     dict get $compUnit compileType
-} -result {assertcompile}
-
-::tcltest::test parse_pragma-4 {parse_pragma-4} -setup {
-} -body {
-    set body { #tsp::nocompile
-             #::tsp::assertcompile }
-    set compUnit [__initCompUnit $body]
-    ::tsp::parse_pragma compUnit $body
-    dict get $compUnit errors
-} -result {{2: cannot set ::tsp::assertcompile', was previously set as: "nocompile"}}
+} -result {assert}
 
 ::tcltest::test parse_pragma-5 {parse_pragma-5} -setup {
 } -body {
-    set body { #tsp::assertcompile
-      #tsp::nocompile }
+    set body { #tsp::compile normal}
+    set compUnit [__initCompUnit $body]
+    ::tsp::parse_pragma compUnit $body
+    dict get $compUnit compileType
+} -result {normal}
+
+::tcltest::test parse_pragma-6 {parse_pragma-6} -setup {
+} -body {
+    set body { #tsp::compile trace}
+    set compUnit [__initCompUnit $body]
+    ::tsp::parse_pragma compUnit $body
+    dict get $compUnit compileType
+} -result {trace}
+
+::tcltest::test parse_pragma-7 {parse_pragma-7} -setup {
+} -body {
+    set body { #tsp::compile none
+             #::tsp::compile assert}
     set compUnit [__initCompUnit $body]
     ::tsp::parse_pragma compUnit $body
     dict get $compUnit errors
-} -result {{2: cannot set ::tsp::nocompile', was previously set as: "assertcompile"}}
+} -result {{2: cannot set ::tsp::compile as "assert", was previously set as: "none"}}
 
 
 

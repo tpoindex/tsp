@@ -106,8 +106,8 @@ proc ::tsp::logErrorsWarnings {compUnitDict} {
     set warnings [::tsp::getLoggedWarnings compUnit]
     set filename [dict get $compUnit file]
     set name [dict get $compUnit name]
-    dict set ::tsp::COMPILER_LOG $filename,$name [dict create errors $errors warnings $warnings]
-    dict set ::tsp::COMPILER_LOG  _              [dict create errors $errors warnings $warnings]
+    dict set ::tsp::COMPILER_LOG $name [dict create filename $filename errors $errors warnings $warnings]
+    dict set ::tsp::COMPILER_LOG  _    [dict create filename $filename errors $errors warnings $warnings]
     
     if {$::tsp::DEBUG_DIR eq ""} {
         return
@@ -141,11 +141,11 @@ proc ::tsp::logCompilable {compUnitDict compilable} {
 # optional filehandle, defaults to stderr
 # optional pattern, defaults to *,* (sourcefilename,procname)
 #
-proc ::tsp::printErrorsWarnings {{fd stderr} {patt *,*}} {
+proc ::tsp::printErrorsWarnings {{fd stderr} {patt *}} {
     set keys [lsort [dict keys $::tsp::COMPILER_LOG]]
     foreach key $keys {
         if {[string match $patt $key]} {
-            puts $fd "$key ---------------------------------------------------------"
+            puts $fd "$key (file:  [dict get $::tsp::COMPILER_LOG $key filename])---------------------------------------------------------"
             puts $fd "    ERRORS --------------------------------------------------"
             foreach err [dict get $::tsp::COMPILER_LOG $key errors] {
                 puts $fd "   $err"
@@ -206,5 +206,7 @@ proc ::tsp::debug {{dir ""}} {
         }
     }
     set ::tsp::DEBUG_DIR $dir
+
+    set ::tsp::TRACE_FD [open $dir/traces.[clock seconds] w]
 }
 
