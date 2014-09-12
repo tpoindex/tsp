@@ -231,7 +231,8 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     if {[llength $tree] != 4} {
-        error "#wrong # args: should be \"string index string charIndex\""
+        ::tsp::addError compUnit "#wrong # args: should be \"string index string charIndex\""
+        return [list void "" ""]
     }
 
     set code "/***** ::tsp::gen_command_string_index */\n"
@@ -240,7 +241,8 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
     set strResult [::tsp::get_string compUnit [lindex $tree 2]]
     lassign $strResult result strVar convertCode
     if {$result ==  0} {
-        error $strVar
+        ::tsp::addError compUnit "unable to get string argument: $strVar"
+        return [list void "" ""]
     }  else {
         if {! [::tsp::is_tmpvar $strVar]} {
             # not a tmp var, prefix it with "__"
@@ -254,7 +256,7 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
     lassign $idxResult idxValid idxRef idxIsFromEnd convertCode
 
     if {! $idxValid} {
-        error $idxRef
+        ::tsp::addError compUnit "unable to get string index argument: $idxRef"
     } else {
         if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {
             # not a int literal, so it must be a scalar
@@ -282,7 +284,8 @@ proc ::tsp::gen_string_length {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     if {[llength $tree] != 3} {
-        error "#wrong # args: should be \"string length string\""
+        ::tsp::addError compUnit "#wrong # args: should be \"string length string\""
+        return [list void "" ""]
     }
 
     set code "/***** ::tsp::gen_command_string_length */\n"
@@ -291,7 +294,8 @@ proc ::tsp::gen_string_length {compUnitDict tree} {
     set strResult [::tsp::get_string compUnit [lindex $tree 2]]
     lassign $strResult result strVar convertCode
     if {$result ==  0} {
-        error $strVar
+        ::tsp::addError compUnit "unable to get string argument: $strVar"
+        return [list void "" ""]
     }  else {
         if {! [::tsp::is_tmpvar $strVar]} {
             # not a tmp var, prefix it with "__"
@@ -316,7 +320,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
     if {[llength $tree] != 5} {
-        error "#wrong # args: should be \"string range string first last\""
+        ::tsp::addError compUnit "#wrong # args: should be \"string range string first last\""
+        return [list void "" ""]
     }
 
     set code "/***** ::tsp::gen_command_string_range */\n"
@@ -325,7 +330,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
     set strResult [::tsp::get_string compUnit [lindex $tree 2]]
     lassign $strResult result strVar convertCode
     if {$result ==  0} {
-        error $strVar
+        ::tsp::addError compUnit "unable to get string argument: $strVar"
+        return [list void "" ""]
     }  else {
         if {! [::tsp::is_tmpvar $strVar]} {
             # not a tmp var, prefix it with "__"
@@ -339,7 +345,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
     lassign $idxResult firstIdxValid firstIdxRef firstIdxIsFromEnd convertCode
 
     if {! $firstIdxValid} {
-        error $firstIdxRef
+        ::tsp::addError compUnit "unable to get string index argument: $firstIdxRef"
+        return [list void "" ""]
     } else {
         if {[::tsp::literalExprTypes $firstIdxRef] eq "stringliteral"} {
             # not a int literal, so it must be a scalar
@@ -356,7 +363,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
     lassign $idxResult lastIdxValid lastIdxRef lastIdxIsFromEnd convertCode
 
     if {! $lastIdxValid} {
-        error $lastIdxRef
+        ::tsp::addError compUnit "unable to get string index argument: $lastIdxRef"
+        return [list void "" ""]
     } else {
         if {[::tsp::literalExprTypes $lastIdxRef] eq "stringliteral"} {
             # not a int literal, so it must be a scalar

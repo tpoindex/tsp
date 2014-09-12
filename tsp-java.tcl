@@ -1180,8 +1180,17 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
     foreach var $varList {
         set type [::tsp::getVarType compUnit $var]
         if {$type eq "undefined"} {
-            set type var
-            ::tsp::setVarType compUnit $var $type
+            if {[::tsp::isProcArg compUnit $var]} {
+                ::tsp::addError compUnit "proc argument variable \"$var\" not previously defined"
+                return ""
+            } elseif {[::tsp::isValidIdent $var]} {
+                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\" (volatile spill)"
+                ::tsp::setVarType compUnit $var var
+                set type var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$var\""
+                return ""
+            }
         }
         if {$type eq "array"} {
             # array variables are already in interp
@@ -1223,8 +1232,17 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
     foreach var $varList {
         set type [::tsp::getVarType compUnit $var]
         if {$type eq "undefined"} {
-            set type var
-            ::tsp::setVarType compUnit $var $type
+            if {[::tsp::isProcArg compUnit $var]} {
+                ::tsp::addError compUnit "proc argument variable \"$var\" not previously defined"
+                return ""
+            } elseif {[::tsp::isValidIdent $var]} {
+                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\" (volatile load)"
+                ::tsp::setVarType compUnit $var var
+                set type var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$var\""
+                return ""
+            }
         }
         if {$type eq "array"} {
             # array variables are already in interp

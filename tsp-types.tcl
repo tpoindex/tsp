@@ -333,14 +333,21 @@ proc ::tsp::parse_compileDefs {compUnitDict def} {
 
 
 #########################################################
+#
+# check if var is a proc arg
+#
+proc ::tsp::isProcArg {compUnitDict var} {
+    upvar $compUnitDict compUnit
+    return [expr {[lsearch -exact [dict get $compUnit args] $var] >= 0}]
+}
+
+
+#########################################################
 # check if id is a valid identifier
 # valid identifiers look like C/Java identifiers
 # begins with an alpha or underscore, remainder are
 # alpha, number, or underscore
 # 
-
-#FIXME - exclude lang specific list of reserved words
-
 proc ::tsp::isValidIdent {id} {
     #tsp::proc returns: bool args: string id 
     
@@ -432,7 +439,7 @@ proc ::tsp::get_tmpvar {compUnitDict type {varName ""}} {
     upvar $compUnitDict compUnit
 
     if {[lsearch $::tsp::VAR_TYPES $type] < 0 || $type eq "array"} {
-        error "::tsp::get_tmpvar - invalid var type $type"
+        error "::tsp::get_tmpvar - invalid var type $type  \n[::tsp::error_stacktrace]"
     }
 
     if {$varName eq ""} {

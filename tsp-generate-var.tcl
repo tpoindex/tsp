@@ -63,13 +63,17 @@ proc ::tsp::gen_command_upvar {compUnitDict tree} {
         }
         set type [::tsp::getVarType compUnit $localVar]
         if {$type eq "undefined"} {
-            if {! [::tsp::isValidIdent $localVar]} {
-                ::tsp::addError compUnit "upvar local variable \"$localVar\" not defined, and not a valid identifier"
+            if {[::tsp::isProcArg compUnit $localVar]} {
+                ::tsp::addError compUnit "proc argument variable \"$localVar\" not previously defined"
+                return [list void "" ""]
+            } elseif {[::tsp::isValidIdent $localVar]} {
+                ::tsp::addWarning compUnit "variable \"${localVar}\" implicitly defined as type: \"var\" (upvar)"
+                ::tsp::setVarType compUnit $localVar var
+                set type var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$localVar\""
                 return [list void "" ""]
             }
-            ::tsp::addWarning compUnit "variable \"${localVar}\" implicitly defined as type: \"var\""
-            ::tsp::setVarType compUnit $localVar var
-            set type var
         }
         lappend upvared $localVar
     }
@@ -127,13 +131,17 @@ proc ::tsp::gen_command_global {compUnitDict tree} {
         }
         set type [::tsp::getVarType compUnit $localVar]
         if {$type eq "undefined"} {
-            if {! [::tsp::isValidIdent $localVar]} {
-                ::tsp::addError compUnit "global variable \"$localVar\" not defined, and not a valid identifier"
+            if {[::tsp::isProcArg compUnit $localVar]} {
+                ::tsp::addError compUnit "proc argument variable \"$localVar\" not previously defined"
+                return [list void "" ""]
+            } elseif {[::tsp::isValidIdent $localVar]} {
+                ::tsp::addWarning compUnit "variable \"${localVar}\" implicitly defined as type: \"var\" (global)"
+                ::tsp::setVarType compUnit $localVar var
+                set type var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$localVar\""
                 return [list void "" ""]
             }
-            ::tsp::addWarning compUnit "variable \"${localVar}\" implicitly defined as type: \"var\""
-            ::tsp::setVarType compUnit $localVar var
-            set type var
         }
         lappend upvared $localVar
     }
@@ -190,13 +198,17 @@ proc ::tsp::gen_command_variable {compUnitDict tree} {
         }
         set type [::tsp::getVarType compUnit $localVar]
         if {$type eq "undefined"} {
-            if {! [::tsp::isValidIdent $localVar]} {
-                ::tsp::addError compUnit "variable local variable \"$localVar\" not defined, and not a valid identifier"
+            if {[::tsp::isProcArg compUnit $localVar]} {
+                ::tsp::addError compUnit "proc argument variable \"$localVar\" not previously defined"
+                return [list void "" ""]
+            } elseif {[::tsp::isValidIdent $localVar]} {
+                ::tsp::addWarning compUnit "variable \"${localVar}\" implicitly defined as type: \"var\" (variable)"
+                ::tsp::setVarType compUnit $localVar var
+                set type var
+            } else {
+                ::tsp::addError compUnit "invalid identifier: \"$localVar\""
                 return [list void "" ""]
             }
-            ::tsp::addWarning compUnit "variable \"${localVar}\" implicitly defined as type: \"var\""
-            ::tsp::setVarType compUnit $localVar var
-            set type var
         }
         lappend upvared $localVar
     }

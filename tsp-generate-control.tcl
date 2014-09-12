@@ -339,6 +339,11 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
 
     set returnType [dict get $compUnit returns]
 
+    if {$returnType eq ""} {
+        ::tsp::addError compUnit "invalid proc definition, no return type specified, likely missing #::tsp::procdef (return)"
+        return [list void "" ""]
+    }
+
     if {$returnType eq "void"} {
         if {[llength $tree] > 1} {
             ::tsp::addError compUnit "wrong # args: proc return type declared as \"$returnType\", but \"return\" has arguments"
@@ -406,8 +411,11 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
     foreach var $vartext {
         set type [::tsp::getVarType compUnit $var]
         if {$type eq "undefined"} {
-            if {[::tsp::isValidIdent $var]} {
-                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\""
+            if {[::tsp::isProcArg compUnit $var]} {
+                ::tsp::addError compUnit "proc argument variable \"$var\" not previously defined"
+                return [list void "" ""]
+            } elseif {[::tsp::isValidIdent $var]} {
+                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\" (catch)"
                 ::tsp::setVarType compUnit $var var
             } else {
                 ::tsp::addError compUnit "invalid identifier: \"$var\""
@@ -483,8 +491,11 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
         }
         set varType [::tsp::getVarType compUnit $var]
         if {$varType eq "undefined"} {
-            if {[::tsp::isValidIdent $var]} {
-                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\""
+            if {[::tsp::isProcArg compUnit $var]} {
+                ::tsp::addError compUnit "proc argument variable \"$var\" not previously defined"
+                return [list void "" ""]
+            } elseif {[::tsp::isValidIdent $var]} {
+                ::tsp::addWarning compUnit "variable \"${var}\" implicitly defined as type: \"var\" (catch)"
                 ::tsp::setVarType compUnit $var var
                 set varType var
             } else {

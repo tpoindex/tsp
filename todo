@@ -1,29 +1,4 @@
 
-0. rework pragmas:
-   -allow any number of leading whitespace space and #
-   #tsp::def ....
-   # ::tsp::def ...
-   ####tsp::def ....
-   # # # tsp::def ....
-
-
-   -tsp::prodef returntype -args arg1 arg2 ..
-   # ... # ::tsp::procdef int 
-   # ... # ::tsp::procdef void -args void
-   # ... # ::tsp::procdef var -args var var int
-
-   -replace tsp::assertcompile, tsp::nocompile with...
-   #tsp::compile normal|none|assert|debug
-
-   -actual commands:
-   allow tsp::compile outside of proc:
-   tsp::compile normal|none|assert|debug  procname procname procname ...
-
-   -commands as pragmas, don't require leading comment character
-   when debug, set up traces to watch declared variables, return types
-
-
-1. implicitly defined variables should check to make sure they are not defined as procargs
 
 
 1. what to do with unset?  - probably generate a compile error.
@@ -39,3 +14,5 @@
 30. implement: expr list, lxxxxx, string, concat, append, join
 
 40. implement simple case of: scan, format
+
+99. implement C lang generation

@@ -95,6 +95,7 @@ proc ::tsp::compile_proc {file name procargs body} {
             uplevel #0 [list ::proc $name $procargs $body]
             return
         } else {
+            # else compileType is assert or trace, raise an error
             error "invalid proc definition, no return type specified, likely missing #::tsp::procdef"
         }
         return

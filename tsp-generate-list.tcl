@@ -33,8 +33,18 @@ proc ::tsp::gen_command_lset {compUnitDict tree} {
         return [list void "" ""]
     }
     if {$type eq "undefined"} {
-        ::tsp::addWarning compUnit "lset varName \"$varname\" defined as var"
-        ::tsp::setVarType compUnit $varname var
+        if {[::tsp::isProcArg compUnit $varname]} {
+            ::tsp::addError compUnit "proc argument variable \"$varname\" not previously defined"
+            return [list void "" ""]
+        } elseif {[::tsp::isValidIdent $varname]} {
+            ::tsp::addWarning compUnit "variable \"${varname}\" implicitly defined as type: \"var\" (lset)"
+            ::tsp::setVarType compUnit $varname var
+            set type var
+        } else {
+            ::tsp::addError compUnit "invalid identifier: \"$varname\""
+            return [list void "" ""]
+        }
+
         append code [::tsp::lang_assign_empty_zero __$varname var]
         append code [::tsp::lang_preserve __$varname]
     } else {
@@ -90,8 +100,18 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         return [list void "" ""]
     }
     if {$type eq "undefined"} {
-        ::tsp::addWarning compUnit "lappend varName \"$varname\" defined as var"
-        ::tsp::setVarType compUnit $varname var
+        if {[::tsp::isProcArg compUnit $varname]} {
+            ::tsp::addError compUnit "proc argument variable \"$varname\" not previously defined"
+            return [list void "" ""]
+        } elseif {[::tsp::isValidIdent $varname]} {
+            ::tsp::addWarning compUnit "variable \"${varname}\" implicitly defined as type: \"var\" (lappend)"
+            ::tsp::setVarType compUnit $varname var
+            set type var
+        } else {
+            ::tsp::addError compUnit "invalid identifier: \"$varname\""
+            return [list void "" ""]
+        }
+        
         append code [::tsp::lang_assign_empty_zero __$varname var]
         append code [::tsp::lang_preserve __$varname]
     } else {
@@ -174,7 +194,7 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
         } elseif {$argType eq "var"} {
             set argVar __$argVar
         } else {
-            error "llength: unexpected type: $argType"
+            error "llength: unexpected type: $argType \n[::tsp::error_stacktrace]"
         }
         
     } else {

@@ -55,10 +55,17 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
 
     set vartype [::tsp::getVarType compUnit $varname]
     if {$vartype eq "undefined"} {
-        # previously undefined, make it an int
-        set vartype int
-        ::tsp::setVarType compUnit $varname int
-        ::tsp::addWarning compUnit "variable \"$varname\" implicitly defined as \"int\""
+       if {[::tsp::isProcArg compUnit $varname]} {
+            ::tsp::addError compUnit "proc argument variable \"$varname\" not previously defined"
+            return [list void "" ""]
+        } elseif {[::tsp::isValidIdent $varname]} {
+            ::tsp::addWarning compUnit "variable \"${varname}\" implicitly defined as type: \"int\" (incr)"
+            ::tsp::setVarType compUnit $varname int
+            set vartype int
+        } else {
+            ::tsp::addError compUnit "invalid identifier: \"$varname\""
+            return [list void "" ""]
+        }
     }
 
     if {$vartype ne "int" && $vartype ne "var"} {

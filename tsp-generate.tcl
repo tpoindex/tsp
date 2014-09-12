@@ -393,20 +393,6 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
 
 
 #########################################################
-# check if target variable is undefined, if so then make
-#     it same as sourcetype
-#
-proc ::tsp::gen_check_target_var {compUnitDict targetVarName targetType sourceType} {
-    upvar $compUnitDict compUnit
-    if {$targetType eq "undefined" && $sourceType ne "void"} {
-        set targetType $sourceType
-        ::tsp::addWarning compUnit "variable \"$targetVarName\" implicitly defined as type \"$sourceType\""
-        ::tsp::setVarType compUnit $targetVarName $targetType
-    }
-    return $targetType
-}
-
-#########################################################
 # generate a runtime error message that includes source
 #  file, proc name, line number
 #

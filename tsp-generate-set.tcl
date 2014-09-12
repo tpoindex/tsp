@@ -1,8 +1,33 @@
 #FIXME: be consistent in quoting strings, esp those that are array index
 #       probaby ok to quote them once when recognized
 
-#FIXME: use shadow var and dirty checking
-#       when converting a native type into a var
+
+#########################################################
+# check if target variable is undefined, if so then make
+#     it same as sourcetype
+# return ERROR if targetVarName is a proc arg var or is invalid identifier
+#
+proc ::tsp::gen_check_target_var {compUnitDict targetVarName targetType sourceType} {
+    upvar $compUnitDict compUnit
+
+    if {$targetType eq "undefined" && $sourceType ne "void"} {
+
+        if {[::tsp::isProcArg compUnit $targetVarName]} {
+            ::tsp::addError compUnit "proc argument variable \"$targetVarName\" not previously defined"
+            return ERROR
+        } elseif {[::tsp::isValidIdent $targetVarName]} {
+            set targetType $sourceType
+            ::tsp::addWarning compUnit "variable \"$targetVarName\" implicitly defined as type: \"$targetType\" (set)"
+            ::tsp::setVarType compUnit $targetVarName $targetType
+        } else {
+            ::tsp::addError compUnit "invalid identifier: \"$targetVarName\""
+            return ERROR
+        }
+
+    }
+    return $targetType
+}
+
 
 #########################################################
 # generate a set command, the basic assignment command
@@ -120,15 +145,20 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
         set targetVarName [lindex $targetComponents 1]
         set targetType [::tsp::getVarType compUnit $targetVarName]
         if {$targetType eq "undefined"} {
-            # make sure this can be a valid variable
-            if {! [::tsp::isValidIdent $targetVarName] } {
+            # make sure this can be a valid variable and is not a proc arg var
+            if {[::tsp::isProcArg compUnit $targetVarName]} {
+                set errors 1
+                ::tsp::addError compUnit "proc argument variable \"$targetVarName\" not previously defined"
+                return [list void "" ""]
+            } elseif {! [::tsp::isValidIdent $targetVarName] } {
                 set errors 1
                 ::tsp::addError compUnit "set arg 1 previously undefined variable not a valid identifer: \"$targetVarName\""
                 return [list void "" ""]
-            } else {
+             } else {
                 set targetType array
                 ::tsp::setVarType compUnit $targetVarName array
-            }
+                ::tsp::addWarning compUnit "variable \"${targetVarName}\" implicitly defined as type: \"array\" (set)"
+             }
         } elseif {$targetType ne "array"} {
             # variable parsed as an array, but some other type
             set errors 1
@@ -177,6 +207,10 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
         } else {
             set sourceType string
             set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+            if {$targetType eq "ERROR"} {
+                return [list void "" ""]
+            }
+
             # append source components into a single string or var assignment
             # check that target is either string or var or array
             if {$targetType eq "string" || $targetType eq "var"} {
@@ -200,6 +234,9 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             set sourceText [subst [lindex $sourceComponent 1]]
             set sourceType string
             set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+            if {$targetType eq "ERROR"} {
+                return [list void "" ""]
+            }
 
             # generate assigment
             if {$targetType eq "string"} {
@@ -226,6 +263,9 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             }
             set sourceText [lindex $sourceComponent 2]
             set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+            if {$targetType eq "ERROR"} {
+                return [list void "" ""]
+            }
 
             # generate assigment
             if {$targetWordType eq "text"} {
@@ -239,7 +279,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
                 if {$errors} {
                     return [list void "" ""]
                 }
-                error "unexpected target word type: $targetWordType"
+                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
             }
             
 
@@ -252,6 +292,9 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
                 return [list void "" ""]
             }
             set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+            if {$targetType eq "ERROR"} {
+                return [list void "" ""]
+            }
 
             # generate assigment
             if {$targetWordType eq "text"} {
@@ -267,7 +310,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName $sourceType]]
 
             } else {
-                error "unexpected target word type: $targetWordType"
+                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
             }
 
         } elseif {$sourceWordType eq "array_idxtext"} {
@@ -281,6 +324,9 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             set sourceType var
             # assignment from var, possible type coersion 
             set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+            if {$targetType eq "ERROR"} {
+                return [list void "" ""]
+            }
 
             # generate assigment
             if {$targetWordType eq "text"} {
@@ -298,7 +344,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName "" "" $sourceArrayIdxtext]]
 
             } else {
-                error "unexpected target word type: $targetWordType"
+                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
             }
 
         } elseif {$sourceWordType eq "array_idxvar"} {
@@ -317,6 +363,10 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             set sourceType var
             # assignment from var, possible type coersion 
             set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+            if {$targetType eq "ERROR"} {
+                return [list void "" ""]
+            }
+
             # generate assigment
             if {$targetWordType eq "text"} {
 		return [list void "" [::tsp::gen_assign_scalar_array compUnit  $targetVarName $targetType \
@@ -333,7 +383,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName $sourceArrayIdxvar $sourceArrayIdxvarType ""]]
 
             } else {
-                error "unexpected target word type: $targetWordType"
+                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
             }
 
         } elseif {$sourceWordType eq "command"} {
@@ -366,12 +416,19 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
                 }
 
                 set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+                if {$targetType eq "ERROR"} {
+                    return [list void "" ""]
+                }
+
                 # generate assignment
                 # mostly same as a scalar from scalar assignment
 		set sourceVarName $sourceRhsVar
                 append result "\n/***** ::tsp::generate_set assign from command */\n"
                 append code $sourceCode
 		set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+                if {$targetType eq "ERROR"} {
+                    return [list void "" ""]
+                }
 
 		# generate assigment
 		if {$targetWordType eq "text"} {
@@ -458,7 +515,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                          return ""
                      }
                  }
-                 error "unexpected sourceType: $sourceType"
+                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
              }
          }
 
@@ -476,7 +533,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      ::tsp::addError compUnit "set arg 2 string not an $targetType value: \"$sourceText\""
                      return ""
                  }
-                 error "unexpected sourceType: $sourceType"
+                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
              }
          }
          double {
@@ -493,7 +550,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      ::tsp::addError compUnit "set arg 2 string not an $targetType value: \"$sourceText\""
                      return ""
                  }
-                 error "unexpected sourceType: $sourceType"
+                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
              }
          }
 
@@ -516,7 +573,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      append result [::tsp::lang_assign_var_string  $targetPre$targetVarName [::tsp::lang_quote_string $sourceText]]
                      return $result
                  }
-                 error "unexpected sourceType: $sourceType"
+                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
              }
          }
     }
@@ -575,7 +632,7 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
                      append result [::tsp::lang_convert_boolean_var $targetPre$targetVarName $sourcePre$sourceVarName $errMsg]
                      return $result
                  }
-                 error "unexpected sourceType: $sourceType"
+                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
              }
          }
 
@@ -601,7 +658,7 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
                      append result [::tsp::lang_convert_${targetType}_var $targetPre$targetVarName $sourcePre$sourceVarName $errMsg]
                      return $result
                  }
-                 error "unexpected sourceType: $sourceType"
+                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
              }
          }
 
