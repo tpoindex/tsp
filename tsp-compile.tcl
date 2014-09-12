@@ -81,8 +81,8 @@ proc ::tsp::compile_proc {file name procargs body} {
     set numErrors [llength $errors]
     set returnType [dict get $compUnit returns]
 
-    if {$code eq "" || $compileType eq "none"} {
-        ::tsp::addWarning compUnit "compileType none"
+    if {$compileType eq "none"} {
+        ::tsp::addWarning compUnit "compileType $compileType"
         ::tsp::logErrorsWarnings compUnit
         uplevel #0 [list ::proc $name $procargs $body]
         return

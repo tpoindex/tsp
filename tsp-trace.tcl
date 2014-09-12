@@ -18,8 +18,6 @@ proc ::tsp::init_traces {compUnitDict name returnType} {
         incr i
     }
 
-    # trace the "return" command inside the proc
-    append traces "trace add execution return leave \"::tsp::trace_return $name $returnType\"" \n
 
     foreach {var type} [dict get $compUnit vars] {
         if {[::tsp::is_tmpvar $var]} {
@@ -28,9 +26,11 @@ proc ::tsp::init_traces {compUnitDict name returnType} {
         append traces "trace add variable $var write \"::tsp::trace_var $name $var $type\"" \n
     }
 
-    # add a global trace to evaluate the return type cancel the "return" tracing (until the next traced proc)
+    # add a global trac to evaluate the return type and the "return" tracing (until the next traced proc)
     # this has to be eval'ed in the calling proc, after the proc is defined
-    set procTrace "trace add execution $name leave \"::tsp::trace_return_check $name $returnType\""
+    # trace the "return" command inside the proc
+    append procTrace "trace add execution $name enterstep \"::tsp::trace_return\"\n"
+    append procTrace "trace add execution $name leave     \"::tsp::trace_return_check $name $returnType\"\n"
 
     return [list $traces $procTrace]
 }
@@ -120,12 +120,18 @@ proc ::tsp::trace_var {procName varName varType name1 name2 op} {
 #
 # trace_return - record the most current return type
 #
-proc ::tsp::trace_return {procName returnType command code result op} {
-    if {! [dict exists $::tsp::COMPILER_LOG $procName]} {
-        puts $::tsp::TRACE_FD "NOT COMPILED PROC: ::tsp::trace_return $procName $returnType $command $code $result $op"
-        return
+proc ::tsp::trace_return {commandString op} {
+    if {[string match return* $commandString] == 1 || [string match ::return* $commandString] == 1} {
+        set procName [info level -1]
+        if {[dict exists $::tsp::COMPILER_LOG $procName]} {
+            if {$commandString eq "return"} {
+                set result ""
+            } else {
+                set result [string trim [string range $commandString [string first " " $commandString] end]]
+            }
+            set ::tsp::TRACE_PROC [list $procName $result]
+        }
     }
-    set ::tsp::TRACE_PROC [list $procName $returnType $result]
 }
 
 
@@ -137,13 +143,9 @@ proc ::tsp::trace_return {procName returnType command code result op} {
 proc ::tsp::trace_return_check {procName procReturnType command code result op} {
 
     set returnName [lindex $::tsp::TRACE_PROC 0]
-    set returnType [lindex $::tsp::TRACE_PROC 1]
-    set value      [lindex $::tsp::TRACE_PROC 2]
+    set value      [lindex $::tsp::TRACE_PROC 1]
 
     set ::tsp::TRACE_PROC ""
-
-    # remove the trace 
-    trace remove execution return leave "::tsp::trace_return $procName $procReturnType"
 
     if {$procReturnType eq "void" && $value eq ""} {
         return
@@ -153,7 +155,6 @@ proc ::tsp::trace_return_check {procName procReturnType command code result op} 
         set value "[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]"
         append msg "-------------------------------------------------------------------------------------" \n
         append msg "PROC RETURN: proc: $procName\texiting without return command, expected return type: $procReturnType" \n
-        append msg [::tsp::stacktrace] \n
         puts $::tsp::TRACE_FD  $msg
         flush $::tsp::TRACE_FD
     }
@@ -170,7 +171,6 @@ proc ::tsp::trace_return_check {procName procReturnType command code result op} 
     set value "[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]"
     append msg "-------------------------------------------------------------------------------------" \n
     append msg "PROC RETURN: proc: $procName\treturn type defined: $procReturnType\tvalue: $value\ttypes: $typeList" \n
-    append msg [::tsp::stacktrace] \n
     puts $::tsp::TRACE_FD  $msg
     flush $::tsp::TRACE_FD
 
