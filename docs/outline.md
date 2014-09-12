@@ -78,8 +78,9 @@ Benchmark results
 
 Comparison to previous compilers
 
-  - ICEMFD compiler (Rouse/Christopher, 1996)
+  - ICEM CFD compiler (Rouse/Christopher, 1995)
   - TclC (Koski, 1996)
+  - "Compiler" (Otto, 2000)
   - kt2c (Cuthbert, 2000)
   - TclVM (Vitale, 2004)
   - Parenthetcl (Strickland, 2004)
