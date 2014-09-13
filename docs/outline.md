@@ -1,10 +1,11 @@
 Introduction
 
   - Brief description and example code
+  - Fallback to Tcl proc if compilation fails
   - Use of native types
   - TSP pragmas (annotations) for proc and variable definitions
   - Subset of Tcl language
-  - Fallback to Tcl proc if compilation fails
+  - Trends of other systems: asm.js, typescript.js, python type annotations proposal, mira (ruby)
   - Use of profiler to target procs  
   - Importance of Unit testing
 
@@ -18,6 +19,9 @@ Type system
     * string
     * var - also for lists, dicts
   - Arrays - uses interpreter variables
+  - Conversions and conversion errors
+  - Implicit declarations
+  - Variables defined on proc entry
 
 
 Tcl Language Subset
@@ -28,10 +32,8 @@ Tcl Language Subset
   - Expansion operator not suported {*}
   - Namespace not supported
   - Limitation on proc name and variable names
+  - Procedure default arguments and "args" not supported
   - Quoted word substitutions " "
-  - Conversions and conversion errors
-  - Implicit declarations
-  - Variables defined on proc entry
      
 
 Runtime differences
@@ -86,6 +88,7 @@ Comparison to previous compilers
   - Parenthetcl (Strickland, 2004)
   - TJC (DeJong, 2005)
   - Tclc (Bauer, 2011)
+  - TyCL (Buss, 2012)
 
 
 Internals
