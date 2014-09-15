@@ -39,11 +39,13 @@ Tcl Language Subset
 Runtime differences
 
   - Variables only spilled to interp when necessary
-  - Volatile to spill/load varivles to interp
   - Implicit volatile variables
+  - Volatile to spill/load varivles to interp
   - Global, upvar, variable
-  - Builtin commands call directlhy when possible
+  - Traces
+  - Builtin commands call directly when possible
   - Previous compiled procs invoked directly when possible
+  - Threading unsupported
 
 
 Using the Compiler 
