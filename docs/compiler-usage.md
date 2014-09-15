@@ -1,12 +1,75 @@
 Using the Compiler
 
   - tsp::proc
+
+tsp::proc defines a TSP compiled proc.  The name of the proc must be a valid
+TSP indentifer, and the argument list must not contain default aguments, or the
+"args" argument.   At a minimum, a TSP proc requires that the #tsp::procdef 
+pragma be specified, preferably at or near the beginning of the proc code.
+
+
   - Pragmas
-    * #tsp::compile
-    * #tsp::procdef
-    * #tsp::def
-    * #tsp::volatile
-  - tsp::debug
-  - tsp::printErrorsWarnings
+
+Pragmas are comments inside of the tsp::proc.  
+
+    * #tsp::procdef <returntype> -args argtype ... argtype
+
+#tsp::procdef defines the return type of the procedure and the argument types.  If a
+proc has no arguments, the argtype list can be defined as "void", or the argtype list
+omitted.  Return types can be any of boolean, int, double, string, var, or void.  The actual
+code must use a "return" command with a value or variable of the correct type.  An
+invalid return value will result in a compile failure, and revert the tsp::proc back to
+a Tcl interpreted proc.  Additionally, implicit returns (no "return" command coded) is only
+valid for return type of "void".  A void proc can also specific "return" without an value or
+variable.
+
+    * #tsp::def type varname ... varname
+
+#tsp::def defines variables of a given type.  Valid types for #tsp::def are boolean,
+int, double, string, var, or array.  At least one varname must be included in the #tsp::def
+pragma.  A tsp::proc can contain any number of #tsp::def pragmas.  It is encourage that 
+#tsp::def pragmas be defined at or near the top of the procedure.  In any case, the #tsp::def
+pragma must be specified before the first usage of a variable.
+
+    * #tsp::volatile varname ... varname
+
+#tsp::varname specifies variables that should be spilled into the Tcl interpreter for
+the next command, and reload when the command completes.  Use of #tsp::volatile before a
+control command (if, while, switch, for, foreach) results in the variables spilled before the
+command.  Variables are not spilled for each iteration of a for, foreach, or while command.
+For absolute control, do not use #tsp::volatile before a control command.
+
+
+    * #tsp::compile normal|none|assert|debug
+
+#tsp::compile pragma specifies how a tsp::proc should behave when compiler errors occur.
+
+  * normal - the proc will be compiled, but if any compiler error occurs, the proc will
+             be defined as an ordinary Tcl interpreter proc.  This is the default.
+
+  * none - do not compile the proc.
+
+  * assert - raise a Tcl error if the proc cannot be compiled
+
+  * debug - raise a Tcl error if the proc cannot be compiled.  If compiled without errors,
+            the proc will be defined in the Tcl interpreter as a ordinary proc, but will
+            include tracing on variables and the return values.  This can be useful to 
+            isolate variable that may cause conversion errors.  See the Tracing section below.
+
+
+
+  - tsp::debug ?directory?
+
+tsp::debug specifies a directory to record compile errors.  For each tsp::proc, the compiler
+log will be saved into a file.  The actual compiled code is also saved into a file.   If the
+directory argument is not specified, a directory will be created and the full path of the directory
+will be returned.
+
+
+  - tsp::printErrorsWarnings ?proc[,file]?
+
+tsp::printErrorsWarnings returns the compiler log.  If the optional proc or proc,sourcefile is specified, 
+only that log is returned.
+
   - Trace compile type
 
