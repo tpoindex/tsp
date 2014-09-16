@@ -57,7 +57,6 @@ For absolute control, do not use #tsp::volatile before a control command.
             isolate variable that may cause conversion errors.  See the Tracing section below.
 
 
-
   - tsp::debug ?directory?
 
 tsp::debug specifies a directory to record compile errors.  For each tsp::proc, the compiler
@@ -73,3 +72,9 @@ only that log is returned.
 
   - Trace compile type
 
+Compile type *trace* is a special compilation mode. First, it works like *assert* to make sure the
+proc can be compiled.  After compilation, the proc is defined as a normal Tcl procedure, but with
+tracing and argument checking code enabled.  The tracing code is designed to log when conversion
+errors would be raised when compiled as *normal* or *assert*.  Trace logging is written to stderr,
+unless tsp::debug was called to specify a directory for logging, in which case a file named
+"traces.nnnn" is created.  The suffix "nnnn" is the current clock epoch value.
