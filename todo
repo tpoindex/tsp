@@ -1,4 +1,5 @@
 
+0. implement nested commands [ ]
 
 
 1. what to do with unset?  - probably generate a compile error.
