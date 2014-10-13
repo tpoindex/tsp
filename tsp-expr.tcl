@@ -97,7 +97,7 @@ namespace eval ::tsp {
 
     variable UNARY_OPS [list  ~ ! ]
     variable UNARY_OR_BINARY_OPS [list - +  ]
-    variable BINARY_OPS [list * / % + - << >> < > <= >= == != ^ | && || eq ne]
+    variable BINARY_OPS [list * / % + - << >> < > <= >= == != & ^ | && || eq ne]
     variable TERNARY_OPS ?
     variable STRING_OPS  [list < > <= >= == != eq ne]
     variable  OP_STRING_XLATE
