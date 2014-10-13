@@ -1,5 +1,7 @@
 #!
 /bin/rm -rf ./hyde/
-export TCLLIBPATH=`pwd`
-export CLASSPATH=native/java
+dir=`dirname $0`
+dir=`readlink -f $dir`
+export TCLLIBPATH=$dir
+export CLASSPATH=$dir/native/java
 jtcl
