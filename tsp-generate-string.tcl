@@ -48,7 +48,13 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         set setTree ""
         append code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
-        append code [::tsp::lang_append_var  __$varname $argVar]
+        if {$type eq "var"} {
+            append code [::tsp::lang_append_var  __$varname $argVar]
+        } elseif {$type eq "string"} {
+            append code [::tsp::lang_append_string  __$varname $argVar]
+        } else {
+            error "::tsp::gen_command_append - unexpected varname type: $type"
+        }
     }
 
     
