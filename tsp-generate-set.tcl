@@ -240,10 +240,10 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 
             # generate assigment
             if {$targetType eq "string"} {
-                return [list void "" [::tsp::lang_assign_string_const __$targetVarName $sourceText]]
+                return [list void "" [::tsp::lang_assign_string_const $targetVarName $sourceText]]
 
             } elseif {$targetType eq "var"} {
-                return [list void "" [::tsp::lang_assign_var_string __$targetVarName [::tsp::lang_quote_string $sourceText]]]
+                return [list void "" [::tsp::lang_assign_var_string $targetVarName [::tsp::lang_quote_string $sourceText]]]
 
             } elseif {$targetWordType eq "text_array_idxtext" || $targetWordType eq "text_array_idxvar"} {
                 return [list void "" [::tsp::gen_assign_array_text compUnit $targetVarName $targetArrayIdxtext \
