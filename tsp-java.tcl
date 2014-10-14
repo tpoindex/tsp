@@ -1071,6 +1071,11 @@ public class ${name}Cmd implements Command {
             // spill variables that are global, upvar, or variable back into interp
             try {
                 [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 4 \n]
+                // make sure this block throws TclException
+                if (frame == null) {
+                    throw new TclException(interp,"tsp internal error - pushNewCallFrame() returned null");
+                }
+
             } catch (TclException fte) {
                 // have to ignore at this point
             }
@@ -1542,9 +1547,9 @@ proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
         set type [::tsp::getVarType compUnit $var]
         append code "    if (${idx}++ < $len) \{\n"
         if {$type eq "var"} {
-            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var "TclList.index(interp, $dataVar, (int) $idx)"] 2]\n"
         } else {
-            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.index(interp,$dataVar,$idx) "unable to convert var to $type"] 2]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var "TclList.index(interp, $dataVar, (int) $idx)" "unable to convert var to $type"] 2]\n"
         }
         append code "    \} else \{\n"
         append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 2]\n"
