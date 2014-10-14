@@ -208,5 +208,7 @@ proc ::tsp::debug {{dir ""}} {
     set ::tsp::DEBUG_DIR $dir
 
     set ::tsp::TRACE_FD [open $dir/traces.[clock seconds] w]
+
+    return $dir
 }
 
