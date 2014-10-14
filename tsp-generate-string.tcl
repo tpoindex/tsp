@@ -117,12 +117,12 @@ proc ::tsp::gen_command_binary {compUnitDict tree} {
         return [list void "" ""]
     }
 
+    set varlist [list]
     set subcommandNode [lindex $tree 1]
     set subcommandNodeComponents [::tsp::parse_word compUnit $subcommandNode]
     lassign [lindex $subcommandNodeComponents 0] type rawtext text
     if {[llength $subcommandNodeComponents] == 1 && $type eq "text"} {
         if {$rawtext eq "scan"} {
-            set varlist [list]
             foreach node [lrange $tree 4 end] {
                 set nodeComponents [::tsp::parse_word compUnit $node]
                 set nodeType [lindex $nodeComponents 0 0]
