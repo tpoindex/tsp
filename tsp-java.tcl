@@ -1544,7 +1544,7 @@ proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
         if {$type eq "var"} {
             append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
         } else {
-            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.index(interp,$dataVar,$idx)] 2]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var TclList.index(interp,$dataVar,$idx) "unable to convert var to $type"] 2]\n"
         }
         append code "    \} else \{\n"
         append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 2]\n"
