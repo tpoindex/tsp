@@ -1,10 +1,5 @@
 package provide tsp 0.1
 
-# for dev - set the dir variable if not previously set
-if {[info vars dir] ne "dir"} {
-   set dir .
-}
-
 package require parser
 
 namespace eval ::tsp {
@@ -37,24 +32,24 @@ namespace eval ::tsp {
     # e.g., tsp-java.tcl, tsp-clang.tcl
 } 
 
-source [file join $dir tsp-logging.tcl]
-source [file join $dir tsp-compile.tcl]
-source [file join $dir tsp-trace.tcl]
-source [file join $dir tsp-expr.tcl]
-source [file join $dir tsp-parse.tcl]
-source [file join $dir tsp-types.tcl]
-source [file join $dir tsp-generate.tcl]
-source [file join $dir tsp-generate-set.tcl]
-source [file join $dir tsp-generate-math.tcl]
-source [file join $dir tsp-generate-control.tcl]
-source [file join $dir tsp-generate-var.tcl]
-source [file join $dir tsp-generate-list.tcl]
-source [file join $dir tsp-generate-string.tcl]
+source [file join [file dirname [info script]] tsp-logging.tcl]
+source [file join [file dirname [info script]] tsp-compile.tcl]
+source [file join [file dirname [info script]] tsp-trace.tcl]
+source [file join [file dirname [info script]] tsp-expr.tcl]
+source [file join [file dirname [info script]] tsp-parse.tcl]
+source [file join [file dirname [info script]] tsp-types.tcl]
+source [file join [file dirname [info script]] tsp-generate.tcl]
+source [file join [file dirname [info script]] tsp-generate-set.tcl]
+source [file join [file dirname [info script]] tsp-generate-math.tcl]
+source [file join [file dirname [info script]] tsp-generate-control.tcl]
+source [file join [file dirname [info script]] tsp-generate-var.tcl]
+source [file join [file dirname [info script]] tsp-generate-list.tcl]
+source [file join [file dirname [info script]] tsp-generate-string.tcl]
 
 # source the language specific module
 if {$::tcl_platform(platform) eq "java"} {
-    source [file join $dir tsp-java.tcl]
+    source [file join [file dirname [info script]] tsp-java.tcl]
 } else {
-    source [file join $dir tsp-clang.tcl]
+    source [file join [file dirname [info script]] tsp-clang.tcl]
 }
 
