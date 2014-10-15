@@ -361,9 +361,6 @@ proc tsp_hmac {key text} {
     # pad it out with null (\x00) chars.
     set keyLen [string length $key]
     if {$keyLen > 64} {
-puts "large key: $key"
-puts "tsp key: [tsp_md5 $key]"
-puts "md5 key: [md5::md5 $key]"
         set key [binary format H32 [tsp_md5 $key]]
 	set keyLen [string length $key]
     }
@@ -379,23 +376,15 @@ puts "md5 key: [md5::md5 $key]"
     set k_ipad {}
     set k_opad {}
     foreach i $blocks {
-puts "i: $i"
 	append k_ipad [binary format i [expr {$i ^ 0x36363636}]]
 	append k_opad [binary format i [expr {$i ^ 0x5c5c5c5c}]]
     }
 
-puts "k_ipad: $k_ipad"
     # Perform inner md5, appending its results to the outer key
     append k_ipad $text
-puts "inner: $k_ipad"
-puts "tsp k_ipad: [tsp_md5 $k_ipad]"
-puts "md5 k_ipad: [md5::md5 $k_ipad]"
     append k_opad [binary format H* [tsp_md5 $k_ipad]]
 
     # Perform outer md5
-puts "outer k_opad: $k_opad"
-puts "tsp: [tsp_md5 $k_opad]"
-puts "md5: [md5::md5 $k_opad]"
     tsp_md5 $k_opad
 }
 
