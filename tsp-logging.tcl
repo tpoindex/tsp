@@ -106,15 +106,16 @@ proc ::tsp::logErrorsWarnings {compUnitDict} {
     set warnings [::tsp::getLoggedWarnings compUnit]
     set filename [dict get $compUnit file]
     set name [dict get $compUnit name]
-    dict set ::tsp::COMPILER_LOG $name [dict create filename $filename errors $errors warnings $warnings]
-    dict set ::tsp::COMPILER_LOG  _    [dict create filename $filename errors $errors warnings $warnings]
+    set logDict [dict create filename $filename errors $errors warnings $warnings]
+    dict set ::tsp::COMPILER_LOG $name $logDict
+    dict set ::tsp::COMPILER_LOG  _    $logDict
     
     if {$::tsp::DEBUG_DIR eq ""} {
         return
     }
-    set path [file join $::tsp::DEBUG_DIR $filename,$name.log]
+    set path [file join $::tsp::DEBUG_DIR $name.log]
     set fd [open $path w]
-    ::tsp::printErrorsWarnings $fd $filename,$name
+    ::tsp::printErrorsWarnings $fd $name
     close $fd 
 }
 
@@ -129,7 +130,7 @@ proc ::tsp::logCompilable {compUnitDict compilable} {
     set filename [dict get $compUnit file]
     set name [dict get $compUnit name]
     
-    set path [file join $::tsp::DEBUG_DIR $filename,$name.src]
+    set path [file join $::tsp::DEBUG_DIR $name.$::tsp::PLATFORM]
     set fd [open $path w]
     puts $fd $compilable
     close $fd 
@@ -139,7 +140,7 @@ proc ::tsp::logCompilable {compUnitDict compilable} {
 #########################################################
 # print errors and warnins to a filehandle
 # optional filehandle, defaults to stderr
-# optional pattern, defaults to *,* (sourcefilename,procname)
+# optional proc name pattern, defaults to * 
 #
 proc ::tsp::printErrorsWarnings {{fd stderr} {patt *}} {
     set keys [lsort [dict keys $::tsp::COMPILER_LOG]]

@@ -122,6 +122,7 @@ proc ::tsp::compile_proc {file name procargs body} {
         } else {
             # parse_body ok, let's see if we can compile it
             set compilable [::tsp::lang_create_compilable compUnit $code]
+            ::tsp::logCompilable compUnit $compilable
             set rc [::tsp::lang_compile compUnit $compilable]
             if {$rc == 0} {
                 ::tsp::lang_interp_define compUnit
@@ -129,7 +130,6 @@ proc ::tsp::compile_proc {file name procargs body} {
             } else {
                 # compile error, define as regular proc
                 uplevel #0 [list ::proc $name $procargs $body]
-                ::tsp::logCompilable compUnit $compilable
             }
 
         }
