@@ -38,7 +38,7 @@ tsp::proc tsp_md5_bytes {i} {
 
 tsp::proc tsp_md5 {msg} {
 
-    #tsp::procdef string -args string
+    #tsp::procdef var -args var
     #tsp::def int msgLen padLen i x A B C D AA BB CC DD X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15
     #tsp::def var blocks bfmt
 
@@ -343,13 +343,13 @@ tsp::proc tsp_md5 {msg} {
     # ... begin with the low-order byte of A, and end with the high-order byte
     # of D.
 
-    #tsp::def string aaaa bbbb cccc dddd
+    #tsp::def var aaaa bbbb cccc dddd
     set aaaa [tsp_md5_bytes $A]
     set bbbb [tsp_md5_bytes $B]
     set cccc [tsp_md5_bytes $C]
     set dddd [tsp_md5_bytes $D]
 
-    #tsp::def string result
+    #tsp::def var result
     set result $aaaa$bbbb$cccc$dddd
     return $result
 
