@@ -1,3 +1,7 @@
+package require md5 1.4.4
+package require tsp
+hyde::configure -compiler javac
+
 tsp::proc tsp_md5_byte0 {i} {
     #tsp::procdef int -args int
     set i [expr {0xff & $i}]
@@ -352,12 +356,15 @@ tsp::proc tsp_md5 {msg} {
 }
 
 
-proc ::md5::hmac {key text} {
+proc tsp_hmac {key text} {
     # if key is longer than 64 bytes, reset it to MD5(key).  If shorter, 
     # pad it out with null (\x00) chars.
     set keyLen [string length $key]
     if {$keyLen > 64} {
-	set key [binary format H32 [md5 $key]]
+puts "large key: $key"
+puts "tsp key: [tsp_md5 $key]"
+puts "md5 key: [md5::md5 $key]"
+        set key [binary format H32 [tsp_md5 $key]]
 	set keyLen [string length $key]
     }
 
@@ -372,14 +379,23 @@ proc ::md5::hmac {key text} {
     set k_ipad {}
     set k_opad {}
     foreach i $blocks {
+puts "i: $i"
 	append k_ipad [binary format i [expr {$i ^ 0x36363636}]]
 	append k_opad [binary format i [expr {$i ^ 0x5c5c5c5c}]]
     }
 
+puts "k_ipad: $k_ipad"
     # Perform inner md5, appending its results to the outer key
     append k_ipad $text
-    append k_opad [binary format H* [md5 $k_ipad]]
+puts "inner: $k_ipad"
+puts "tsp k_ipad: [tsp_md5 $k_ipad]"
+puts "md5 k_ipad: [md5::md5 $k_ipad]"
+    append k_opad [binary format H* [tsp_md5 $k_ipad]]
 
     # Perform outer md5
-    md5 $k_opad
+puts "outer k_opad: $k_opad"
+puts "tsp: [tsp_md5 $k_opad]"
+puts "md5: [md5::md5 $k_opad]"
+    tsp_md5 $k_opad
 }
+
