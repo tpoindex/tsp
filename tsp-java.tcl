@@ -855,7 +855,7 @@ proc ::tsp::lang_invoke_builtin {cmd} {
 
     append code [::tsp::lang_safe_release cmdResultObj]
     append code "cmdResultObj = interp.getResult();\n"
-    append code [::tsp::lang_preserve cmdResultObj]
+    append code [::tsp::lang_preserve cmdResultObj] \n
     return [list {cmdResultObj istmp} $code]
 }
 
@@ -881,7 +881,7 @@ proc ::tsp::lang_invoke_tcl {} {
     # so that we properly release/preserve cmdResultObj
     append code [::tsp::lang_safe_release cmdResultObj]
     append code "cmdResultObj = interp.getResult();\n"
-    append code [::tsp::lang_preserve cmdResultObj]
+    append code [::tsp::lang_preserve cmdResultObj] \n
     return [list {cmdResultObj istmp} $code]
 }
 
