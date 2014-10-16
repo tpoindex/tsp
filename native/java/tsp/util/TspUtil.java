@@ -145,7 +145,7 @@ public class TspUtil {
         if (targetVarName != null) {
             targetVarName.release();
         }
-        targetVarName = sourceVarName;
+        targetVarName = sourceVarName.duplicate();
         targetVarName.preserve();
         return targetVarName;
     }
