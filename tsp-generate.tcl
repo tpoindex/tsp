@@ -425,8 +425,14 @@ proc ::tsp::get_string {compUnitDict node} {
             if {$varType eq "undefined"} {
                 return [list 0 "variable is undefined: $varName"]
             } elseif {$varType eq "string"} {
+                if {! [::tsp::is_tmpvar $varName]} {
+                    set varName __$varName
+                }
                 return [list 1 $varName ""]
             } else {
+                if {! [::tsp::is_tmpvar $varName]} {
+                    set varName __$varName
+                }
                 set strVar [::tsp::get_tmpvar compUnit string]
                 set convertCode [::tsp::lang_convert_string_$varType $strVar $varName "can't convert to string from type: $varType"]
                 return [list 1 $strVar $convertCode]
@@ -486,6 +492,9 @@ proc ::tsp::get_index {compUnitDict node} {
             lassign [lindex $nodeComponents 0] type varname
             set type [::tsp::getVarType compUnit $varname]
             if {$type eq "int"} {
+                if {! [::tsp::is_tmpvar $varname]} {
+                    set varname __$varname
+                }
                 return [list 1 $varname 0 ""]
             } else {
                 set intVar [::tsp::get_tmpvar compUnit int]
@@ -503,6 +512,9 @@ proc ::tsp::get_index {compUnitDict node} {
         set type [::tsp::getVarType compUnit $varname]
         if {$firstType eq "text" && $rawtext eq "end-" && $secondType eq "scalar"} {
             if {$type eq "int"} {
+                if {! [::tsp::is_tmpvar $varname]} {
+                    set varname __$varname
+                }
                 return [list 1 $varname 1 ""]
             } else {
                 set intVar [::tsp::get_tmpvar compUnit int]
