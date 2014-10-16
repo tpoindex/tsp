@@ -1169,16 +1169,22 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 
 
 ##############################################
-# wrap an expression assignment to catch math errors
+# produce a compile expression assignment. 
+# simple expression produced as is,
+# if using any TspFunc methods, wrap in try/catch
 #
 proc ::tsp::lang_expr {exprAssignment} {
-    append result "try {\n"
-    append result "    $exprAssignment"
-    append result "\n} catch (Exception e) {\n"
-    append result "    TspFunc.ExprError(interp, e.getMessage()); // sets interp error code and throws a new TclException\n"
-    append result "}\n"
-    append result "\n"
-    return $result
+    if {[string first TspFunc. $exprAssignment] == -1} {
+        return $exprAssignment
+    } else {
+        append result "try {\n"
+        append result "    $exprAssignment"
+        append result "\n} catch (Exception e) {\n"
+        append result "    TspFunc.ExprError(interp, e.getMessage()); // sets interp error code and throws a new TclException\n"
+        append result "}\n"
+        append result "\n"
+        return $result
+    }
 }
 
 
