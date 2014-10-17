@@ -12,7 +12,8 @@
 # finalSpill - vars spill into interp on method end, for upvar/global/variable defined vars
 # dirty - sub dict of native typed vars that need tmp obj updated before tcl invocation
 # tmpvars - sub dict of temporary var types used
-# tmpvars - sub dict of temporary var types used per command invocation
+# tmpvarsUsed - sub dict of temporary var types used per command invocation
+# tmpvarsLocked - list of tmpvars locked
 # volatile - vars to spill/reload into tcl interp, for one command only
 # frame - true/false if new var frame is required
 # force - true to force compilation
@@ -39,6 +40,7 @@ proc ::tsp::init_compunit {file name procargs body} {
         dirty "" \
         tmpvars [dict create boolean 0 int 0 double 0 string 0 var 0] \
         tmpvarsUsed [dict create boolean 0 int 0 double 0 string 0 var 0] \
+        tmpvarsLocked "" \
         volatile "" \
         frame 0 \
         force "" \
@@ -61,7 +63,7 @@ proc ::tsp::compile_proc {file name procargs body} {
 
     set procValid [::tsp::validProcName $name]
     if {$procValid ne ""} {
-        ::tsp::addError compUnit compUnit $procValid
+        ::tsp::addError compUnit $procValid
         ::tsp::logErrorsWarnings compUnit
         uplevel #0 [list ::proc $name $procargs $body]
         return

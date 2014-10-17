@@ -417,7 +417,7 @@ proc ::tsp::typeIsNumeric {typeList} {
 #########################################################
 #
 # reset tmp vars used per command invocation 
-# does not effect "shadow" vars
+# does not effect "shadow" vars or locked tmpvars
 
 proc ::tsp::reset_tmpvarsUsed {compUnitDict} {
     upvar $compUnitDict compUnit
@@ -456,6 +456,12 @@ proc ::tsp::get_tmpvar {compUnitDict type {varName ""}} {
 	    ::tsp::setVarType compUnit $name $type
 	    dict set compUnit tmpvars $type $n
 	}
+
+        # check if this varname is locked, recurse to get the next one
+        if {[::tsp::islocked_tmpvar compUnit $name]} {
+            set name [::tsp::get_tmpvar compUnit $type]
+        }
+
     } else {
         set name _tmpVar_$varName
         set existing [::tsp::getVarType compUnit $name]
@@ -469,6 +475,33 @@ proc ::tsp::get_tmpvar {compUnitDict type {varName ""}} {
 }
 
 
+#########################################################
+#
+# lock and unlock tmp var - some control structures need 
+# to use tmpvar beyond a single command (foreach, etc.)
+#
+proc ::tsp::lock_tmpvar {compUnitDict varName} {
+    upvar $compUnitDict compUnit
+    if {! [::tsp::islocked_tmpvar compUnit $varName]} {
+        dict lappend compUnit tmpvarsLocked $varName
+    }
+    return
+}
+
+proc ::tsp::islocked_tmpvar {compUnitDict varName} {
+    upvar $compUnitDict compUnit
+    set idx [lsearch [dict get $compUnit tmpvarsLocked] $varName]
+    return [expr {$idx >= 0}]
+}
+
+proc ::tsp::unlock_tmpvar {compUnitDict varName} {
+    upvar $compUnitDict compUnit
+    set idx [lsearch [dict get $compUnit tmpvarsLocked] $varName]
+    if {$idx >= 0} {
+        dict set compUnit tmpvarsLocked [lreplace [dict get $compUnit tmpvarsLocked] $idx $idx]
+    }
+    return
+}
 
 #########################################################
 #

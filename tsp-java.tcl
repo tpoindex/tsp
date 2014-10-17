@@ -1171,7 +1171,7 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 ##############################################
 # produce a compile expression assignment. 
 # simple expression produced as is,
-# if using any TspFunc methods, wrap in try/catch
+# if using any TspFunc methods, wrap in try/catch because those can throw exceptions
 #
 proc ::tsp::lang_expr {exprAssignment} {
     if {[string first TspFunc. $exprAssignment] == -1} {
@@ -1502,12 +1502,15 @@ proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
 ##############################################
 # generate a foreach command.
 # implement the tcl 'foreach' command
+# idxVar - int tmpvar to use as an index
+# lenVar - int tmpvar to use as list length
+# dataVar - var tmpvar to use as list var for literal list
 # varList is list of vars to be assigned from list elements
 # dataList is scalar var of data or dataString is literal data string
 # body is already indented compiled code of the body
 # Note: use block scoped idx and len variables (can't use tmp variables)
 #
-proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
+proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList dataString body} {
     upvar $compUnitDict compUnit
 
     append code "// ::tsp::lang_foreach\n"
@@ -1536,7 +1539,6 @@ proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
 
         } else {
             if {$dataListType eq "string"} {
-                set dataVar [::tsp::get_tmpvar compUnit var]
                 append code "[::tsp::lang_safe_release $dataList]\n"
                 append code "[::tsp::lang_new_var_string $dataVar __$dataList]\n"
                 append code "[::tsp::lang_preserve $dataVar]\n"
@@ -1547,34 +1549,31 @@ proc ::tsp::lang_foreach {compUnitDict varList dataList dataString body} {
         }
     } else {
         # assumed to be a braced list string literal
-        # FIXME: can we just iterate/flatten through this literal list instead? 
-        set dataVar [::tsp::get_tmpvar compUnit var]
-        set dataVar var
         append code "[::tsp::lang_safe_release $dataVar]\n"
         append code "[::tsp::lang_new_var_string $dataVar [::tsp::lang_quote_string $dataString]]\n"
         append code "[::tsp::lang_preserve $dataVar]\n"
     }
 
-    append code "{ // foreach block scope\n"
-    append code "    int idx = 0;\n"
-    append code "    int len = TclList.getLength(interp, $dataVar);\n"
-    append code "    while (idx < len) \{\n"
+    append code "$idxVar = 0; // idx\n"
+    append code "$lenVar = TclList.getLength(interp, $dataVar); // list length\n"
+    append code "while ($idxVar < $lenVar) \{\n"
     foreach var $varList {
-        append code "        // set var $var\n"
         set type [::tsp::getVarType compUnit $var]
-        append code "        if (idx < len) \{\n"
+        append code "    // set var $var\n"
+        append code "    if ($idxVar < $lenVar) \{\n"
         if {$type eq "var"} {
-            append code "    [::tsp::indent compUnit [::tsp::lang_assign_var_var __$var "TclList.index(interp, $dataVar, (int) idx++)"] 3]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var "TclList.index(interp, $dataVar, (int) ${idxVar}++)"] 1]" \n
         } else {
-            append code "    [::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var "TclList.index(interp, $dataVar, (int) idx++)" "unable to convert var to $type"] 3]\n"
+            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var "TclList.index(interp, $dataVar, (int) ${idxVar}++)" "unable to convert var to $type"] 1]" \n
         }
-        append code "        \} else \{\n"
-        append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 3]\n"
-        append code "        \}\n"
+        append code "    \} else \{\n"
+        append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 1]\n"
+        append code "    \}\n"
     }
-    append code [::tsp::indent compUnit $body 1]
-    append code "\n    \}\n"
-    append code "} // foreach block scope\n\n"
+    append code "    // foreach body \n"
+    append code [::tsp::indent compUnit $body]
+    append code "\n    // foreach body end \n"
+    append code "\n\}\n"
 
     return $code
 }
@@ -1592,3 +1591,5 @@ proc ::tsp::lang_string {compUnitDict tree} {
 
     return [list]
 }
+
+

@@ -21,7 +21,6 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
     set postComponent [lindex [::tsp::parse_word compUnit [lindex $tree 3]] 0]
     set bodyComponent [lindex [::tsp::parse_word compUnit [lindex $tree 4]] 0]
 
-    
     lassign $preComponent type rawtext pretext
     if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "start code argument not a braced word"
@@ -52,6 +51,9 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
         return [list void "" ""]
     }
     
+    set loopVar [::tsp::get_tmpvar compUnit boolean]
+    ::tsp::lock_tmpvar compUnit $loopVar
+    
     lassign $exprTypeCode type exprCode
 
     set preRange [lindex [lindex $tree 1] 1]
@@ -79,13 +81,18 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
 
     append code "\n/***** ::tsp::gen_command_for */\n"
     append code $preCode
-    append code "\n"
-    append code "while ( " $exprCode " ) {\n"
+    append code "\n/* evaluate condition */\n"
+    append code [::tsp::lang_expr "$loopVar = $exprCode;"] \n\n
+    append code "while ( " $loopVar " ) {\n"
     append code [::tsp::indent compUnit $bodyCode]
     append code "\n"
     append code [::tsp::indent compUnit $postCode]
+    append code "\n    /* evaluate condition */\n"
+    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $exprCode;"]]
     append code "\n}\n"
+
     ::tsp::incrDepth compUnit -1
+    ::tsp::unlock_tmpvar compUnit $loopVar
 
     return [list void "" $code]
 }
@@ -120,6 +127,9 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
         return [list void "" ""]
     }
     
+    set loopVar [::tsp::get_tmpvar compUnit boolean]
+    ::tsp::lock_tmpvar compUnit $loopVar
+    
     lassign $exprTypeCode type exprCode
 
     # get body component make sure it is braced
@@ -140,10 +150,17 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
 
     append code "\n/***** ::tsp::gen_command_while */\n"
-    append code "while ( " $exprCode " ) {\n"
+    append code "\n/* evaluate condition */\n"
+    append code [::tsp::lang_expr "$loopVar = $exprCode;"] \n\n
+    append code "while ( " $loopVar " ) {\n"
     append code [::tsp::indent compUnit $bodyCode]
+    append code "\n    /* evaluate condition */\n"
+    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $exprCode;"]]
     append code "\n}\n"
+
     ::tsp::incrDepth compUnit -1
+    ::tsp::unlock_tmpvar compUnit $loopVar
+
     return [list void "" $code]
 }
 
@@ -452,17 +469,33 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
         return [list void "" ""]
     }
 
+    # get tmp idx, len, and datalist vars; lock them to prevent 
+    # body code from re-using them 
+    set idxVar [::tsp::get_tmpvar compUnit int]
+    set lenVar [::tsp::get_tmpvar compUnit int]
+    set dataVar [::tsp::get_tmpvar compUnit var]
+    ::tsp::lock_tmpvar compUnit $idxVar
+    ::tsp::lock_tmpvar compUnit $lenVar
+    ::tsp::lock_tmpvar compUnit $dataVar
+
     set bodyRange [lindex [lindex $tree 3] 1]
     lassign $bodyRange start end
     incr start
     incr end -2
     set bodyRange [list $start $end]
+
+    # incr nesting depth and parse body code
     ::tsp::incrDepth compUnit
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
 
     append code "\n/***** ::tsp::gen_command_foreach */\n"
-    append code [::tsp::lang_foreach compUnit $varList $dataList $dataString $bodyCode]
+    append code [::tsp::lang_foreach compUnit $idxVar $lenVar $dataVar $varList $dataList $dataString $bodyCode]
+
+    # decr nesting depth and unlock tmp vars
     ::tsp::incrDepth compUnit -1
+    ::tsp::unlock_tmpvar compUnit $idxVar
+    ::tsp::unlock_tmpvar compUnit $lenVar
+    ::tsp::unlock_tmpvar compUnit $dataVar
     
     return [list void "" $code]
 }
