@@ -1,7 +1,5 @@
-0. debug tsp_md5 - null pointer var deference
-0. better logging. tsp::debug should always capture generated code.  proc log files should
-   have message "compiled without error" rather than empty.  logging needs general work anyway.
-
+0. change var defs to #tsp::int, #tsp::double, etc.
+0. clean up exit spill in generated code, only include try/catch if needed (to avoid unnecessary "if (callFrame == null)" )
 0. implement nested commands [ ]
 
 
