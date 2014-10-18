@@ -1079,18 +1079,18 @@ public class ${name}Cmd implements Command {
             throw te;
         } finally {
 
+            [if {[string length [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]]] > 0} {
+            subst {
             // spill variables that are global, upvar, or variable back into interp
             try {
                 [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 4 \n]
-                // make sure this block throws TclException
-                if (frame == null) {
-                    throw new TclException(interp,"tsp internal error - pushNewCallFrame() returned null");
-                }
 
             } catch (TclException fte) {
                 // have to ignore at this point
             }
 
+            } ; # inner subst
+            }]
             frame.dispose();
 
             // release var variables, if any (includes _tmp variables)
@@ -1197,6 +1197,10 @@ proc ::tsp::lang_expr {exprAssignment} {
 #
 proc ::tsp::lang_spill_vars {compUnitDict varList} {
     upvar $compUnitDict compUnit
+
+    if {[llength $varList] == 0} {
+        return ""
+    }
 
     set buf "// ::tsp::::tsp::lang_spill_vars $varList\n"
     foreach var $varList {
