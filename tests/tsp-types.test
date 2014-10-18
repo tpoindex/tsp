@@ -125,20 +125,13 @@ proc __initCompUnit {body} {
 #############################################################################
 # parse_varDefs
 
-::tcltest::test parse_varDefs-1 {parse_varDefs invalid type} -setup {
-} -body {
-    set body ""
-    set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::def foo x y z "
-    dict get $compUnit errors
-} -result {{1: ::tsp::def: invalid var type: "foo"}}
 
 ::tcltest::test parse_varDefs-2 {parse_varDefs previously defined} -setup {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::def int x y z "
-    ::tsp::parse_varDefs compUnit "#::tsp::def double a b z "
+    ::tsp::parse_varDefs compUnit "#::tsp::int x y z "
+    ::tsp::parse_varDefs compUnit "#::tsp::double a b z "
     dict get $compUnit errors
 } -result {{1: ::tsp::def: var already defined: "z" as type "int"}}
 
@@ -146,8 +139,8 @@ proc __initCompUnit {body} {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::def int x y z "
-    ::tsp::parse_varDefs compUnit "#::tsp::def int  z "
+    ::tsp::parse_varDefs compUnit "#::tsp::int x y z "
+    ::tsp::parse_varDefs compUnit "#::tsp::int  z "
     dict get $compUnit errors
 } -result {}
 
@@ -155,7 +148,7 @@ proc __initCompUnit {body} {
 } -body {
     set body ""
     set compUnit [__initCompUnit $body]
-    ::tsp::parse_varDefs compUnit "#::tsp::def int .zip "
+    ::tsp::parse_varDefs compUnit "#::tsp::int .zip "
     dict get $compUnit errors
 } -result {{1: ::tsp::def: var is not valid identifier: ".zip"}}
 
@@ -168,7 +161,7 @@ proc __initCompUnit {body} {
     set body {
         # random comment
         #::tsp::procdef int -args int double
-        #tsp::def int a y 
+        #tsp::int a y 
     }
     set compUnit [__initCompUnit $body]
     dict set compUnit args {i x}

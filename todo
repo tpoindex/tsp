@@ -1,4 +1,3 @@
-0. change var defs to #tsp::int, #tsp::double, etc.
 0. clean up exit spill in generated code, only include try/catch if needed (to avoid unnecessary "if (callFrame == null)" )
 0. implement nested commands [ ]
 

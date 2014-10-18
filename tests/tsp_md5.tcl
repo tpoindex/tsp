@@ -25,8 +25,8 @@ tsp::proc tsp_md5_byte3 {i} {
 
 tsp::proc tsp_md5_bytes {i} {
     #tsp::procdef string -args int
-    #tsp::def string result
-    #tsp::def int b0 b1 b2 b3
+    #tsp::string result
+    #tsp::int b0 b1 b2 b3
     set b0 [tsp_md5_byte0 $i]
     set b1 [tsp_md5_byte1 $i]
     set b2 [tsp_md5_byte2 $i]
@@ -39,8 +39,8 @@ tsp::proc tsp_md5_bytes {i} {
 tsp::proc tsp_md5 {msg} {
 
     #tsp::procdef var -args var
-    #tsp::def int msgLen padLen i x A B C D AA BB CC DD X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15
-    #tsp::def var blocks bfmt
+    #tsp::int msgLen padLen i x A B C D AA BB CC DD X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15
+    #tsp::var blocks bfmt
 
 
     #
@@ -343,13 +343,13 @@ tsp::proc tsp_md5 {msg} {
     # ... begin with the low-order byte of A, and end with the high-order byte
     # of D.
 
-    #tsp::def var aaaa bbbb cccc dddd
+    #tsp::var aaaa bbbb cccc dddd
     set aaaa [tsp_md5_bytes $A]
     set bbbb [tsp_md5_bytes $B]
     set cccc [tsp_md5_bytes $C]
     set dddd [tsp_md5_bytes $D]
 
-    #tsp::def var result
+    #tsp::var result
     set result $aaaa$bbbb$cccc$dddd
     return $result
 

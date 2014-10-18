@@ -109,7 +109,12 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
                 }
             }
             
-            "tsp::def*"  {
+            "tsp::array*"  -
+            "tsp::boolean*"  -
+            "tsp::double*"  -
+            "tsp::int*"  -
+            "tsp::string*"  -
+            "tsp::var*"  {
                 if {[catch {llength $prag}]} {
                     ::tsp::addError compUnit "::tsp::def pragma not a proper list: $line"
                 } else {
@@ -244,21 +249,21 @@ proc ::tsp::parse_varDefs {compUnitDict def} {
     upvar $compUnitDict compUnit
 
     set len [llength $def]
-    if {$len < 3} {
-        ::tsp::addError compUnit "::tsp::def: invalid def, missing type and/or variables"
+    if {$len < 2} {
+        ::tsp::addError compUnit "::tsp::def: invalid def, missing variables"
         return
     }
 
     set types $::tsp::VAR_TYPES
 
-    set type [lindex $def 1]
+    set type [lindex [split [lindex $def 0] :] end]
     set found [lsearch $types $type]
     if {$found < 0} {
         ::tsp::addError compUnit "::tsp::def: invalid var type: \"$type\""
         return
     }
 
-    set var_list [lrange $def 2 end]
+    set var_list [lrange $def 1 end]
     foreach var $var_list {
         set isValid [::tsp::isValidIdent $var]
         if {! $isValid} {

@@ -1,7 +1,7 @@
 source tsp.tcl
 set body {
     #::tsp::procdef returns: int args: int string
-    #::tsp::def var sum 
+    #::tsp::var sum 
     set i 10000
     set j $i
     return $i
@@ -37,7 +37,7 @@ proc callit {} {puts calledit}
 source tsp.tcl
 ::tsp::proc foo2 {a} {
   #::tsp::procdef returns: void args: int
-  #::tsp::def string b
+  #::tsp::string b
   #::tsp::volatile a
   set b [::set a]
   puts $b
@@ -58,8 +58,8 @@ set bing yeah
 source tsp.tcl
 ::tsp::proc foo2 {i} {
     #tsp::procdef returns: void args: int
-    #tsp::def int i
-    #tsp::def var v
+    #tsp::int i
+    #tsp::var v
     set v [expr {$i + 1}]
     puts $v
 }
