@@ -80,16 +80,12 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
 
     append code "\n/***** ::tsp::gen_command_for */\n"
+    append code "\n/* ::tsp::gen_command_for initializer*/\n"
     append code $preCode
-    append code "\n/* evaluate condition */\n"
-    append code [::tsp::lang_expr "$loopVar = $exprCode;"] \n\n
-    append code "while ( " $loopVar " ) {\n"
-    append code [::tsp::indent compUnit $bodyCode]
-    append code "\n"
-    append code [::tsp::indent compUnit $postCode]
-    append code "\n    /* evaluate condition */\n"
-    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $exprCode;"]]
-    append code "\n}\n"
+
+    append bodyCode \n "/* ::tsp::gen_command_for postloop */" \n $postCode \n
+
+    append code [::tsp::lang_while compUnit $loopVar $exprCode [::tsp::indent compUnit $bodyCode]]
 
     ::tsp::incrDepth compUnit -1
     ::tsp::unlock_tmpvar compUnit $loopVar
@@ -150,13 +146,8 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     set bodyCode [::tsp::parse_body compUnit $bodyRange]
 
     append code "\n/***** ::tsp::gen_command_while */\n"
-    append code "\n/* evaluate condition */\n"
-    append code [::tsp::lang_expr "$loopVar = $exprCode;"] \n\n
-    append code "while ( " $loopVar " ) {\n"
-    append code [::tsp::indent compUnit $bodyCode]
-    append code "\n    /* evaluate condition */\n"
-    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $exprCode;"]]
-    append code "\n}\n"
+
+    append code [::tsp::lang_while compUnit $loopVar $exprCode [::tsp::indent compUnit $bodyCode]]
 
     ::tsp::incrDepth compUnit -1
     ::tsp::unlock_tmpvar compUnit $loopVar

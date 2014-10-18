@@ -1498,12 +1498,37 @@ proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
 }
 
 
+##############################################
+# generate a while command. 
+# implement the tcl 'while' and 'for' commands.  uses a boolean
+# boolean var to control loop because the exprCode may raise an exception.
+# loopVar - a boolean temp variable, should be locked
+# expr - assumed to be unwraped by lang_expr, that is done here. expr must
+#        return a boolean result.
+# body is already indented compiled code of the body
+#
+proc ::tsp::lang_while {compUnitDict loopVar expr body} {
+    upvar $compUnitDict compUnit
+
+    append code "// ::tsp::lang_while\n"
+
+    append code "\n// evaluate condition \n"
+    append code [::tsp::lang_expr "$loopVar = $expr;"] \n\n
+    append code "while ( " $loopVar " ) {\n"
+    append code $body
+    append code "\n    // evaluate condition \n"
+    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $expr;"]]
+    append code "\n}\n"
+
+    return $code
+}
+
 
 ##############################################
 # generate a foreach command.
 # implement the tcl 'foreach' command
-# idxVar - int tmpvar to use as an index
-# lenVar - int tmpvar to use as list length
+# idxVar - int tmpvar to use as an index, should be locked
+# lenVar - int tmpvar to use as list length, should be locked
 # dataVar - var tmpvar to use as list var for literal list
 # varList is list of vars to be assigned from list elements
 # dataList is scalar var of data or dataString is literal data string
