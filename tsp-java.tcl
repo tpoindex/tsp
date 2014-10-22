@@ -1253,7 +1253,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
 # NOTE: TclException throw if variable is unset or can't convert to native type
 # returns code
 #
-proc ::tsp::lang_load_vars {compUnitDict varList} {
+proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
     upvar $compUnitDict compUnit
 
     set buf ""
@@ -1292,17 +1292,35 @@ proc ::tsp::lang_load_vars {compUnitDict varList} {
             set interpVar [::tsp::get_tmpvar compUnit var $var]
             set isvar 0
         }
-        # no try/catch here - if variable is deleted, or cannot be converted, allow TclException to be thrown.
-        # program needs to catch for this case
-        append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
-        append buf [::tsp::lang_safe_release $interpVar]
-        append buf "$interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
-        append buf "[::tsp::lang_preserve $interpVar]"
-        if {! $isvar} {
-            # for not-var types, convert into native type
-            append buf [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""]
-        } 
 
+        if {$setEmptyWhenNotExists} {
+            append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
+            append buf [::tsp::lang_safe_release $interpVar]
+            append buf "try \{\n"
+            append buf "    $interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
+            append buf "    [::tsp::lang_preserve $interpVar]"
+            if {! $isvar} {
+                # for not-var types, convert into native type
+                append buf [::tsp::indent compUnit [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1]
+            } 
+            append buf "\n\} catch (TclException e) \{\n"
+            append buf "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $pre$var $type] 1]\n"
+            if {$isvar} {
+                append buf "[::tsp::indent compUnit [::tsp::lang_preserve $pre$var] 1]\n"
+            }
+            append buf "\}\n"
+        } else {
+            # no try/catch here - if variable is deleted, or cannot be converted, allow TclException to be thrown.
+            # program needs to catch for this case
+            append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
+            append buf [::tsp::lang_safe_release $interpVar]
+            append buf "$interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
+            append buf "[::tsp::lang_preserve $interpVar]"
+            if {! $isvar} {
+                # for not-var types, convert into native type
+                append buf [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""]
+            } 
+        }
     }
     return $buf
 }

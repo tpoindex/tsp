@@ -90,7 +90,7 @@ proc ::tsp::gen_load_vars {compUnitDict volatile} {
     }
 
     # now generate the code to load vars
-    return [::tsp::lang_load_vars compUnit $volatile]
+    return [::tsp::lang_load_vars compUnit $volatile 0]
 }
 
 #########################################################

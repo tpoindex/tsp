@@ -80,7 +80,7 @@ proc ::tsp::gen_command_upvar {compUnitDict tree} {
 
     if {[llength $upvared] > 0} {
         append code "\n/**** load upvared: $upvared */\n"
-        append code [::tsp::lang_load_vars compUnit $upvared]
+        append code [::tsp::lang_load_vars compUnit $upvared 1]
     }
 
     # add upvared variables to the finalSpill
@@ -148,7 +148,7 @@ proc ::tsp::gen_command_global {compUnitDict tree} {
 
     if {[llength $upvared] > 0} {
         append code "\n/* load global: $upvared */\n"
-        append code [::tsp::lang_load_vars compUnit $upvared]
+        append code [::tsp::lang_load_vars compUnit $upvared 1]
     }
 
     # add upvared variables to the finalSpill
@@ -215,7 +215,7 @@ proc ::tsp::gen_command_variable {compUnitDict tree} {
 
     if {[llength $upvared] > 0} {
         append code "\n/**** load variable: $upvared */\n"
-        append code [::tsp::lang_load_vars compUnit $upvared]
+        append code [::tsp::lang_load_vars compUnit $upvared 1]
     }
 
     # add upvared variables to the finalSpill
