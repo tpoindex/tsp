@@ -126,8 +126,9 @@ proc ::tsp::gen_command {compUnitDict tree} {
             ::tsp::reset_tmpvarsUsed compUnit
             return [::tsp::gen_command_$word compUnit $tree]
 
-        } elseif {$type eq "text" && [dict exists $::tsp::COMPILED_PROCS $word]} {
+        } elseif {$type eq "text" && ([dict exists $::tsp::COMPILED_PROCS $word] || $word eq [dict get $compUnit name])} {
             # command is previously compiled, invoke via direct type interface
+            # also could be a recursive call of the currently compiled proc
             return [::tsp::gen_direct_tsp_compiled compUnit $tree]
 
         } elseif {$type eq "text" && [lsearch $::tsp::BUILTIN_TCL_COMMANDS $word] >= 0} {
@@ -204,7 +205,8 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
 
 
 #########################################################
-# generate an invocation to a previously compiled proc
+# generate an invocation to a previously compiled proc (or a recursive
+# invocation of the current proc)
 # tree is a raw parse tree for the command
 # returns list of [type rhsvar code]
 #
@@ -215,7 +217,11 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
     set cmdComponent [lindex [::tsp::parse_word compUnit [lindex $tree 0]] 0]
     set cmdName [lindex $cmdComponent 1]
 
-    set proc_info  [dict get $::tsp::COMPILED_PROCS $cmdName]
+    if {$cmdName eq [dict get $compUnit name]} { 
+        set proc_info  [list [dict get $compUnit returns] [dict get $compUnit argTypes] {} ]
+    } else {
+        set proc_info  [dict get $::tsp::COMPILED_PROCS $cmdName]
+    }
     lassign $proc_info procType procArgTypes procRef
     
     set argTree [lrange $tree 1 end]
