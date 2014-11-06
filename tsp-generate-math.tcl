@@ -100,14 +100,12 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
     }
 
     # check if either varname or incrvar are temp variables, otherwise prefix user vars with "__"
-    if {! [::tsp::is_tmpvar $varname]} {
-        set varname __$varname
-    }
+    set pre [::tsp::var_prefix $varname]
+    set varname $pre$varname
 
     if {$incrvar ne ""} {
-        if {! [::tsp::is_tmpvar $incrvar]} {
-            set incrvar __$incrvar
-        }
+        set pre [::tsp::var_prefix $incrvar]
+        set incrvar $pre$incrvar
     }
 
     # if target is a var, use a temp var for increment and assignment rhsVar
@@ -140,6 +138,7 @@ proc ::tsp::gen_command_incr {compUnitDict tree} {
     }
 
     # native var has been assigned, so mark it as dirty
+    # puts "gen_command_incr- ::tsp::setDirty compUnit $varname"
     ::tsp::setDirty compUnit $varname
 
     return [list int $rhsVar $code]

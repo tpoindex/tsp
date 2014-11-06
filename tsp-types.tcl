@@ -15,7 +15,7 @@ proc ::tsp::getVarType {compUnitDict var} {
 proc ::tsp::setVarType {compUnitDict var type} {
     upvar $compUnitDict compUnit
     if {[string length $var] == 0} {
-        error "can't define var as an empty string"
+        error "can't define var as an empty string\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
     }
     if {[catch {set previousType [dict get $compUnit vars $var]}] == 0} {
         if {$previousType ne $type} {
@@ -437,14 +437,14 @@ proc ::tsp::reset_tmpvarsUsed {compUnitDict} {
 # in the entire proc. "tmpvarsUsed" is the total number of temp
 # vars used for any one command invocation.
 # note: temp vars defined as: _tmpVar_${type}_${n}
-# optional varName argument creates "shadow" vars (created as: _tmpVar_$var), 
+# optional varName argument creates "shadow" vars (created as: _tmpVar__$var), 
 # so that we can optimize converting native type vars into TclObject var types
 
 proc ::tsp::get_tmpvar {compUnitDict type {varName ""}} {
     upvar $compUnitDict compUnit
 
     if {[lsearch $::tsp::VAR_TYPES $type] < 0 || $type eq "array"} {
-        error "::tsp::get_tmpvar - invalid var type $type  \n[::tsp::error_stacktrace]"
+        error "::tsp::get_tmpvar - invalid var type $type\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
     }
 
     if {$varName eq ""} {
@@ -468,12 +468,12 @@ proc ::tsp::get_tmpvar {compUnitDict type {varName ""}} {
         }
 
     } else {
-        set name _tmpVar_$varName
+        set name _tmpVar__$varName
         set existing [::tsp::getVarType compUnit $name]
         if {$existing eq "undefined"} {
             ::tsp::setVarType compUnit $name $type
         } elseif {$existing ne $type} {
-            error "redefined temp var $varName, was type: $existing, trying to set as $type"
+            error "redefined temp var $varName, was type: $existing, trying to set as $type\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
         }
     }
     return $name
@@ -510,10 +510,33 @@ proc ::tsp::unlock_tmpvar {compUnitDict varName} {
 
 #########################################################
 #
-# test if name is a temp var
+# test if name is a temp var or other internal var
 
 proc ::tsp::is_tmpvar {name} {
     return [regexp {^_tmpVar_} $name]
 }
 
 
+#########################################################
+#
+# test if name is a already prefixed user var
+
+proc ::tsp::is_prefixedvar {name} {
+    return [regexp {^__} $name]
+}
+
+
+#########################################################
+#
+# return the prefix for user variables 
+# if name is a temp var or already prefixed, return null string
+# otherwise, return "__" as the compiled name prefix for
+# user variables
+
+proc ::tsp::var_prefix {name} {
+    if {[::tsp::is_tmpvar $name] || [::tsp::is_prefixedvar $name]} {
+        return ""
+    } else {
+        return "__"
+    }
+}

@@ -1,13 +1,18 @@
 
 #########################################################
 # parse the next script body, may recurse for if, while, for, foreach, etc.
-# return generated code 
+# return list of: code-result-type rhsVar generated-code 
 
 proc ::tsp::parse_body {compUnitDict range} {
     upvar $compUnitDict compUnit
 
     set body [dict get $compUnit body]
     set gencode ""
+
+    # set defaults for body result
+    set cmdType void
+    set cmdRhsVar ""
+    set cmdCode ""
 
     lassign $range firstIdx lastIdx
     if {$lastIdx eq "end"} {
@@ -113,10 +118,25 @@ proc ::tsp::parse_body {compUnitDict range} {
 
     # if any errors, return null string, else return the generated code
     if {[llength [::tsp::getErrors compUnit]] > 0}  {
-        return ""
+        return [list void "" ""]
     } else {
-        return $gencode
+        return [list $cmdType $cmdRhsVar $gencode]
     }
+}
+
+
+#########################################################
+# parse a nested command code body 
+# incr/decr cmd level during parse
+#
+proc ::tsp::parse_nestedbody {compUnitDict range} {
+    upvar $compUnitDict compUnit
+
+    ::tsp::incrCmdLevel compUnit
+    lassign [::tsp::parse_body compUnit $range] cmdType cmdRhsVar cmdCode
+    ::tsp::incrCmdLevel compUnit -1
+    return [list $cmdType $cmdRhsVar $cmdCode]
+
 }
 
 #########################################################
@@ -176,7 +196,11 @@ proc ::tsp::parse_word {compUnitDict subtree {check_array 1}} {
             return [list [list text $wordStr $unquotedStr]]
         }
     } elseif {$type eq "command"} {
-        return [list command [::tsp::trimCommand $wordStr]]
+        lassign $idx startIdx endIdx
+        incr startIdx
+        incr endIdx -2
+        set range [list $startIdx $endIdx]
+        return [list command [::tsp::trimCommand $wordStr] $range]
     } elseif {$type ne "word"} {
         return [list invalid "unknown node $type"]
     }
@@ -198,7 +222,11 @@ proc ::tsp::parse_word {compUnitDict subtree {check_array 1}} {
                 lappend result $var
             }
         } elseif {$nodetype eq "command"} {
-            lappend result [list command [::tsp::trimCommand [parse getstring $body $nodeidx]]]
+            lassign $nodeidx startIdx endIdx
+            incr startIdx
+            incr endIdx -2
+            set range [list $startIdx $endIdx]
+            lappend result [list command [::tsp::trimCommand [parse getstring $body $range]] $range]
         } else {
             return [list invalid "unknown node $nodetype"]
         }

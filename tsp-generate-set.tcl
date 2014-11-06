@@ -85,22 +85,24 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
         ::tsp::addError compUnit "set arg 2 invalid: \"$sourceStr\""
     }
 
+#FIXME this will have to go
     # if it's a command, make sure no nested commands
     if {[llength $sourceComponents] == 1 && $firstType eq "command"} {
         set cmdStr [lindex [lindex $sourceComponents 0] 1]
         if {[::tsp::cmdStringHasNestedCommands $cmdStr]} {
-            set errors 1
-            ::tsp::addError compUnit "set arg 2 command has nested commands, command is array reference, or is unparsable: \"$cmdStr\""
+#            set errors 1
+#            ::tsp::addError compUnit "set arg 2 command has nested commands, command is array reference, or is unparsable: \"$cmdStr\""
         }
     }
 
+#FIXME will this have to go?? 
     # if multiple sourceComponents it's an interpolated string, make sure no nested commands 
     if {[llength $sourceComponents] > 1} {
         foreach word $sourceComponents {
             set type [lindex $word 0]
             if {$type eq "command"} {
-                set errors 1
-                ::tsp::addError compUnit "set arg 2 interpolated string has nested command: \"$sourceStr\""
+#                set errors 1
+#                ::tsp::addError compUnit "set arg 2 interpolated string has nested command: \"$sourceStr\""
             }
         }
     }
@@ -388,74 +390,53 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 
         } elseif {$sourceWordType eq "command"} {
             # assignment from command execution
-            set sourceCmd [lindex $sourceComponent 1]
-            set sourceRange [lindex [lindex $tree 2] 1]
-            # removing enclosing [ ] characters
-            lassign $sourceRange start end
-            incr start 1
-            incr end -2
-            set sourceRange [list $start $end]
-            set rc [catch {lassign [parse command [dict get $compUnit body] $sourceRange] cmdComments cmdRange cmdRest cmdTree}]            
-            if {$rc == 0} {
-                set firstNode [lindex $cmdTree 0]
-                set firstWordList [::tsp::parse_word compUnit $firstNode]
-                lassign $firstNode firstNodeType firstNodeRange firstNodeSubtree
-                set word [parse getstring $sourceCmd $firstNodeRange]
-                if {[llength $firstWordList] == 1} {
-                    lassign [::tsp::gen_command compUnit $cmdTree] sourceType sourceRhsVar sourceCode
-                } else {
-                    # if got here, this was probably marked as error in nested check
-                    set error 1
-                    ::tsp::addError compUnit "command parse error in ::tsp::gen_command_set: set var \[command  ...\]-  $firstNode"
-                    return [list void "" ""]
-                }
+            set sourceCmdRange [lindex $sourceComponent 2]
+            lassign [::tsp::parse_nestedbody compUnit $sourceCmdRange] sourceType sourceRhsVar sourceCode
 
-		if {$sourceType eq "void"} {
-		    ::tsp::addWarning compUnit "ignoring void assignment from nested command: target \"$targetVarName\""
-                    return [list void "" ""]
-                }
-
-                set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
-                if {$targetType eq "ERROR"} {
-                    return [list void "" ""]
-                }
-
-                # generate assignment
-                # mostly same as a scalar from scalar assignment
-		set sourceVarName $sourceRhsVar
-                append result "\n/***** ::tsp::generate_set assign from command */\n"
-                append code $sourceCode
-		set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
-                if {$targetType eq "ERROR"} {
-                    return [list void "" ""]
-                }
-
-		# generate assigment
-		if {$targetWordType eq "text"} {
-		    # don't generate assignment if target and source are the same
-		    if {$targetVarName eq $sourceVarName} {
-			::tsp::addWarning compUnit "ignoring self assignment: target \"$targetVarName\"  source \"$sourceVarName\""
-			return [list void "" ""]
-		    }
-		    append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName $targetType $sourceVarName $sourceType]
-
-		} elseif {$targetWordType eq "text_array_idxtext" || $targetWordType eq "text_array_idxvar"} {
-		    append code [::tsp::gen_assign_array_scalar compUnit $targetVarName $targetArrayIdxtext \
-				    $targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName $sourceType]
-
-		} else {
-		    error "unexpected target word type: $targetWordType"
-		}
-                append result $code
-                append result "\n"
-                return [list void "" $result]
-
-            } else {
-                set errors 1
-                ::tsp::addError compUnit "error parsing set arg 2: $sourceCmd"
-                return [list void "" ""]
+	    if {$sourceCode eq ""} {
+		::tsp::addError compUnit "nested command: no code generated"
+		return [list void "" ""]
             }
 
+	    if {$sourceType eq "void"} {
+		::tsp::addWarning compUnit "ignoring void assignment from nested command: target \"$targetVarName\""
+		return [list void "" ""]
+	    }
+
+	    set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+	    if {$targetType eq "ERROR"} {
+		return [list void "" ""]
+	    }
+
+	    # generate assignment
+	    # mostly same as a scalar from scalar assignment
+	    set sourceVarName $sourceRhsVar
+	    append result "\n/***** ::tsp::generate_set assign from command */\n"
+	    append code $sourceCode
+	    set targetType [::tsp::gen_check_target_var compUnit $targetVarName $targetType $sourceType]
+	    if {$targetType eq "ERROR"} {
+		return [list void "" ""]
+	    }
+
+	    # generate assigment
+	    if {$targetWordType eq "text"} {
+		# don't generate assignment if target and source are the same
+		if {$targetVarName eq $sourceVarName} {
+		    ::tsp::addWarning compUnit "ignoring self assignment: target \"$targetVarName\"  source \"$sourceVarName\""
+		    return [list void "" ""]
+		}
+		append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName $targetType $sourceVarName $sourceType]
+
+	    } elseif {$targetWordType eq "text_array_idxtext" || $targetWordType eq "text_array_idxvar"} {
+		append code [::tsp::gen_assign_array_scalar compUnit $targetVarName $targetArrayIdxtext \
+				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName $sourceType]
+
+	    } else {
+		error "unexpected target word type: $targetWordType"
+	    }
+	    append result $code
+	    append result "\n"
+	    return [list void "" $result]
 
         } else {
             set errors 1
@@ -480,16 +461,10 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
     upvar $compUnitDict compUnit
 
     # set the target as dirty
+    # puts "gen_assign_scalar_text- ::tsp::setDirty compUnit $targetVarName"
     ::tsp::setDirty compUnit $targetVarName 
 
-    # block level temp targetVarName and sourceVarName are a list of two elements "name istmp"
-    # procedure wide temp targetVarName and sourceVarName are also recognized
-    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName] || [string range $targetVarName 0 1] eq "__"} {
-        set targetVarName [lindex $targetVarName 0]
-        set targetPre ""
-    } else {
-        set targetPre __
-    }
+    set targetPre [::tsp::var_prefix $targetVarName]
 
     append result "\n/***** ::tsp::gen_assign_scalar_text */\n"
     switch $targetType {
@@ -591,23 +566,11 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
     upvar $compUnitDict compUnit
 
     # set the target as dirty
+    # puts "gen_assign_scalar_scalar- ::tsp::setDirty compUnit $targetVarName"
     ::tsp::setDirty compUnit $targetVarName 
 
-    # block level temp targetVarName and sourceVarName are a list of two elements "name istmp"
-    # procedure wide temp targetVarName and sourceVarName are also recognized
-    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName] || [string range $targetVarName 0 1] eq "__"} {
-        set targetVarName [lindex $targetVarName 0]
-        set targetPre ""
-    } else {
-        set targetPre __
-    }
-
-    if {[llength $sourceVarName] == 2 || [::tsp::is_tmpvar $sourceVarName] || [string range $sourceVarName 0 1] eq "__"} {
-        set sourceVarName [lindex $sourceVarName 0]
-        set sourcePre ""
-    } else {
-        set sourcePre __
-    }
+    set targetPre [::tsp::var_prefix $targetVarName]
+    set sourcePre [::tsp::var_prefix $sourceVarName]
 
     append result "\n/***** ::tsp::gen_assign_scalar_scalar */\n"
     switch $targetType {
@@ -681,30 +644,24 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
 
 #########################################################
 # assign a string or var from an interpolated string
-#
-# note: uses block level: "tmp"  "tmp2"
 # FIXME: be smarter about combining backslash and strings, just append until a scalar is found or last of components
+#
 proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarName targetType sourceComponents} {
 
     upvar $compUnitDict compUnit
 
     # set the target as dirty
+    # puts "gen_assign_var_string_interpolated_string- ::tsp::setDirty compUnit $targetVarName"
     ::tsp::setDirty compUnit $targetVarName 
     
-    # block level temp targetVarName and sourceVarName are a list of two elements "name istmp"
-    # procedure wide temp targetVarName and sourceVarName are also recognized
-    if {[llength $targetVarName] == 2 || [::tsp::is_tmpvar $targetVarName] || [string range $targetVarName 0 1] eq "__"} {
-        set targetVarName [lindex $targetVarName 0]
-        set targetPre ""
-    } else {
-        set targetPre __
-    }
+    set targetPre [::tsp::var_prefix $targetVarName]
 
     append result "\n/***** ::tsp::gen_assign_var_string_interpolated_string */\n"
-    append result "{\n"
-    append code [::tsp::lang_decl_native_string tmp]
+
+    set tmp [::tsp::get_tmpvar compUnit string]
+    set tmp2 ""
     if {$targetType eq "var"} {
-        append code [::tsp::lang_decl_native_string tmp2]
+        set tmp2 [::tsp::get_tmpvar compUnit string]
     }
     foreach component $sourceComponents {
         set compType [lindex $component 0]
@@ -713,7 +670,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
             backslash {
                 # subst the backslashed text, so that we can quote it for a native string
                 set sourceText [subst [lindex $component 1]]
-                append code [::tsp::lang_assign_string_const tmp $sourceText]
+                append code [::tsp::lang_assign_string_const $tmp $sourceText]
             }
             scalar {
                 # assignment from native variable or var, possible type coersion
@@ -723,7 +680,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
                     ::tsp::addError compUnit "set command arg 2 interpolated string variable not defined: \"$sourceVarName\""
                     return [list ""]
                 }
-                append code [::tsp::gen_assign_scalar_scalar compUnit {tmp istmp} string $sourceVarName $sourceType]
+                append code [::tsp::gen_assign_scalar_scalar compUnit $tmp string $sourceVarName $sourceType]
             }
             default {
                 ::tsp::addError compUnit "set arg 2 interpolated string cannot contain $compType, only text, backslash, or scalar variables"
@@ -731,18 +688,15 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
             }
         }
         if {$targetType eq "string"} {
-            append code [::tsp::lang_append_string $targetPre$targetVarName tmp]
+            append code [::tsp::lang_append_string $targetPre$targetVarName $tmp]
         } elseif {$targetType eq "var"} {
-            append code [::tsp::lang_append_string tmp2 tmp]
+            append code [::tsp::lang_append_string $tmp2 $tmp]
         }
     }
     if {$targetType eq "var"} {
-        append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName var {tmp2 istmp} string]
-        append code [::tsp::lang_free_native_string tmp2]
+        append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName var $tmp2 string]
     }
-    append code [::tsp::lang_free_native_string tmp]
-    append result [::tsp::indent compUnit $code 1]
-    append result "\n}\n"
+    append result $code "\n"
     return $result
 }
 
@@ -784,7 +738,8 @@ proc ::tsp::gen_assign_array_text {compUnitDict targetVarName targetArrayIdxtext
         } else {
             append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
         }
-        append code [::tsp::lang_convert_string_string $idx [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
+        set idxPre [::tsp::var_prefix $targetArrayIdxvar]
+        append code [::tsp::lang_convert_string_string $idx [::tsp::lang_get_string_$targetArrayIdxvarType $idxPre$targetArrayIdxvar]]
         append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
         append result $code
         return $result
@@ -807,11 +762,13 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
     if {$targetArrayIdxtext ne ""} {
         # constant string index
         if {$sourceType eq "var"} {
-            set value  __$sourceVarName
+            set pre [::tsp::var_prefix $sourceVarName]
+            set value  $pre$sourceVarName
         } else {
+            set pre [::tsp::var_prefix $sourceVarName]
             set value [::tsp::get_tmpvar compUnit var]
             append code [::tsp::lang_decl_var $value]
-            append code [::tsp::lang_new_var_$sourceType  $value __$sourceVarName]
+            append code [::tsp::lang_new_var_$sourceType  $value $pre$sourceVarName]
             append code [::tsp::lang_preserve $value]
         }
         append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] \
@@ -823,14 +780,17 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
         # we have to get a string from the scalar
         set idx [::tsp::get_tmpvar compUnit string]
         if {$sourceType eq "var"} {
-            set value __$sourceVarName
+            set pre [::tsp::var_prefix $sourceVarName]
+            set value $pre$sourceVarName
         } else {
+            set pre [::tsp::var_prefix $sourceVarName]
             set value [::tsp::get_tmpvar compUnit var]
             append code [::tsp::lang_safe_release $value]
-            append code [::tsp::lang_new_var_$sourceType  value __$sourceVarName]
+            append code [::tsp::lang_new_var_$sourceType  value $pre$sourceVarName]
             append code [::tsp::lang_preserve $value]
         }
-        append code [::tsp::lang_convert_string_string $idx  [::tsp::lang_get_string_$targetArrayIdxvarType __$targetArrayIdxvar]]
+        set idxPre [::tsp::var_prefix $targetArrayIdxvar]
+        append code [::tsp::lang_convert_string_string $idx  [::tsp::lang_get_string_$targetArrayIdxvarType $idxPre$targetArrayIdxvar]]
         append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
         append result $code
         return $result
@@ -865,6 +825,7 @@ proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourc
     upvar $compUnitDict compUnit
   
     # set the target as dirty
+    # puts "gen_assign_scalar_array- ::tsp::setDirty compUnit $targetVarName"
     ::tsp::setDirty compUnit $targetVarName 
 
     append result "\n/***** ::tsp::gen_assign_scalar_array */\n"
@@ -875,7 +836,8 @@ proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourc
         append code [::tsp::lang_assign_var_array_idxtext $targetVar [::tsp::lang_quote_string $sourceVarName] $sourceArrayIdxtext $errMsg]
     } else {
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index var \"$sourceArrayIdxvar\" "]]
-        append code [::tsp::lang_assign_var_array_idxvar $targetVar [::tsp::lang_quote_string $sourceVarName] __$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
+        set idxPre [::tsp::var_prefix $sourceArrayIdxvar]
+        append code [::tsp::lang_assign_var_array_idxvar $targetVar [::tsp::lang_quote_string $sourceVarName] $idxPre$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
     }
     append code [::tsp::lang_preserve $targetVar]
     append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName $targetType $targetVar var]
@@ -898,7 +860,8 @@ proc ::tsp::gen_assign_array_array {compUnitDict targetVarName targetArrayIdxtex
         append code [::tsp::lang_assign_var_array_idxtext $assignVar [::tsp::lang_quote_string $sourceVarName] [::tsp::lang_quote_string $sourceArrayIdxtext] $errMsg]
     } else {
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index var \"$sourceArrayIdxvar\" "]]
-        append code [::tsp::lang_assign_var_array_idxvar $assignVar [::tsp::lang_quote_string $sourceVarName] __$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
+       set idxPre [::tsp::var_prefix $sourceArrayIdxvar]
+        append code [::tsp::lang_assign_var_array_idxvar $assignVar [::tsp::lang_quote_string $sourceVarName] $idxPre$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
     }
     
     append code [::tsp::lang_preserve $assignVar]

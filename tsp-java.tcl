@@ -105,7 +105,7 @@ proc ::tsp::lang_type_int {} {
 # return native double type
 #
 proc ::tsp::lang_type_double {} {
-    return long
+    return double
 }
 
 ##############################################
@@ -825,38 +825,41 @@ proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
 ##############################################
 # allocate a TclObject objv array
 #
-proc ::tsp::lang_alloc_objv_array {size} {
-    return "argObjvArray = new TclObject\[$size\];\n"
+proc ::tsp::lang_alloc_objv_array {compUnitDict size} {
+    upvar $compUnitDict compUnit
+    set cmdLevel [dict get $compUnit cmdLevel]
+    return "argObjvArray_$cmdLevel = new TclObject\[$size\];\n"
 }
 
 ##############################################
 # assign a TclObject var to a TclObject objv array
 #
-proc ::tsp::lang_assign_objv {n obj} {
-    return "argObjvArray\[$n\] = $obj;\n"
+proc ::tsp::lang_assign_objv {compUnitDict n obj} {
+    upvar $compUnitDict compUnit
+    set cmdLevel [dict get $compUnit cmdLevel]
+    return "argObjvArray_$cmdLevel\[$n\] = $obj;\n"
 }
 
 
 ##############################################
 # invoke a builtin tcl command
 #  assumes argObjvArray has been constructed
-# NOTE - return assign var as list of {cmdResultObj istmp}
-#        to prevent it from being prefixed
 #
-proc ::tsp::lang_invoke_builtin {cmd} {
+proc ::tsp::lang_invoke_builtin {compUnitDict cmd} {
+    upvar $compUnitDict compUnit
+    set cmdLevel [dict get $compUnit cmdLevel]
+
     append code "\n//  ::tsp::lang_invoke_builtin\n"
-    append code "TspCmd.builtin_$cmd.cmdProc(interp, argObjvArray);\n"
+    append code "TspCmd.builtin_$cmd.cmdProc(interp, argObjvArray_$cmdLevel);\n"
 
-    #append code "builtin_$cmd.cmdProc(interp, argObjvArray);\n"
-    #append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray);\n"
-    #append code "(TspUtil.builtin_${cmd}).cmdProc(interp, argObjvArray);\n"
-    #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
-    # so that we properly release/preserve cmdResultObj
+    #append code "builtin_$cmd.cmdProc(interp, argObjvArray_$cmdLevel);\n"
+    #append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray_$cmdLevel);\n"
+    #append code "(TspUtil.builtin_${cmd}).cmdProc(interp, argObjvArray_$cmdLevel);\n"
 
-    append code [::tsp::lang_safe_release cmdResultObj]
-    append code "cmdResultObj = interp.getResult();\n"
-    append code [::tsp::lang_preserve cmdResultObj] \n
-    return [list {cmdResultObj istmp} $code]
+    append code [::tsp::lang_safe_release _tmpVar_cmdResultObj]
+    append code "_tmpVar_cmdResultObj = interp.getResult();\n"
+    append code [::tsp::lang_preserve _tmpVar_cmdResultObj] \n
+    return [list _tmpVar_cmdResultObj $code]
 }
 
 
@@ -871,18 +874,17 @@ proc ::tsp::lang_alloc_objv_list {varName} {
 ##############################################
 # invoke a tcl command via the interp
 #  assumes argObjvArray has been constructed
-# NOTE - return assign var as list of {cmdResultObj istmp}
-#        to prevent it from being prefixed
 #
-proc ::tsp::lang_invoke_tcl {} {
+proc ::tsp::lang_invoke_tcl {compUnitDict} {
+    upvar $compUnitDict compUnit
+    set cmdLevel [dict get $compUnit cmdLevel]
+
     append code "\n//  ::tsp::lang_invoke_tcl\n"
-    append code "interp.invoke(argObjvArray, 0);\n"
-    #FIXME: perhaps use: ::tsp::lang_assign_var_var  cmdResultObj (interp.getResult())
-    # so that we properly release/preserve cmdResultObj
-    append code [::tsp::lang_safe_release cmdResultObj]
-    append code "cmdResultObj = interp.getResult();\n"
-    append code [::tsp::lang_preserve cmdResultObj] \n
-    return [list {cmdResultObj istmp} $code]
+    append code "interp.invoke(argObjvArray_$cmdLevel, 0);\n"
+    append code [::tsp::lang_safe_release _tmpVar_cmdResultObj]
+    append code "_tmpVar_cmdResultObj = interp.getResult();\n"
+    append code [::tsp::lang_preserve _tmpVar_cmdResultObj] \n
+    return [list _tmpVar_cmdResultObj $code]
 }
 
 
@@ -940,7 +942,7 @@ proc ::tsp::lang_release_vars {compUnitDict} {
 #
 proc ::tsp::lang_standard_vars {compUnitDict} {
     upvar $compUnitDict compUnit
-    foreach var {cmdResultObj argObjvList} {
+    foreach var {_tmpVar_cmdResultObj argObjvList} {
     }
 }
 
@@ -952,15 +954,23 @@ proc ::tsp::lang_standard_vars {compUnitDict} {
 proc ::tsp::lang_create_compilable {compUnitDict code} {
     upvar $compUnitDict compUnit
     set name [dict get $compUnit name]
+
+    # create a list of proc argument names, prepended with __
     set procArgs ""
     foreach arg [dict get $compUnit args] {
         lappend procArgs __$arg
     }
+
+    # get the list of proc argument types
     set procArgTypes [dict get $compUnit argTypes]
+   
+    # create the java proc arguments
     set nativeArgs [join $procArgs ", "]
     if {[string length $nativeArgs]} {
         set nativeArgs ", $nativeArgs"
     }
+
+
     set nativeTypedArgs ""
     set declProcArgs ""
     set argVarAssignments ""
@@ -968,6 +978,11 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set procArgsCleanup ""
     set comma ""
     set i 0
+
+    # create: assignments from proc args to scoped variables; 
+    #         declarations of scoped variables
+    #         cleanup code for arguments (var types)
+    #         code to preserve var types in inner method
     foreach arg $procArgs {
         set type [lindex $procArgTypes $i]
         # rest of foreach needs i+1
@@ -987,6 +1002,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     if {[string length $nativeTypedArgs]} {
         set nativeTypedArgs ", $nativeTypedArgs"
     }
+
+    # create the inner method return assignment operation and declaration 
     set numProcArgs [llength $procArgs]
     set returnType [dict get $compUnit returns]
     set nativeReturnType [::tsp::lang_xlate_native_type $returnType]
@@ -1000,6 +1017,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         set returnSetResult "interp.resetResult();"
     }
 
+    # create inner method proc vars and cleanup code (for vars)
     set procVarsDecls ""
     set procVarsCleanup ""
     foreach {var} [lsort [dict keys [dict get $compUnit vars]]] {
@@ -1020,6 +1038,14 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         }
     }
     
+    # create the argObjvArrays, one for each level of command nesting
+    set argObjvArrays ""
+    set maxLevel [dict get $compUnit maxLevel]
+    for {set i 0} {$i <= $maxLevel} {incr i} {
+        append argObjvArrays "\n        TclObject\[\] argObjvArray_$i = null;"
+    }
+
+    # class template
 
     set classTemplate \
 {package tsp.cmd;
@@ -1057,9 +1083,9 @@ public class ${name}Cmd implements Command {
     }
 
     public static $nativeReturnType __${name}(Interp interp $nativeTypedArgs) throws TclException {
-        TclObject cmdResultObj = null;
-        TclObject\[\] argObjvArray = null;
+        TclObject _tmpVar_cmdResultObj = null;
         CallFrame frame = null;
+        $argObjvArrays
 
         // variables defined in proc, plus temp vars
         [::tsp::indent compUnit $procVarsDecls 2 \n]
@@ -1094,7 +1120,7 @@ public class ${name}Cmd implements Command {
             frame.dispose();
 
             // release var variables, if any (includes _tmp variables)
-            [::tsp::lang_safe_release cmdResultObj]
+            [::tsp::lang_safe_release _tmpVar_cmdResultObj]
             [::tsp::indent compUnit $procArgsCleanup 3 \n]
             [::tsp::indent compUnit $procVarsCleanup 3 \n]
         }
@@ -1223,13 +1249,9 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             continue
         }
         # woot! setVar is overloaded by type, so no need to convert to anything else
-        # probably shouldn't get tmpvars here, but check anyway
-        if {[llength $var] == 2 || [::tsp::is_tmpvar $var] || [string range $var 0 1] eq "__"} {
-            set var [lindex $var 0]
-            set pre ""
-        } else {
-            set pre __
-        }
+        # probably shouldn't get tmpvars here, but get prefix anyway
+        set pre [::tsp::var_prefix $var]
+
         append buf "// interp.setVar $var \n"
         if {$type eq "var"} {
             append buf "if ($pre$var == null) \{\n"
@@ -1276,13 +1298,9 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
             # array variables are already in interp
             continue
         }
-        # probably shouldn't get tmpvars here, but check anyway
-        if {[llength $var] == 2 || [::tsp::is_tmpvar $var] || [string range $var 0 1] eq "__"} {
-            set var [lindex $var 0]
-            set pre ""
-        } else {
-            set pre __
-        }
+        # probably shouldn't get tmpvars here, but get prefix anyway
+        set pre [::tsp::var_prefix $var]
+        
         if {$type eq "var"} {
             set interpVar $pre$var
             set isvar 1
@@ -1476,10 +1494,11 @@ proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
 proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
     upvar $compUnitDict compUnit
 
+    set pre [::tsp::var_prefix $switchVar]
     if {$switchVarType eq "var"} {
-        set switchVar __$switchVar.toString()
+        set switchVar $pre$switchVar.toString()
     } else {
-        set switchVar __$switchVar
+        set switchVar $pre$switchVar
     }
     append code "// ::tsp::lang_switch\n"
     set match ""
@@ -1571,27 +1590,32 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList da
             set targetType [::tsp::getVarType compUnit $target]
             set rest [lrange $varList 1 end]
             
+            set dataListPre [::tsp::var_prefix $dataList]
+            set targetPre   [::tsp::var_prefix $target]
+
             if {$targetType eq $dataListType} {
-                append code "$target = __$dataList;\n"
+                append code "$target = $dataLisPre$dataList;\n"
             } else {
-                append code "[::tsp::lang_convert_${targetType}_${dataListType} __$target __$dataList "unable to convert $dataListType to $targetType"]"
+                append code "[::tsp::lang_convert_${targetType}_${dataListType} $targetPre$target $dataListPre$dataList "unable to convert $dataListType to $targetType"]"
             }
             # zero out any remaining vars
             foreach v $rest {
                 set type [::tsp::getVarType compUnit $v]
-                append code "[::tsp::lang_assign_empty_zero __$v $type]"
+                set vPre [::tsp::var_prefix $v]
+                append code "[::tsp::lang_assign_empty_zero $vPre$v $type]"
             }
             append code $body
             return $body
 
         } else {
+            set dataListPre [::tsp::var_prefix $dataList]
             if {$dataListType eq "string"} {
                 append code "[::tsp::lang_safe_release $dataList]\n"
-                append code "[::tsp::lang_new_var_string $dataVar __$dataList]\n"
+                append code "[::tsp::lang_new_var_string $dataVar $dataListPre$dataList]\n"
                 append code "[::tsp::lang_preserve $dataVar]\n"
             } else {
                 # must be var
-                set dataVar __$dataList
+                set dataVar $dataListPre$dataList
             }
         }
     } else {
@@ -1605,16 +1629,17 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList da
     append code "$lenVar = TclList.getLength(interp, $dataVar); // list length\n"
     append code "while ($idxVar < $lenVar) \{\n"
     foreach var $varList {
+        set varPre [::tsp::var_prefix $var]
         set type [::tsp::getVarType compUnit $var]
         append code "    // set var $var\n"
         append code "    if ($idxVar < $lenVar) \{\n"
         if {$type eq "var"} {
-            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var __$var "TclList.index(interp, $dataVar, (int) ${idxVar}++)"] 1]" \n
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_var_var $varPre$var "TclList.index(interp, $dataVar, (int) ${idxVar}++)"] 1]" \n
         } else {
-            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var __$var "TclList.index(interp, $dataVar, (int) ${idxVar}++)" "unable to convert var to $type"] 1]" \n
+            append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var $varPre$var "TclList.index(interp, $dataVar, (int) ${idxVar}++)" "unable to convert var to $type"] 1]" \n
         }
         append code "    \} else \{\n"
-        append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero __$var $type] 1]\n"
+        append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $varPre$var $type] 1]\n"
         append code "    \}\n"
     }
     append code "    // foreach body \n"

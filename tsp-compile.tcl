@@ -12,14 +12,16 @@
 # finalSpill - vars spill into interp on method end, for upvar/global/variable defined vars
 # dirty - sub dict of native typed vars that need tmp obj updated before tcl invocation
 # tmpvars - sub dict of temporary var types used
-# tmpvarsUsed - sub dict of temporary var types used per command invocation
-# tmpvarsLocked - list of tmpvars locked
+# tmpvarsUsed - sub dict of temporary var types used per command invocation, per type
+# tmpvarsLocked - list of tmpvars locked, per type
 # volatile - vars to spill/reload into tcl interp, for one command only
 # frame - true/false if new var frame is required
 # force - true to force compilation
 # buf - code buffer, what is actually compiled
 # breakable - count of nested while/for/foreach, when > 1  break/continue are allowed
-# depth - count of nesting level
+# depth - count of block nesting level (if/while/for/foreach etc.)
+# cmdLevel - count of nested commands (per outer word boundary)
+# maxLevel - max level of nexted commands
 # lineNum - current line number
 # errors - list of errors
 # warnings - list of warnings
@@ -47,6 +49,8 @@ proc ::tsp::init_compunit {file name procargs body} {
         buf "" \
         breakable 0 \
         depth 0 \
+        cmdLevel 0 \
+        maxLevel 0 \
         lineNum 1 \
         errors "" \
         warnings "" \
@@ -72,7 +76,8 @@ proc ::tsp::compile_proc {file name procargs body} {
     set code ""
     set errInf ""
 
-    set rc [catch {set code [::tsp::parse_body compUnit {0 end}]} errInf]
+    # get the generated code, ignore return type and rhsvar
+    set rc [catch {set code [lindex [::tsp::parse_body compUnit {0 end}] 2]} errInf]
     set compileType [dict get $compUnit compileType]
 
     if {$rc != 0} {

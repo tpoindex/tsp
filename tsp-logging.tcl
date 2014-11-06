@@ -97,6 +97,20 @@ proc ::tsp::getCompiledProcs {} {
 
 
 #########################################################
+# format file, proc name, line number
+#
+proc ::tsp::currentLine {compUnitDict} {
+    upvar $compUnitDict compUnit
+    set lineNum [dict get $compUnit lineNum]
+    append result "file: [dict get $compUnit file]"
+    append result " proc: [dict get $compUnit name]"
+    append result " line: $lineNum"
+    append result " text: [lindex [split [dict get $compUnit body] \n] $lineNum]"
+    return $result
+}
+
+
+#########################################################
 # log all of the errors and warnings from a compilation
 # last compilation has index of "_"
 #
@@ -115,7 +129,7 @@ proc ::tsp::logErrorsWarnings {compUnitDict} {
     }
     set path [file join $::tsp::DEBUG_DIR $name.log]
     set fd [open $path w]
-    ::tsp::printErrorsWarnings $fd $name
+    ::tsp::printLog $fd $name
     close $fd 
 }
 
@@ -138,26 +152,45 @@ proc ::tsp::logCompilable {compUnitDict compilable} {
 
 
 #########################################################
-# print errors and warnins to a filehandle
+# print errors and warnings to a filehandle
 # optional filehandle, defaults to stderr
 # optional proc name pattern, defaults to * 
 #
-proc ::tsp::printErrorsWarnings {{fd stderr} {patt *}} {
+proc ::tsp::printLog {{fd stderr} {patt *}} {
+    puts $fd [::tsp::log $patt]
+}
+
+
+#########################################################
+# format errors and warnings 
+# optional filehandle, defaults to stderr
+# optional proc name pattern, defaults to * 
+#
+proc ::tsp::log {{patt *}} {
+    set result ""
     set keys [lsort [dict keys $::tsp::COMPILER_LOG]]
     foreach key $keys {
         if {[string match $patt $key]} {
-            puts $fd "$key (file:  [dict get $::tsp::COMPILER_LOG $key filename])---------------------------------------------------------"
-            puts $fd "    ERRORS --------------------------------------------------"
+            append result "$key (file:  [dict get $::tsp::COMPILER_LOG $key filename])---------------------------------------------------------" \n
+            append result "    ERRORS --------------------------------------------------" \n
             foreach err [dict get $::tsp::COMPILER_LOG $key errors] {
-                puts $fd "   $err"
+                append result "   $err" \n
             }
-            puts $fd "    WARNINGS ------------------------------------------------"
+            append result "    WARNINGS ------------------------------------------------" \n
             foreach warn [dict get $::tsp::COMPILER_LOG $key warnings] {
-                puts $fd "    $warn"
+                append result "    $warn" \n
             }
-            puts $fd ""
         }
     }
+    return $result
+}
+
+
+#########################################################
+# get last compile
+#
+proc ::tsp::lastLog {} {
+    return [::tsp::log _]
 }
 
 

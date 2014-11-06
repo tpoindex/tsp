@@ -584,7 +584,8 @@ proc ::tsp::produce_subexpr {compUnitDict expr tree} {
                 error "variable \"$thingtext\" not type of boolean, int, double, or string: \"$type\" in expression: $nodeexpr"
             }
             # NOTE that we change the variable for native compilation by prefixing with "__"
-            return [list $type __$thingtext]
+            set pre [::tsp::var_prefix $thingtext]
+            return [list $type $pre$thingtext]
         } elseif {$thingtype eq "text"} {
             set type [::tsp::literalExprTypes $thingtext]
             return [list $type $thingtext]
@@ -601,7 +602,8 @@ proc ::tsp::produce_subexpr {compUnitDict expr tree} {
             error "variable \"$nodeexpr\" not type of boolean, int, double, or string: \"$type\" in expression: $nodeexpr"
         }
         # NOTE that we change the variable for native compilation by prefixing with "__"
-        return [list $type __$nodeexpr]
+        set pre [::tsp::var_prefix $nodeexpr]
+        return [list $type $pre$nodeexpr]
     } elseif {$type eq "text"} {
         set type [::tsp::literalExprTypes $nodeexpr]
         return [list $type $nodeexpr]

@@ -61,14 +61,14 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
     incr start
     incr end -2
     set preRange [list $start $end]
-    set preCode [::tsp::parse_body compUnit $preRange]
+    set preCode [lindex [::tsp::parse_body compUnit $preRange] 2]
 
     set postRange [lindex [lindex $tree 3] 1]
     lassign $postRange start end
     incr start
     incr end -2
     set postRange [list $start $end]
-    set postCode [::tsp::parse_body compUnit $postRange]
+    set postCode [lindex [::tsp::parse_body compUnit $postRange] 2]
 
     set bodyRange [lindex [lindex $tree 4] 1]
     lassign $bodyRange start end
@@ -77,7 +77,7 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
 
-    set bodyCode [::tsp::parse_body compUnit $bodyRange]
+    set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
 
     append code "\n/***** ::tsp::gen_command_for */\n"
     append code "\n/* ::tsp::gen_command_for initializer*/\n"
@@ -143,7 +143,7 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
 
-    set bodyCode [::tsp::parse_body compUnit $bodyRange]
+    set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
 
     append code "\n/***** ::tsp::gen_command_while */\n"
 
@@ -225,7 +225,7 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
         incr start
         incr end -2
         set bodyRange [list $start $end]
-        set bodyCode [::tsp::parse_body compUnit $bodyRange]
+        set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
         append code [::tsp::indent compUnit $bodyCode 1]
         append code "\n\}"
         
@@ -274,7 +274,7 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
         incr start
         incr end -2
         set bodyRange [list $start $end]
-        set bodyCode [::tsp::parse_body compUnit $bodyRange]
+        set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
         append code [::tsp::indent compUnit $bodyCode 1]
         append code "\n\}"
         incr i
@@ -369,13 +369,16 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     # generate assignment to a tmp var that will be the return type
     # FIXME: probably should just return the return argument when it's the same type
     set argVar [::tsp::get_tmpvar compUnit $returnType]
+    ::tsp::lock_tmpvar compUnit $argVar
     set argVarComponents [list [list text $argVar $argVar]]
     set returnNodeComponents [::tsp::parse_word compUnit [lindex $tree 1]]
     set returnNodeType [lindex [lindex $returnNodeComponents 0] 0]
-    if {$returnNodeType eq "invalid" || $returnNodeType eq "command"} {
+    if {$returnNodeType eq "invalid"} {
+        ::tsp::unlock_tmpvar compUnit $argVar
         ::tsp::addError compUnit "return argument parsed as \"$returnNodeType\""
         return [list void "" ""]
     }
+
     set setTree ""  ;# tree only needed for command parse types, so ok to make it empty here
     set code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $returnNodeComponents] 2]
 
@@ -385,6 +388,7 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
     }
     append result "\n/***** ::tsp::gen_command_return */\n"
     append result "\n${code}return $argVar;\n"
+    ::tsp::unlock_tmpvar compUnit $argVar
     return [list void "" $result]
 }
 
@@ -474,7 +478,7 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
 
     # incr nesting depth and parse body code
     ::tsp::incrDepth compUnit
-    set bodyCode [::tsp::parse_body compUnit $bodyRange]
+    set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
 
     append code "\n/***** ::tsp::gen_command_foreach */\n"
     append code [::tsp::lang_foreach compUnit $idxVar $lenVar $dataVar $varList $dataList $dataString $bodyCode]
@@ -536,7 +540,7 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
     incr end -2
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
-    set bodyCode [::tsp::parse_body compUnit $bodyRange]
+    set bodyCode [lindex [::tsp::parse_body compUnit $preRange] 2]
     set returnVar [::tsp::get_tmpvar compUnit int]
 
     append code "\n/***** ::tsp::gen_command_catch */\n"
@@ -660,7 +664,7 @@ proc ::tsp::gen_command_switch {compUnitDict tree} {
             incr end -2
             set scriptRange [list $start $end]
             ::tsp::incrDepth compUnit
-            set scriptCode [::tsp::parse_body compUnit $scriptRange]
+            set scriptCode [lindex [::tsp::parse_body compUnit $scriptRange] 2]
             ::tsp::incrDepth compUnit -1
         }
         lappend pattCodeList $patt $scriptCode

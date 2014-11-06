@@ -33,6 +33,7 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         return [list void "" ""]
     }
 
+    set pre [::tsp::var_prefix $varname]
     set code "\n/***** ::tsp::gen_command_append */\n"
     set argVar [::tsp::get_tmpvar compUnit string]
     set argVarComponents [list [list text $argVar $argVar]]
@@ -49,17 +50,17 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         append code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
         if {$type eq "var"} {
-            append code [::tsp::lang_append_var  __$varname $argVar]
+            append code [::tsp::lang_append_var  $pre$varname $argVar]
         } elseif {$type eq "string"} {
-            append code [::tsp::lang_append_string  __$varname $argVar]
+            append code [::tsp::lang_append_string  $pre$varname $argVar]
         } else {
-            error "::tsp::gen_command_append - unexpected varname type: $type"
+            error "::tsp::gen_command_append - unexpected varname type: $type\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
         }
     }
 
     
     # return the value
-    return [list $type __$varname $code]
+    return [list $type $pre$varname $code]
 }
 
 
@@ -250,10 +251,8 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
         ::tsp::addError compUnit "unable to get string argument: $strVar"
         return [list void "" ""]
     }  else {
-        if {! [::tsp::is_tmpvar $strVar]} {
-            # not a tmp var, prefix it with "__"
-            set strVar __$strVar
-        }
+        set pre [::tsp::var_prefix $strVar]
+        set strVar $pre$strVar
     }
     append code $convertCode
     
@@ -266,10 +265,8 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
     } else {
         if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {
             # not a int literal, so it must be a scalar
-            if {! [::tsp::is_tmpvar $idxRef]} {
-                # not a tmp var, prefix it with "__"
-                set idxRef __$idxRef
-            }
+            set pre [::tsp::var_prefix $idxRef]
+            set idxRef $pre$idxRef
         }
         append code $convertCode
     }
@@ -303,10 +300,8 @@ proc ::tsp::gen_string_length {compUnitDict tree} {
         ::tsp::addError compUnit "unable to get string argument: $strVar"
         return [list void "" ""]
     }  else {
-        if {! [::tsp::is_tmpvar $strVar]} {
-            # not a tmp var, prefix it with "__"
-            set strVar __$strVar
-        }
+        set pre [::tsp::var_prefix $strVar]
+        set strVar $pre$strVar
     }
     append code $convertCode
     
@@ -339,10 +334,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
         ::tsp::addError compUnit "unable to get string argument: $strVar"
         return [list void "" ""]
     }  else {
-        if {! [::tsp::is_tmpvar $strVar]} {
-            # not a tmp var, prefix it with "__"
-            set strVar __$strVar
-        }
+        set pre [::tsp::var_prefix $strVar]
+        set strVar $pre$strVar
     }
     append code $convertCode
     
@@ -355,11 +348,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
         return [list void "" ""]
     } else {
         if {[::tsp::literalExprTypes $firstIdxRef] eq "stringliteral"} {
-            # not a int literal, so it must be a scalar
-            if {! [::tsp::is_tmpvar $firstIdxRef]} {
-                # not a tmp var, prefix it with "__"
-                set firstIdxRef __$firstIdxRef
-            }
+            set pre [::tsp::var_prefix $firstIdxRef]
+            set firstIdxRef $pre$firstIdxRef
         }
         append code $convertCode
     }
@@ -374,10 +364,8 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
     } else {
         if {[::tsp::literalExprTypes $lastIdxRef] eq "stringliteral"} {
             # not a int literal, so it must be a scalar
-            if {! [::tsp::is_tmpvar $lastIdxRef]} {
-                # not a tmp var, prefix it with "__"
-                set lastIdxRef __$lastIdxRef
-            }
+            set pre [::tsp::var_prefix $lastIdxRef]
+            set lastIdxRef $pre$lastIdxRef
         }
         append code $convertCode
     }

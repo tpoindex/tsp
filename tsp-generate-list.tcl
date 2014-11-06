@@ -45,8 +45,9 @@ proc ::tsp::gen_command_lset {compUnitDict tree} {
             return [list void "" ""]
         }
 
-        append code [::tsp::lang_assign_empty_zero __$varname var]
-        append code [::tsp::lang_preserve __$varname]
+        set pre [::tsp::var_prefix $varname]
+        append code [::tsp::lang_assign_empty_zero $pre$varname var]
+        append code [::tsp::lang_preserve $pre$varname]
     } else {
         # varname exists
         # if varname was not previously included as volatile, spill variable here and add to volatile list
@@ -112,8 +113,9 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
             return [list void "" ""]
         }
         
-        append code [::tsp::lang_assign_empty_zero __$varname var]
-        append code [::tsp::lang_preserve __$varname]
+        set pre [::tsp::var_prefix $varname]
+        append code [::tsp::lang_assign_empty_zero $pre$varname var]
+        append code [::tsp::lang_preserve $pre$varname]
     } else {
         # varname exists
         # if varname was not previously included as volatile, spill variable here and add to volatile list
@@ -141,11 +143,13 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         append code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
         # note - TclList.append with preserve() the argVar
-        append code [::tsp::lang_lappend_var  __$varname $argVar]
+        set pre [::tsp::var_prefix $varname]
+        append code [::tsp::lang_lappend_var  $pre$varname $argVar]
     }
     
     # return the value
-    return [list var __$varname $code]
+    set pre [::tsp::var_prefix $varname]
+    return [list var $pre$varname $code]
 }
 
 
@@ -175,6 +179,7 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
     if {$argComponentType eq "scalar"} {
         set argVar [lindex [lindex $argComponents 0] 1]
         set argType [::tsp::getVarType compUnit $argVar]
+        set pre [::tsp::var_prefix $argVar]
         if {$argType eq "boolean" || $argType eq "int" || $argType eq "double"} {
             # these have a length of 1 :-)
             append code "/* llength of $argType : 1*/\n"
@@ -187,12 +192,12 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
             return [list void "" ""]
         } elseif {$argType eq "string"} {
             # convert the string into a tmp var
-#FIXME: use shadow var and dirty checking
+            #FIXME: use shadow var and dirty checking
             set argTmpVar [::tsp::get_tmpvar compUnit var]
-            append code [::tsp::lang_assign_var_string $argTmpVar $argVar]
+            append code [::tsp::lang_assign_var_string $argTmpVar $pre$argVar]
             set argVar $argTmpVar
         } elseif {$argType eq "var"} {
-            set argVar __$argVar
+            set argVar $pre$argVar
         } else {
             error "llength: unexpected type: $argType \n[::tsp::error_stacktrace]"
         }
@@ -281,10 +286,8 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
     } else {
         if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {
             # not a int literal, so it must be a scalar
-            if {! [::tsp::is_tmpvar $idxRef]} {
-                # not a tmp var, prefix it with "__"
-                set idxRef __$idxRef
-            }
+            set pre [::tsp::var_prefix $idxRef]
+            set idxRef $pre$idxRef
         }
         append code $convertCode
     }

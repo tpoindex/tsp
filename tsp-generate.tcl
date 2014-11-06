@@ -18,6 +18,7 @@ proc ::tsp::indent {compUnitDict str {n -1} {prefix ""}} {
     return $prefix$spaces$str
 }
 
+
 #########################################################
 # incr depth (and indentation) level
 #
@@ -26,6 +27,19 @@ proc ::tsp::incrDepth {compUnitDict {n 1}} {
     dict incr compUnit depth $n
 }
 
+
+#########################################################
+# incr cmdLevel
+#
+proc ::tsp::incrCmdLevel {compUnitDict {n 1}} {
+    upvar $compUnitDict compUnit
+    dict incr compUnit cmdLevel $n
+    set current [dict get $compUnit cmdLevel]
+    set max [dict get $compUnit maxLevel]
+    if {$current > $max} {
+        dict set compUnit maxLevel $current
+    }
+}
 
 
 #########################################################
@@ -116,8 +130,8 @@ proc ::tsp::gen_command {compUnitDict tree} {
             return [::tsp::gen_command_set compUnit $tree]
 
         } elseif {[::tsp::treeHasNestedCommands compUnit $tree]} {
-            ::tsp::addError compUnit "::tsp::gen_command - command has nested command argument"
-            return [list void "" ""]
+#            ::tsp::addError compUnit "::tsp::gen_command - command has nested command argument"
+#            return [list void "" ""]
         }
 
 
@@ -172,10 +186,11 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
             set varType [::tsp::getVarType compUnit $var]   
             if {$varType eq $argType} {
                 # perfect - we have same type of arg that proc requires
+                set pre [::tsp::var_prefix $var]
                 if {$varType eq "var"} {
-                    lappend preserveVarList __$var
+                    lappend preserveVarList $pre$var
                 }
-                lappend argVarList __$var
+                lappend argVarList $pre$var
                 incr idx
                 continue
             }
@@ -184,7 +199,7 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
         # else arg is different type, or is var, or is array, or is a constant, so
         # we assign into a tmp var 
 
-#FIXME: if argType eq var, then use shadow/dirty
+        #FIXME: if argType eq var, then use shadow/dirty
 
         set argVar [::tsp::get_tmpvar compUnit $argType]
         set argVarComponents [list [list text $argVar $argVar]]
@@ -264,7 +279,7 @@ proc ::tsp::gen_direct_tcl {compUnitDict tree} {
     
     append result "\n/***** ::tsp::gen_direct_tcl $cmdName */\n"
     append result [::tsp::gen_objv_array compUnit $tree [::tsp::lang_builtin_cmd_obj $cmdName]]
-    lassign [::tsp::lang_invoke_builtin $cmdName] cmdResultVar code
+    lassign [::tsp::lang_invoke_builtin compUnit $cmdName] cmdResultVar code
     append result $code
 
     return [list var $cmdResultVar $result]
@@ -285,7 +300,7 @@ proc ::tsp::gen_invoke_tcl {compUnitDict tree} {
     
     append result "\n/***** ::tsp::gen_invoke_tcl $cmdName */\n"
     append result [::tsp::gen_objv_array compUnit $tree]
-    lassign [::tsp::lang_invoke_tcl] cmdResultVar code
+    lassign [::tsp::lang_invoke_tcl compUnit] cmdResultVar code
     append result $code
 
     return [list var $cmdResultVar $result]
@@ -306,7 +321,7 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
     set nodeComponents [::tsp::parse_word compUnit $node]
     set nodeType [lindex [lindex $nodeComponents 0] 0]
     set nodeVarOrOther [lindex [lindex $nodeComponents 0] 1]
-    if {$nodeType eq "invalid" || $nodeType eq "command"} {
+    if {$nodeType eq "invalid"} {
 	::tsp::addError compUnit "objv argument parsed as \"$nodeType\" "
 	return [list void "" ""]
     } elseif {$nodeType eq "scalar" && [lsearch $::tsp::NATIVE_TYPES [::tsp::getVarType compUnit $nodeVarOrOther]] >= 0} {
@@ -346,21 +361,21 @@ proc ::tsp::gen_objv_array {compUnitDict argTree {firstObj {}}} {
     ::tsp::reset_tmpvarsUsed compUnit
     set max [llength $argTree]
     
-    append result [::tsp::lang_alloc_objv_array $max]
+    append result [::tsp::lang_alloc_objv_array compUnit $max]
 
     set idx 0
     foreach node $argTree {
         if {$idx == 0 && $firstObj ne ""} {
             set argVar $firstObj
         } else {
-            lassign [::tsp::getTmpVarAndConversion $compUnitDict $node] argVar conversionCode
+            lassign [::tsp::getTmpVarAndConversion compUnit $node] argVar conversionCode
             if {$argVar eq "invalid"} {
                 return [list void "" ""]
             }
             append result $conversionCode
         }
 
-        append result [::tsp::lang_assign_objv $idx $argVar]
+        append result [::tsp::lang_assign_objv compUnit $idx $argVar]
         incr idx
     }
     return $result
@@ -431,17 +446,25 @@ proc ::tsp::get_string {compUnitDict node} {
             if {$varType eq "undefined"} {
                 return [list 0 "variable is undefined: $varName"]
             } elseif {$varType eq "string"} {
-                if {! [::tsp::is_tmpvar $varName]} {
-                    set varName __$varName
-                }
+                set pre [::tsp::var_prefix $varName]
+                set varName $pre$varName
                 return [list 1 $varName ""]
             } else {
-                if {! [::tsp::is_tmpvar $varName]} {
-                    set varName __$varName
-                }
+                set pre [::tsp::var_prefix $varName]
+                set varName $pre$varName
                 set strVar [::tsp::get_tmpvar compUnit string]
                 set convertCode [::tsp::lang_convert_string_$varType $strVar $varName "can't convert to string from type: $varType"]
                 return [list 1 $strVar $convertCode]
+            }
+        } elseif {$type eq "command"} {
+            set strCmdRange [lindex [lindex $strComponents 0] 2]
+            lassign [::tsp::parse_nestedbody compUnit $strCmdRange] cmdType cmdRhsVar cmdCode
+            if {$cmdType eq "string"} {
+               return [list 1 $cmdRhsVar $cmdCode]
+            } else {
+               set strVar [::tsp::get_tmpvar compUnit string]
+               append cmdCode \n\n [::tsp::lang_convert_string_$cmdType $strVar $cmdRhsVar "can't convert to string from type: $cmdType"]
+               return [list 1 $strVar $cmdCode]
             }
         } elseif {$type eq "text"} {
             set strVar [::tsp::get_tmpvar compUnit string]
@@ -461,7 +484,7 @@ proc ::tsp::get_string {compUnitDict node} {
             return [list 1 $strVar $convertCode]
         }
     }
-    error "::tsp::get_string: unexpected result"
+    error "::tsp::get_string: unexpected result\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
 }
 
 #########################################################
@@ -498,15 +521,13 @@ proc ::tsp::get_index {compUnitDict node} {
             lassign [lindex $nodeComponents 0] type varname
             set type [::tsp::getVarType compUnit $varname]
             if {$type eq "int"} {
-                if {! [::tsp::is_tmpvar $varname]} {
-                    set varname __$varname
-                }
+                set pre [::tsp::var_prefix $varname]
+                set varname $pre$varname
                 return [list 1 $varname 0 ""]
             } else {
                 set intVar [::tsp::get_tmpvar compUnit int]
-                if {! [::tsp::is_tmpvar $varname]} {
-                    set varname __$varname
-                }
+                set pre [::tsp::var_prefix $varname]
+                set varname $pre$varname
                 set code [::tsp::lang_convert_int_$type $intVar $varname "can't convert from $type to int"]
                 return [list 1 $intVar 0 $code]
             }
@@ -518,15 +539,13 @@ proc ::tsp::get_index {compUnitDict node} {
         set type [::tsp::getVarType compUnit $varname]
         if {$firstType eq "text" && $rawtext eq "end-" && $secondType eq "scalar"} {
             if {$type eq "int"} {
-                if {! [::tsp::is_tmpvar $varname]} {
-                    set varname __$varname
-                }
+                set pre [::tsp::var_prefix $varname]
+                set varname $pre$varname
                 return [list 1 $varname 1 ""]
             } else {
+                set pre [::tsp::var_prefix $varname]
                 set intVar [::tsp::get_tmpvar compUnit int]
-                if {! [::tsp::is_tmpvar $varname]} {
-                    set varname __$varname
-                }
+                set varname $pre$varname
                 set code [::tsp::lang_convert_int_$type $intVar $varname]
                 return [list 1 $intVar 1 $code]
             }
@@ -596,7 +615,7 @@ proc ::tsp::check_varname_args {compUnitDict tree} {
                         }
                         foreach node [lrange $tree $start $end] {
                             set varname [::tsp::nodeText compUnit $node]
-                            if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                            if {$varname ne "" && [::tsp::getVarType compUnit $varname] eq "undefined"} {
                                 ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
                                 ::tsp::setVarType compUnit $varname $vartype
                             }
@@ -624,7 +643,7 @@ proc ::tsp::check_varname_args {compUnitDict tree} {
                             }
                             foreach node [lrange $tree $start $end] {
                                 set varname [::tsp::nodeText compUnit $node]
-                                if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                                if {$varname ne "" && [::tsp::getVarType compUnit $varname] eq "undefined"} {
                                     ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
                                     ::tsp::setVarType compUnit $varname $vartype
                                 }
@@ -640,7 +659,7 @@ proc ::tsp::check_varname_args {compUnitDict tree} {
                 # whole command, pick out the varnames by absolute index
                 foreach node [lrange $tree $start $end] {
                     set varname [::tsp::nodeText compUnit $node]
-                    if {[::tsp::getVarType compUnit $varname] eq "undefined"} {
+                    if {$varname ne "" && [::tsp::getVarType compUnit $varname] eq "undefined"} {
                         ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
                         ::tsp::setVarType compUnit $varname $vartype
                     }
