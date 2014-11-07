@@ -205,12 +205,14 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
         set argVarComponents [list [list text $argVar $argVar]]
         set nodeComponents [::tsp::parse_word compUnit $node]
         set nodeType [lindex [lindex $nodeComponents 0] 0]
-        if {$nodeType eq "invalid" || $nodeType eq "command"} {
-            ::tsp::addError compUnit "lappend argument parsed as \"$nodeType\"
+        if {$nodeType eq "invalid"} {
+            ::tsp::addError compUnit "lappend argument parsed as \"$nodeType\""
             return [list void "" ""]
         }
         set setTree ""
+        ::tsp::lock_tmpvar compUnit $argVar
         append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
+        ::tsp::unlock_tmpvar compUnit $argVar
 
         lappend argVarList $argVar
         incr idx
@@ -254,11 +256,13 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
     # note - ::tsp::reset_tmpvarsUsed was called in ::tsp_gen_native_type_list
     if {$procType ne "void"} {
         set returnVar [::tsp::get_tmpvar compUnit $procType]
+        ::tsp::lock_tmpvar compUnit $returnVar
     } else {
         set returnVar ""
     }
 
     append result [::tsp::lang_invoke_tsp_compiled $cmdName $procType $returnVar $argVarList $preserveVarList]
+    ::tsp::unlock_tmpvar compUnit $returnVar
 
     return [list $procType $returnVar $result]
 }
@@ -342,7 +346,9 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
 	set argVar [::tsp::get_tmpvar compUnit var]
 	set argVarComponents [list [list text $argVar $argVar]]
 	set setTree ""
+        ::tsp::lock_tmpvar compUnit $argVar
 	append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
+        ::tsp::unlock_tmpvar compUnit $argVar
     }
     return [list $argVar $result]
 }
@@ -394,6 +400,7 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
     
     append result [::tsp::lang_alloc_objv_list $varName]
     set argVar [::tsp::get_tmpvar compUnit var]
+    ::tsp::lock_tmpvar $argVar
 
     foreach node $argTree {
         append result [::tsp::lang_safe_release $argVar]
@@ -401,6 +408,7 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
         if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+            ::tsp::lock_tmpvar $argVar
             ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
             return [list void "" ""]
         }
@@ -409,6 +417,7 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
 
         append result [::tsp::lang_lappend_var $varName $argVar]
     }
+    ::tsp::unlock_tmpvar $argVar
     return $result
 }
 
@@ -453,7 +462,9 @@ proc ::tsp::get_string {compUnitDict node} {
                 set pre [::tsp::var_prefix $varName]
                 set varName $pre$varName
                 set strVar [::tsp::get_tmpvar compUnit string]
+                ::tsp::lock_tmpvar compUnit $strVar
                 set convertCode [::tsp::lang_convert_string_$varType $strVar $varName "can't convert to string from type: $varType"]
+                ::tsp::unlock_tmpvar compUnit $strVar
                 return [list 1 $strVar $convertCode]
             }
         } elseif {$type eq "command"} {
@@ -463,12 +474,16 @@ proc ::tsp::get_string {compUnitDict node} {
                return [list 1 $cmdRhsVar $cmdCode]
             } else {
                set strVar [::tsp::get_tmpvar compUnit string]
+               ::tsp::lock_tmpvar compUnit $strVar
                append cmdCode \n\n [::tsp::lang_convert_string_$cmdType $strVar $cmdRhsVar "can't convert to string from type: $cmdType"]
+               ::tsp::unlock_tmpvar compUnit $strVar
                return [list 1 $strVar $cmdCode]
             }
         } elseif {$type eq "text"} {
             set strVar [::tsp::get_tmpvar compUnit string]
+            ::tsp::lock_tmpvar compUnit $strVar
             set convertCode [::tsp::lang_assign_string_const $strVar $text]
+            ::tsp::unlock_tmpvar compUnit $strVar
             return [list 1 $strVar $convertCode]
         } else {
             return [list 0 "::tsp::get_string: unexpected parse type: $type" ""]
@@ -477,7 +492,9 @@ proc ::tsp::get_string {compUnitDict node} {
         # interpolated text or array var
         set strVar [::tsp::get_tmpvar compUnit string]
         set strVarComponents [list [list text $strVar $strVar]]
+        ::tsp::lock_tmpvar compUnit $strVar
         set convertCode [lindex [::tsp::produce_set compUnit "" $strVarComponents $strComponents] 2]
+        ::tsp::unlock_tmpvar compUnit $strVar
         if {$convertCode eq ""} {
             return [list 0 "can't convert to string from node: $strComponents" ""]
         } else {

@@ -65,8 +65,8 @@ proc ::tsp::gen_command_lset {compUnitDict tree} {
 
     # generate the code to call the command, and append to existing code
     set directResult [::tsp::gen_direct_tcl compUnit $tree]
-    lassign [lindex $directResult] type rhsvar
-    append code [lindex $directResult 2]
+    lassign $directResult type rhsvar directCode
+    append code $directCode
 
     return [list $type $rhsvar $code]
 }
@@ -136,7 +136,7 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
         if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\""
             return [list void "" ""]
         }
         set setTree ""
@@ -258,8 +258,8 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
         # no index or multiple indexes, pass this to the lindex command
         # generate the code to call the command, and append to existing code
         set directResult [::tsp::gen_direct_tcl compUnit $tree]
-        lassign [lindex $directResult] type rhsvar
-        append code [lindex $directResult 2]
+        lassign $directResult type rhsvar directCode
+        append code $directCode
         return [list $type $rhsvar $code]
     }
 
@@ -280,8 +280,8 @@ proc ::tsp::gen_command_lindex {compUnitDict tree} {
 
     if {! $idxValid} {
         set directResult [::tsp::gen_direct_tcl compUnit $tree]
-        lassign [lindex $directResult] type rhsvar
-        append code [lindex $directResult 2]
+        lassign [lindex $directResult] type rhsvar directCode
+        append code $directCode
         return [list $type $rhsvar $code]
     } else {
         if {[::tsp::literalExprTypes $idxRef] eq "stringliteral"} {

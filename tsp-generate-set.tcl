@@ -302,6 +302,9 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             if {$targetWordType eq "text"} {
                 # don't generate assignment if target and source are the same
                 if {$targetVarName eq $sourceVarName} {
+                    if {[::tsp:::is_tmpvar $targetVarName]} {
+                        error "self assignment of temp var: $$targetVarName\n[::tsp::error_stacktrace]"
+                    }
                     ::tsp::addWarning compUnit "ignoring self assignment: target \"$targetVarName\"  source \"$sourceVarName\""
                     return [list void "" ""]
                 }
@@ -394,12 +397,12 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             lassign [::tsp::parse_nestedbody compUnit $sourceCmdRange] sourceType sourceRhsVar sourceCode
 
 	    if {$sourceCode eq ""} {
-		::tsp::addError compUnit "nested command: no code generated"
+		::tsp::addError compUnit "assignment from nested command: no code generated: target \"$targetVarName\" "
 		return [list void "" ""]
             }
 
 	    if {$sourceType eq "void"} {
-		::tsp::addWarning compUnit "ignoring void assignment from nested command: target \"$targetVarName\""
+		::tsp::addError compUnit "void assignment from nested command: target \"$targetVarName\""
 		return [list void "" ""]
 	    }
 
@@ -422,6 +425,9 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 	    if {$targetWordType eq "text"} {
 		# don't generate assignment if target and source are the same
 		if {$targetVarName eq $sourceVarName} {
+                    if {[::tsp:::is_tmpvar $targetVarName]} {
+                        error "self assignment of temp var: $$targetVarName\n[::tsp::error_stacktrace]"
+                    }
 		    ::tsp::addWarning compUnit "ignoring self assignment: target \"$targetVarName\"  source \"$sourceVarName\""
 		    return [list void "" ""]
 		}
