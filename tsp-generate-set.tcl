@@ -668,6 +668,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
     set tmp2 ""
     if {$targetType eq "var"} {
         set tmp2 [::tsp::get_tmpvar compUnit string]
+        append result [::tsp::lang_assign_empty_zero $tmp2 string]
     }
     foreach component $sourceComponents {
         set compType [lindex $component 0]
