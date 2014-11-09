@@ -83,6 +83,10 @@ proc ::tsp::addCompiledProc {compUnitDict} {
     set name [dict get $compUnit name]
     set returns [dict get $compUnit returns]
     set argTypes [dict get $compUnit argTypes]
+    if {$argTypes eq "invalid"} {
+        # invalid was just a placeholder, make it empty list
+        set argTypes ""
+    }
     set compiledReference [dict get $compUnit compiledReference]
     dict set ::tsp::COMPILED_PROCS $name [list $returns $argTypes $compiledReference]
 }
