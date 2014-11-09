@@ -76,17 +76,19 @@ proc ::tsp::compile_proc {file name procargs body} {
     set code ""
     set errInf ""
 
-    # get the generated code, ignore return type and rhsvar
-    set rc [catch {set code [lindex [::tsp::parse_body compUnit {0 end}] 2]} errInf]
-    set compileType [dict get $compUnit compileType]
+ 
+    set rc [ catch {set compileResult [::tsp::parse_body compUnit {0 end}] } errInf] 
 
     if {$rc != 0} {
         error "tsp internal error: parse_body error: $errInf"
     }
+    
+    lassign compileResults bodyType bodyRhs code
 
     set errors [::tsp::getErrors compUnit]
     set numErrors [llength $errors]
     set returnType [dict get $compUnit returns]
+    set compileType [dict get $compUnit compileType]
 
     if {$compileType eq "none"} {
         ::tsp::addWarning compUnit "compileType $compileType"
