@@ -1,29 +1,15 @@
-
-
-package require tsp
-hyde::configure -compiler javac
-tsp::debug /tmp/ntest
-tsp::proc bar  {f} {
-  #tsp::procdef string -args string
-  set x [eof $f]
-  return $x
-}
-tsp::proc bar2 {} {
-  #tsp::procdef void
-  puts [bar [format stdin]]
-}
-tsp::log
+check on commands in interpolated string
+change tsp_md5 proc to use original nested commands
+hyde package - need to include "hyde" directory in env(TCL_CLASSPATH)  (like before????)
 
 
 
-test that _tmpVar_string_1 is not reused during direct call.
 
-might have to re-arrange where ::tsp::reset_tmpvarsUsed is called, perhaps in parse_body when cmdNestLevel is <1. 
 
 
 
 0. clean up exit spill in generated code, only include try/catch if needed (to avoid unnecessary "if (callFrame == null)" )
-0. implement nested commands [ ]
+0. implement nested commands [ ] in interpolated string
 
 
 1. what to do with unset?  - probably generate a compile error.
