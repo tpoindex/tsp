@@ -137,7 +137,6 @@ proc ::tsp::gen_command {compUnitDict tree} {
 
         if {$type eq "text" && [info procs ::tsp::gen_command_$word] eq "::tsp::gen_command_$word"} {
             # command is compilable (if, while, string, lindex, etc.)
-            ::tsp::reset_tmpvarsUsed compUnit
             return [::tsp::gen_command_$word compUnit $tree]
 
         } elseif {$type eq "text" && ([dict exists $::tsp::COMPILED_PROCS $word] || $word eq [dict get $compUnit name])} {
@@ -169,7 +168,6 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
     set result ""
     set argVarList [list]
     set preserveVarList [list]
-    ::tsp::reset_tmpvarsUsed compUnit
 
     set idx 0
     foreach node $argTree {
@@ -244,8 +242,8 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
     set argTree [lrange $tree 1 end]
     if {[llength $argTree] != [llength $procArgTypes]} {
         ::tsp::addError compUnit "cannot invoke previously compiled proc \"$cmdName\", \
-            wrong number of args, [llength $procArgTypes] required, [llength $argTree] supplied."
-        return list [void "" ""]
+            wrong number of args, [llength $procArgTypes] (${procArgTypes}) required, [llength $argTree] supplied."
+        return [list void "" ""]
     }
 
     append result "\n/***** ::tsp::gen_direct_tsp_compiled $cmdName */\n"
@@ -253,7 +251,6 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
     append result $code
 
     # get a tmp var that holds return value 
-    # note - ::tsp::reset_tmpvarsUsed was called in ::tsp_gen_native_type_list
     if {$procType ne "void"} {
         set returnVar [::tsp::get_tmpvar compUnit $procType]
         ::tsp::lock_tmpvar compUnit $returnVar
@@ -364,7 +361,6 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
 proc ::tsp::gen_objv_array {compUnitDict argTree {firstObj {}}} {
     upvar $compUnitDict compUnit
     set result ""
-    ::tsp::reset_tmpvarsUsed compUnit
     set max [llength $argTree]
     
     append result [::tsp::lang_alloc_objv_array compUnit $max]

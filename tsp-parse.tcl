@@ -13,6 +13,7 @@ proc ::tsp::parse_body {compUnitDict range} {
     set cmdType void
     set cmdRhsVar ""
     set cmdCode ""
+   
 
     lassign $range firstIdx lastIdx
     if {$lastIdx eq "end"} {
@@ -20,6 +21,12 @@ proc ::tsp::parse_body {compUnitDict range} {
     }
 
     while {$lastIdx > 0} {
+        # reset temp vars used, but only if not parsing nested command(s)
+        set cmdLevel [dict get $compUnit cmdLevel]
+        if {$cmdLevel == 0} {
+            ::tsp::reset_tmpvarsUsed compUnit
+        }
+
         # reset volatile list, if any
         dict set compUnit volatile [list]
 
