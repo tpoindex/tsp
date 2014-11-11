@@ -1,38 +1,28 @@
 package require md5 1.4.4
 package require tsp
+tsp::debug /tmp/tspdir
 hyde::configure -compiler javac
 
 tsp::proc tsp_md5_byte0 {i} {
     #tsp::procdef int -args int
-    set i [expr {0xff & $i}]
-    return $i
+    return [expr {0xff & $i}]
 }
 tsp::proc tsp_md5_byte1 {i} {
     #tsp::procdef int -args int
-    set i [expr {(0xff00 & $i) >> 8}]
-    return $i
+    return [expr {(0xff00 & $i) >> 8}]
 }
 tsp::proc tsp_md5_byte2 {i} {
     #tsp::procdef int -args int
-    set i [expr {(0xff0000 & $i) >> 16}]
-    return $i
+    return [expr {(0xff0000 & $i) >> 16}]
 }
 tsp::proc tsp_md5_byte3 {i} {
     #tsp::procdef int -args int
-    set i [expr {((0xff000000 & $i) >> 24) & 0xff}]
-    return $i
+    return [expr {((0xff000000 & $i) >> 24) & 0xff}]
 }
 
 tsp::proc tsp_md5_bytes {i} {
     #tsp::procdef string -args int
-    #tsp::string result
-    #tsp::int b0 b1 b2 b3
-    set b0 [tsp_md5_byte0 $i]
-    set b1 [tsp_md5_byte1 $i]
-    set b2 [tsp_md5_byte2 $i]
-    set b3 [tsp_md5_byte3 $i]
-    set result [format %0.2x%0.2x%0.2x%0.2x $b0 $b1 $b2 $b3]
-    return $result
+    return [format %0.2x%0.2x%0.2x%0.2x [tsp_md5_byte0 $i] [tsp_md5_byte1 $i] [tsp_md5_byte2 $i] [tsp_md5_byte3 $i]]
 }
 
 
