@@ -1,6 +1,10 @@
-check on commands in interpolated string
-change tsp_md5 proc to use original nested commands
+check/fix on commands in interpolated string
+change tsp_md5 proc to use original nested commands (partially complete)
 hyde package - need to include "hyde" directory in env(TCL_CLASSPATH)  (like before????)
+
+check over compiled commands: append, lappend  to be more like lappend - if
+   var has been declared volatile for that command, just generated call to
+   tcl command code.
 
 
 
