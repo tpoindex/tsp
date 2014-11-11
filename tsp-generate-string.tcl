@@ -35,6 +35,12 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
 
     set pre [::tsp::var_prefix $varname]
     set code "\n/***** ::tsp::gen_command_append */\n"
+
+    if {$type eq "var"} {
+        # dup if shared obj, or assign empty var if null
+        append code [::tsp::lang_dup_var_if_shared $pre$varname]
+    }
+
     set argVar [::tsp::get_tmpvar compUnit string]
     set argVarComponents [list [list text $argVar $argVar]]
     foreach node [lrange $tree 2 end] {
@@ -42,8 +48,8 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         # assign arg into a tmp string type
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
-        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\""
+        if {$appendNodeType eq "invalid"} {
+            ::tsp::addError compUnit "append argument parsed as \"$appendNodeType\""
             return [list void "" ""]
         }
         set setTree ""
@@ -57,7 +63,6 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
             error "::tsp::gen_command_append - unexpected varname type: $type\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
         }
     }
-
     
     # return the value
     return [list $type $pre$varname $code]

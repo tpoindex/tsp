@@ -799,15 +799,7 @@ proc ::tsp::lang_append_string {targetVarName source} {
 #
 proc ::tsp::lang_append_var {targetVarName source} {
     append result "// ::tsp::lang_append_var\n"
-    append result "if ($targetVarName != null) {\n"
-    append result "    if ($targetVarName.isShared()) {\n"
-    append result "        [::tsp::lang_release $targetVarName]"
-    append result "        $targetVarName = $targetVarName.duplicate();\n"
-    append result "    }\n"
-    append result "    TclString.append($targetVarName, $source);\n"
-    append result "} else {\n"
-    append result "    [::tsp::lang_new_var_string $targetVarName $source]"
-    append result "}\n"
+    append result "TclString.append($targetVarName, $source);\n"
     return $result
 }
 
@@ -815,11 +807,30 @@ proc ::tsp::lang_append_var {targetVarName source} {
 ##############################################
 # append a TclObject var to list
 #
-proc ::tsp::lang_lappend_var {targetVarname sourceVarName} {
+proc ::tsp::lang_lappend_var {targetVarName sourceVarName} {
     append result "// ::tsp::lang_lappend_var\n"
-    append result "TclList.append(interp, $targetVarname, $sourceVarName);\n"
+    append result "TclList.append(interp, $targetVarName, $sourceVarName);\n"
     return $result
 }
+
+
+##############################################
+# duplicate a TclObject var if shared, or assign as
+# empty if null
+#
+proc ::tsp::lang_dup_var_if_shared {targetVarName} {
+    append result "// ::tsp::lang_dup_var_if_shared\n"
+    append result "if ($targetVarName != null) {\n"
+    append result "    if ($targetVarName.isShared()) {\n"
+    append result "        [::tsp::lang_release $targetVarName]"
+    append result "        $targetVarName = $targetVarName.duplicate();\n"
+    append result "    }\n"
+    append result "} else {\n"
+    append result "    [::tsp::lang_new_var_string $targetVarName {""}]"
+    append result "}\n"
+    return $result
+}
+
 
 
 ##############################################

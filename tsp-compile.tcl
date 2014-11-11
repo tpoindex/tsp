@@ -83,7 +83,7 @@ proc ::tsp::compile_proc {file name procargs body} {
         error "tsp internal error: parse_body error: $errInf"
     }
     
-    lassign compileResults bodyType bodyRhs code
+    lassign $compileResult bodyType bodyRhs code
 
     set errors [::tsp::getErrors compUnit]
     set numErrors [llength $errors]

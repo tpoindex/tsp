@@ -49,12 +49,10 @@ proc ::tsp::gen_command_lset {compUnitDict tree} {
         append code [::tsp::lang_assign_empty_zero $pre$varname var]
         append code [::tsp::lang_preserve $pre$varname]
     } else {
-        # varname exists
-        # if varname was not previously included as volatile, spill variable here and add to volatile list
-        if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
-            append code [::tsp::lang_spill_vars compUnit $varname] \n
-            ::tsp::append_volatile_list compUnit $varname
+        if {$type ne "var"} {
+            error "unexpected var type: $type\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
         }
+        # varname exists
     }
 
     # if varname was not previously included as volatile, spill variable here and add to volatile list
@@ -96,8 +94,9 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
 
     set code "\n/***** ::tsp::gen_command_lappend */\n"
     set type [::tsp::getVarType compUnit $varname]
+    set pre [::tsp::var_prefix $varname]
     if {$type eq "array" || $type eq "string" || $type eq "boolean" || $type eq "int" || $type eq "double"} {
-        ::tsp::addError compUnit "append varName must be type var, defined as : $type"
+        ::tsp::addError compUnit "lappend varName must be type var, defined as : $type"
         return [list void "" ""]
     }
     if {$type eq "undefined"} {
@@ -113,20 +112,27 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
             return [list void "" ""]
         }
         
-        set pre [::tsp::var_prefix $varname]
         append code [::tsp::lang_assign_empty_zero $pre$varname var]
         append code [::tsp::lang_preserve $pre$varname]
     } else {
+        if {$type ne "var"} {
+            error "unexpected var type: $type\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
+        }
         # varname exists
-        # if varname was not previously included as volatile, spill variable here and add to volatile list
-        if {[lsearch [dict get $compUnit volatile] $varname] == -1} {
-            append code [::tsp::lang_spill_vars compUnit $varname] \n
-            ::tsp::append_volatile_list compUnit $varname
+        if {[lsearch [dict get $compUnit volatile] $varname] != -1} {
+            # var was defined as volatile, we have to let interp run this as a direct command at this point
+            # generate the code to call the command, and append to existing code
+            set directResult [::tsp::gen_direct_tcl compUnit $tree]
+            lassign $directResult type rhsvar directCode
+            append code $directCode
+            return [list $type $rhsvar $code]
         }
     }
 
+    # dup if shared obj, or assign empty var if null
+    append code [::tsp::lang_dup_var_if_shared $pre$varname]
 
-#FIXME: use shadow var and dirty checking
+    #FIXME: use shadow var and dirty checking
     # append to var
     set argVar [::tsp::get_tmpvar compUnit var]
     set argVarComponents [list [list text $argVar $argVar]]
@@ -135,7 +141,7 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         # assign arg into a tmp var type
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
-        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
+        if {$appendNodeType eq "invalid"} {
             ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\""
             return [list void "" ""]
         }
@@ -143,7 +149,6 @@ proc ::tsp::gen_command_lappend {compUnitDict tree} {
         append code [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $appendNodeComponents] 2]
 
         # note - TclList.append with preserve() the argVar
-        set pre [::tsp::var_prefix $varname]
         append code [::tsp::lang_lappend_var  $pre$varname $argVar]
     }
     
@@ -172,7 +177,7 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
     set argComponents [::tsp::parse_word compUnit [lindex $tree 1]]
     set argComponentType [lindex [lindex $argComponents 0] 0]
 
-    if {$argComponentType eq "invalid" || $argComponentType eq "command"} {
+    if {$argComponentType eq "invalid"} {
         ::tsp::addError compUnit "invalid argument for llength, parsed as: $argComponentType"
         return [list void "" ""]
     }
@@ -199,11 +204,11 @@ proc ::tsp::gen_command_llength {compUnitDict tree} {
         } elseif {$argType eq "var"} {
             set argVar $pre$argVar
         } else {
-            error "llength: unexpected type: $argType \n[::tsp::error_stacktrace]"
+            error "llength: unexpected type: $argType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
         }
         
     } else {
-        # it's text, or an array reference, convert into a var
+        # it's text, command, or an array reference, convert into a var
         set argTmpVar [::tsp::get_tmpvar compUnit var]
         set argTmpComponents [list [list text $argTmpVar $argTmpVar]]
 

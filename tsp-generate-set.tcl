@@ -281,7 +281,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
                 if {$errors} {
                     return [list void "" ""]
                 }
-                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
+                error "unexpected target word type: $targetWordType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
             }
             
 
@@ -303,7 +303,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
                 # don't generate assignment if target and source are the same
                 if {$targetVarName eq $sourceVarName} {
                     if {[::tsp:::is_tmpvar $targetVarName]} {
-                        error "self assignment of temp var: $$targetVarName\n[::tsp::error_stacktrace]"
+                        error "self assignment of temp var: $$targetVarName\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
                     }
                     ::tsp::addWarning compUnit "ignoring self assignment: target \"$targetVarName\"  source \"$sourceVarName\""
                     return [list void "" ""]
@@ -315,7 +315,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName $sourceType]]
 
             } else {
-                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
+                error "unexpected target word type: $targetWordType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
             }
 
         } elseif {$sourceWordType eq "array_idxtext"} {
@@ -349,7 +349,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName "" "" $sourceArrayIdxtext]]
 
             } else {
-                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
+                error "unexpected target word type: $targetWordType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
             }
 
         } elseif {$sourceWordType eq "array_idxvar"} {
@@ -388,7 +388,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 				$targetArrayIdxvar $targetArrayIdxvarType $targetType $sourceVarName $sourceArrayIdxvar $sourceArrayIdxvarType ""]]
 
             } else {
-                error "unexpected target word type: $targetWordType \n[::tsp::error_stacktrace]"
+                error "unexpected target word type: $targetWordType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
             }
 
         } elseif {$sourceWordType eq "command"} {
@@ -426,7 +426,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
 		# don't generate assignment if target and source are the same
 		if {$targetVarName eq $sourceVarName} {
                     if {[::tsp:::is_tmpvar $targetVarName]} {
-                        error "self assignment of temp var: $$targetVarName\n[::tsp::error_stacktrace]"
+                        error "self assignment of temp var: $$targetVarName\n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
                     }
 		    ::tsp::addWarning compUnit "ignoring self assignment: target \"$targetVarName\"  source \"$sourceVarName\""
 		    return [list void "" ""]
@@ -496,7 +496,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                          return ""
                      }
                  }
-                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
+                 error "unexpected sourceType: $sourceType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
              }
          }
 
@@ -514,7 +514,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      ::tsp::addError compUnit "set arg 2 string not an $targetType value: \"$sourceText\""
                      return ""
                  }
-                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
+                 error "unexpected sourceType: $sourceType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
              }
          }
          double {
@@ -531,7 +531,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      ::tsp::addError compUnit "set arg 2 string not an $targetType value: \"$sourceText\""
                      return ""
                  }
-                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
+                 error "unexpected sourceType: $sourceType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
              }
          }
 
@@ -554,7 +554,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      append result [::tsp::lang_assign_var_string  $targetPre$targetVarName [::tsp::lang_quote_string $sourceText]]
                      return $result
                  }
-                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
+                 error "unexpected sourceType: $sourceType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
              }
          }
     }
@@ -601,7 +601,7 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
                      append result [::tsp::lang_convert_boolean_var $targetPre$targetVarName $sourcePre$sourceVarName $errMsg]
                      return $result
                  }
-                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
+                 error "unexpected sourceType: $sourceType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
              }
          }
 
@@ -627,7 +627,7 @@ proc ::tsp::gen_assign_scalar_scalar {compUnitDict targetVarName targetType sour
                      append result [::tsp::lang_convert_${targetType}_var $targetPre$targetVarName $sourcePre$sourceVarName $errMsg]
                      return $result
                  }
-                 error "unexpected sourceType: $sourceType \n[::tsp::error_stacktrace]"
+                 error "unexpected sourceType: $sourceType \n[::tsp::currentLine compUnit]\n[::tsp::error_stacktrace]"
              }
          }
 
