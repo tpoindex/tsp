@@ -85,27 +85,6 @@ proc ::tsp::gen_command_set {compUnitDict tree} {
         ::tsp::addError compUnit "set arg 2 invalid: \"$sourceStr\""
     }
 
-#FIXME this will have to go
-    # if it's a command, make sure no nested commands
-    if {[llength $sourceComponents] == 1 && $firstType eq "command"} {
-        set cmdStr [lindex [lindex $sourceComponents 0] 1]
-        if {[::tsp::cmdStringHasNestedCommands $cmdStr]} {
-#            set errors 1
-#            ::tsp::addError compUnit "set arg 2 command has nested commands, command is array reference, or is unparsable: \"$cmdStr\""
-        }
-    }
-
-#FIXME will this have to go?? 
-    # if multiple sourceComponents it's an interpolated string, make sure no nested commands 
-    if {[llength $sourceComponents] > 1} {
-        foreach word $sourceComponents {
-            set type [lindex $word 0]
-            if {$type eq "command"} {
-#                set errors 1
-#                ::tsp::addError compUnit "set arg 2 interpolated string has nested command: \"$sourceStr\""
-            }
-        }
-    }
 
     if {$errors} {
         return [list void "" ""]
@@ -666,6 +645,7 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
 
     set tmp [::tsp::get_tmpvar compUnit string]
     set tmp2 ""
+    set arrVar ""
     if {$targetType eq "var"} {
         set tmp2 [::tsp::get_tmpvar compUnit string]
         append result [::tsp::lang_assign_empty_zero $tmp2 string]
@@ -689,8 +669,24 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
                 }
                 append code [::tsp::gen_assign_scalar_scalar compUnit $tmp string $sourceVarName $sourceType]
             }
+            command {
+                set sourceCmdRange [lindex $component 2]
+                lassign [::tsp::parse_nestedbody compUnit $sourceCmdRange] sourceType sourceRhsVar sourceCode
+    
+	        if {$sourceCode eq ""} {
+		    ::tsp::addError compUnit "assignment from nested command: no code generated: target \"$targetVarName\" "
+		    return [list void "" ""]
+                }
+    
+	        if {$sourceType eq "void"} {
+		    ::tsp::addError compUnit "void assignment from nested command: target \"$targetVarName\""
+		    return [list void "" ""]
+	        }
+                append code $sourceCode
+                append code [::tsp::gen_assign_scalar_scalar compUnit $tmp string $sourceRhsVar $sourceType ]
+            }
             default {
-                ::tsp::addError compUnit "set arg 2 interpolated string cannot contain $compType, only text, backslash, or scalar variables"
+                ::tsp::addError compUnit "set arg 2 interpolated string cannot contain $compType, only commands, text, backslash, or scalar variables"
                 return ""
             }
         }

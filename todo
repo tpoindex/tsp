@@ -1,4 +1,19 @@
-check/fix on commands in interpolated string
+
+debug: when one tsp proc calls another in return and call proc is a var type.
+see tsp_md5.tcl  tsp_hmac is not working
+possibly in direct_tcl when return type is "var"
+testcase:
+tsp::proc times2 {x y} {
+#tsp::procdef var -args int int
+return [expr {$x * $y}]
+}
+tsp::proc calltimes2 {} {
+#tsp::procdef void
+puts "times2: [times2 8 7]"
+}
+
+
+
 change tsp_md5 proc to use original nested commands (partially complete)
 hyde package - need to include "hyde" directory in env(TCL_CLASSPATH)  (like before????)
 
@@ -6,6 +21,9 @@ check over compiled commands: append, lappend  to be more like lappend - if
    var has been declared volatile for that command, just generated call to
    tcl command code.
 
+c/tcl parser - must check [parse getstring $body {i-4 3}] and [parse getstring $body {i-3 3}]
+for "{*}".  This is because c/tcl will expand simple text inside the parser, rather than
+returning the "expand" node type.  bah.
 
 
 

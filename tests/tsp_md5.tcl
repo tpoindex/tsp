@@ -29,8 +29,8 @@ tsp::proc tsp_md5_bytes {i} {
 tsp::proc tsp_md5 {msg} {
 
     #tsp::procdef var -args var
-    #tsp::int msgLen padLen i x A B C D AA BB CC DD X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15
-    #tsp::var blocks bfmt
+    #tsp::int msgLen padLen x A B C D AA BB CC DD X0 X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 X11 X12 X13 X14 X15
+    #tsp::var blocks
 
 
     #
@@ -50,8 +50,7 @@ tsp::proc tsp_md5 {msg} {
     }
 
     # append single 1b followed by 0b's
-    set bfmt [binary format "a$padLen" \200]
-    append msg $bfmt
+    append msg [binary format "a$padLen" \200]
 
     #
     # 3.2 Step 2. Append Length
@@ -60,9 +59,7 @@ tsp::proc tsp_md5 {msg} {
     # RFC doesn't say whether to use little- or big-endian
     # code demonstrates little-endian
     # This step limits our input to size 2^32b or 2^24B
-    set i [expr {8*$msgLen}]
-    set bfmt [binary format "i1i1" $i 0]
-    append msg $bfmt
+    append msg [binary format "i1i1" [expr {8*$msgLen}] 0]
     
     #
     # 3.3 Step 3. Initialize MD Buffer
@@ -333,20 +330,16 @@ tsp::proc tsp_md5 {msg} {
     # ... begin with the low-order byte of A, and end with the high-order byte
     # of D.
 
-    #tsp::var aaaa bbbb cccc dddd
-    set aaaa [tsp_md5_bytes $A]
-    set bbbb [tsp_md5_bytes $B]
-    set cccc [tsp_md5_bytes $C]
-    set dddd [tsp_md5_bytes $D]
-
-    #tsp::var result
-    set result $aaaa$bbbb$cccc$dddd
-    return $result
+    return [tsp_md5_bytes $A][tsp_md5_bytes $B][tsp_md5_bytes $C][tsp_md5_bytes $D]
 
 }
 
 
-proc tsp_hmac {key text} {
+tsp::proc tsp_hmac {key text} {
+    #tsp::procdef var -args var var
+    #tsp::int keyLen msgLen padLen i
+    #tsp::var blocks k_ipad k_opad
+
     # if key is longer than 64 bytes, reset it to MD5(key).  If shorter, 
     # pad it out with null (\x00) chars.
     set keyLen [string length $key]
@@ -358,7 +351,7 @@ proc tsp_hmac {key text} {
     # ensure the key is padded out to 64 chars with nulls.
     set padLen [expr {64 - $keyLen}]
     append key [binary format "a$padLen" {}]
-    
+puts "key = $key"
     # Split apart the key into a list of 16 little-endian words
     binary scan $key i16 blocks
 
@@ -373,8 +366,10 @@ proc tsp_hmac {key text} {
     # Perform inner md5, appending its results to the outer key
     append k_ipad $text
     append k_opad [binary format H* [tsp_md5 $k_ipad]]
-
+puts "k_ipad = $k_ipad"
+puts "k_opad = $k_opad"
+puts "md5 k_opad = [tsp_md5 $k_opad]"
     # Perform outer md5
-    tsp_md5 $k_opad
+    return [tsp_md5 $k_opad]
 }
 
