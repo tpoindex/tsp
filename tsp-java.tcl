@@ -910,14 +910,13 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
         append invokeArgs ", [join $argList ", "]"
     }
     append code "//  ::tsp::lang_invoke_tsp_compiled\n"
+    if {$procType eq "var"} {
+        append code [::tsp::lang_safe_release $returnVar]
+    }
     if {$procType eq "void"} {
         append code "tsp.cmd.${cmdName}Cmd.__${cmdName}($invokeArgs);\n"
     } else {
         append code "$returnVar = tsp.cmd.${cmdName}Cmd.__${cmdName}($invokeArgs);\n"
-    }
-    if {$procType eq "var"} {
-        append code "$returnVar = TclString.newInstance(\"\");\n"
-        append code "$returnVar.preserve();\n"
     }
     return $code
 }

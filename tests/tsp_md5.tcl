@@ -351,7 +351,6 @@ tsp::proc tsp_hmac {key text} {
     # ensure the key is padded out to 64 chars with nulls.
     set padLen [expr {64 - $keyLen}]
     append key [binary format "a$padLen" {}]
-puts "key = $key"
     # Split apart the key into a list of 16 little-endian words
     binary scan $key i16 blocks
 
@@ -366,9 +365,6 @@ puts "key = $key"
     # Perform inner md5, appending its results to the outer key
     append k_ipad $text
     append k_opad [binary format H* [tsp_md5 $k_ipad]]
-puts "k_ipad = $k_ipad"
-puts "k_opad = $k_opad"
-puts "md5 k_opad = [tsp_md5 $k_opad]"
     # Perform outer md5
     return [tsp_md5 $k_opad]
 }
