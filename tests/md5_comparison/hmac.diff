@@ -1,0 +1,48 @@
+*** libhmac.tcl	2014-11-18 12:51:16.044579183 -0700
+--- tsphmac.tcl	2014-11-18 12:51:16.044579183 -0700
+***************
+*** 1,10 ****
+! proc ::md5::hmac {key text} {
+  
+  	# if key is longer than 64 bytes, reset it to MD5(key).  If shorter, 
+  	# pad it out with null (\x00) chars.
+  	set keyLen [string length $key]
+  	if {$keyLen > 64} {
+! 	    set key [binary format H32 [md5 $key]]
+  	    set keyLen [string length $key]
+  	}
+  
+--- 1,13 ----
+! tsp::proc tsp_hmac {key text} {
+!     #tsp::procdef var -args var var
+!     #tsp::int keyLen msgLen padLen i
+!     #tsp::var blocks k_ipad k_opad
+  
+      # if key is longer than 64 bytes, reset it to MD5(key).  If shorter, 
+      # pad it out with null (\x00) chars.
+      set keyLen [string length $key]
+      if {$keyLen > 64} {
+!         set key [binary format H32 [tsp_md5 $key]]
+  	set keyLen [string length $key]
+      }
+  
+***************
+*** 25,33 ****
+      
+  	# Perform inner md5, appending its results to the outer key
+  	append k_ipad $text
+! 	append k_opad [binary format H* [md5 $k_ipad]]
+  
+  	# Perform outer md5
+! 	md5 $k_opad
+!     
+  }
+--- 28,35 ----
+  
+      # Perform inner md5, appending its results to the outer key
+      append k_ipad $text
+!     append k_opad [binary format H* [tsp_md5 $k_ipad]]
+  
+      # Perform outer md5
+!     return [tsp_md5 $k_opad]
+  }

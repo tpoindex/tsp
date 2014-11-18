@@ -1,31 +1,3 @@
-package require md5 1.4.4
-package require tsp
-tsp::debug /tmp/tspdir
-hyde::configure -compiler javac
-
-tsp::proc tsp_md5_byte0 {i} {
-    #tsp::procdef int -args int
-    return [expr {0xff & $i}]
-}
-tsp::proc tsp_md5_byte1 {i} {
-    #tsp::procdef int -args int
-    return [expr {(0xff00 & $i) >> 8}]
-}
-tsp::proc tsp_md5_byte2 {i} {
-    #tsp::procdef int -args int
-    return [expr {(0xff0000 & $i) >> 16}]
-}
-tsp::proc tsp_md5_byte3 {i} {
-    #tsp::procdef int -args int
-    return [expr {((0xff000000 & $i) >> 24) & 0xff}]
-}
-
-tsp::proc tsp_md5_bytes {i} {
-    #tsp::procdef string -args int
-    return [format %0.2x%0.2x%0.2x%0.2x [tsp_md5_byte0 $i] [tsp_md5_byte1 $i] [tsp_md5_byte2 $i] [tsp_md5_byte3 $i]]
-}
-
-
 tsp::proc tsp_md5 {msg} {
 
     #tsp::procdef var -args var
@@ -333,41 +305,3 @@ tsp::proc tsp_md5 {msg} {
     return [tsp_md5_bytes $A][tsp_md5_bytes $B][tsp_md5_bytes $C][tsp_md5_bytes $D]
 
 }
-
-
-tsp::proc tsp_hmac {key text} {
-    #tsp::procdef var -args var var
-    #tsp::int keyLen msgLen padLen i
-    #tsp::var blocks k_ipad k_opad
-
-    # if key is longer than 64 bytes, reset it to MD5(key).  If shorter, 
-    # pad it out with null (\x00) chars.
-    set keyLen [string length $key]
-    if {$keyLen > 64} {
-        set key [binary format H32 [tsp_md5 $key]]
-	set keyLen [string length $key]
-    }
-
-    # ensure the key is padded out to 64 chars with nulls.
-    set padLen [expr {64 - $keyLen}]
-    append key [binary format "a$padLen" {}]
-
-    # Split apart the key into a list of 16 little-endian words
-    binary scan $key i16 blocks
-
-    # XOR key with ipad and opad values
-    set k_ipad {}
-    set k_opad {}
-    foreach i $blocks {
-	append k_ipad [binary format i [expr {$i ^ 0x36363636}]]
-	append k_opad [binary format i [expr {$i ^ 0x5c5c5c5c}]]
-    }
-
-    # Perform inner md5, appending its results to the outer key
-    append k_ipad $text
-    append k_opad [binary format H* [tsp_md5 $k_ipad]]
-
-    # Perform outer md5
-    return [tsp_md5 $k_opad]
-}
-

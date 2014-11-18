@@ -65,30 +65,6 @@ proc ::tsp::stacktrace {} {
 
 #########################################################
 #
-# get an abbreviated stack trace, for internal errors
-#
-proc ::tsp::error_stacktrace {} {
-    set stack "Stack trace:\n"
-    set indent 1
-    for {set i 1} {$i < [info level]} {incr i} {
-        set lvl [info level -$i]
-        set pname [lindex $lvl 0]
-        append stack [string repeat " " $indent]$pname
-        incr indent
-        foreach value [lrange $lvl 1 end] arg [info args $pname] {
-            if {$value eq ""} {
-                info default $pname $arg value
-            }
-            append stack " $arg='[string range $value 0 20][expr {[string length $value] > 20 ? " ..." : ""}]'"
-        }
-        append stack \n
-    }
-    return $stack
-}
-
-
-#########################################################
-#
 # trace_arg - not really called from trace, just check args
 #
 proc ::tsp::trace_arg {procName argName argType value} {

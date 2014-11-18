@@ -21,6 +21,7 @@ proc ::tsp::indent {compUnitDict str {n -1} {prefix ""}} {
 
 #########################################################
 # incr depth (and indentation) level
+# depth levels are code blocks in if, for, foreach, etc.
 #
 proc ::tsp::incrDepth {compUnitDict {n 1}} {
     upvar $compUnitDict compUnit
@@ -30,6 +31,7 @@ proc ::tsp::incrDepth {compUnitDict {n 1}} {
 
 #########################################################
 # incr cmdLevel
+# cmd levels are nested commands [ ] in a single command line
 #
 proc ::tsp::incrCmdLevel {compUnitDict {n 1}} {
     upvar $compUnitDict compUnit
@@ -80,6 +82,7 @@ proc ::tsp::gen_spill_vars {compUnitDict volatile} {
     return [::tsp::lang_spill_vars compUnit $volatile]
 }
 
+
 #########################################################
 # generate code to reload variables fromt tcl interp
 #
@@ -125,18 +128,15 @@ proc ::tsp::gen_command {compUnitDict tree} {
         ::tsp::addError compUnit "::tsp::gen_command - first word is cmd, backslash, or invalid"
         return [list void "" ""]
     } else {
-        # set is special, it can have a nested command argument (only one)
-        if {$word eq "set"} {
-            return [::tsp::gen_command_set compUnit $tree]
 
-        } elseif {[::tsp::treeHasNestedCommands compUnit $tree]} {
-#            ::tsp::addError compUnit "::tsp::gen_command - command has nested command argument"
-#            return [list void "" ""]
-        }
-
+        # generate command one of four ways - 
+        #   a tsp compiled command
+        #   a call to a previously tsp compiled proc, bypass interp
+        #   a call to a known tcl core command, bypass interp
+        #   a call to tcl interp
 
         if {$type eq "text" && [info procs ::tsp::gen_command_$word] eq "::tsp::gen_command_$word"} {
-            # command is compilable (if, while, string, lindex, etc.)
+            # command is compilable (set, if, while, string, lindex, etc.)
             return [::tsp::gen_command_$word compUnit $tree]
 
         } elseif {$type eq "text" && ([dict exists $::tsp::COMPILED_PROCS $word] || $word eq [dict get $compUnit name])} {
@@ -396,15 +396,15 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
     
     append result [::tsp::lang_alloc_objv_list $varName]
     set argVar [::tsp::get_tmpvar compUnit var]
-    ::tsp::lock_tmpvar $argVar
+    ::tsp::lock_tmpvar compUnit $argVar
 
     foreach node $argTree {
         append result [::tsp::lang_safe_release $argVar]
         set argVarComponents [list [list text $argVar $argVar]]
         set appendNodeComponents [::tsp::parse_word compUnit $node]
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
-        if {$appendNodeType eq "invalid" || $appendNodeType eq "command"} {
-            ::tsp::lock_tmpvar $argVar
+        if {$appendNodeType eq "invalid"} {
+            ::tsp::unlock_tmpvar compUnit $argVar
             ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
             return [list void "" ""]
         }
@@ -413,7 +413,7 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
 
         append result [::tsp::lang_lappend_var $varName $argVar]
     }
-    ::tsp::unlock_tmpvar $argVar
+    ::tsp::unlock_tmpvar compUnit $argVar
     return $result
 }
 
