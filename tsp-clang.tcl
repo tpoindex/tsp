@@ -217,7 +217,7 @@ proc ::tsp::lang_new_var_double {varName value} {
 # str must either be a quoted string const or a native string var
 proc ::tsp::lang_new_var_string {varName str} {
     if {[string range $str 0 0] eq "\""} {
-        return "$varName = Tcl_NewStringObj($str);\n"
+        return "$varName = Tcl_NewStringObj($str,-1);\n"
     } else {
         return "$varName = Tcl_NewStringObj(Tcl_DStrigValue(&$str), Tcl_DStringLength(&$str));\n"
     }
@@ -237,13 +237,13 @@ proc ::tsp::lang_convert_boolean_string {targetVarName sourceVarName errMsg} {
     append result "// ::tsp::lang_convert_boolean_string\n"
     
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if (Tcl_GetBoolean(interp, $sourceVarName, &$targetVarName) != TCL_OK) \{\n"
+        append result "if ((rc = Tcl_GetBoolean(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if (Tcl_GetBoolean(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName)) != TCL_OK) \{\n"
+        append result "if ((rc = Tcl_GetBoolean(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
 
     }
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
-    append result "    goto errorExit;\n"
+    append result "    goto cleanup;\n"
     append result "\}\n"
     return $result
 }
@@ -255,9 +255,9 @@ proc ::tsp::lang_convert_boolean_string {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_boolean_var {targetVarName sourceVarName errMsg} {
     append result "// ::tsp::lang_convert_boolean_var\n"
 
-    append result "if (Tcl_GetBooleanFromObj(interp, $sourceVarName, &$targetVarName) != TCL_OK) \{\n"
+    append result "if ((rc = Tcl_GetBooleanFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], Tcl_GetString($sourceVarName), (char *) NULL);\n"
-    append result "    goto errorExit;\n"
+    append result "    goto cleanup;\n"
     append result "\}\n"
     return $result
 }
@@ -269,17 +269,15 @@ proc ::tsp::lang_convert_boolean_var {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_int_string {targetVarName sourceVarName errMsg} {
     append result "// ::tsp::lang_convert_int_string\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_convert_int_string(interp, $sourceVarName, [::tsp::lang_quote_string $errMsg]);\n"
-        return $result
+    if {[string range $sourceVarName 0 0] eq "\""} {
+        append result "if ((rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, &$targetVarName)) != TCL_OK) {\n"
+    } else {
+        append result "if ((rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) {\n"
     }
-
-    append result "try {\n"
-    append result "    $targetVarName = Util.getWideInt(interp, $sourceVarName);\n"
-    append result "} catch (TclException e) {\n"
-
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + $sourceVarName.toString()+ \"\\n caused by: \" + e.getMessage());\n"
-    append result "}\n"
+#FIXME: see Tcl_GetInt()   but convert use Tcl_GetWideIntFromObj instead.
+    append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], Tcl_GetString($sourceVarName), (char *) NULL);\n"
+    append result "    goto cleanup;\n"
+    append result "\}\n"
     return $result
 }
 
@@ -297,7 +295,7 @@ proc ::tsp::lang_convert_int_boolean {targetVarName sourceVarName {errMsg ""}} {
 #
 proc ::tsp::lang_convert_int_double {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_int_double\n"
-    append result "$targetVarName = (long) $sourceVarName;\n"
+    append result "$targetVarName = (Tcl_WideInt) $sourceVarName;\n"
     return $result
 }
 
@@ -308,16 +306,15 @@ proc ::tsp::lang_convert_int_double {targetVarName sourceVarName {errMsg ""}} {
 proc ::tsp::lang_convert_double_string {targetVarName sourceVarName errMsg} {
     append result "// ::tsp::lang_convert_double_string\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_convert_double_string(interp, $sourceVarName, [::tsp::lang_quote_string $errMsg]);\n"
-        return $result
-    }
+    if {[string range $sourceVarName 0 0] eq "\""} {
+        append result "if ((rc = Tcl_GetDouble(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+    } else {
+        append result "if ((rc = Tcl_GetDouble(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
 
-    append result "try {\n"
-    append result "    $targetVarName = Util.getDouble(interp, $sourceVarName);\n"
-    append result "} catch (TclException e) {\n"
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + $sourceVarName.toString()+ \"\\n caused by: \" + e.getMessage());\n"
-    append result "}\n"
+    }
+    append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
+    append result "    goto cleanup;\n"
+    append result "\}\n"
     return $result
 }
 
@@ -328,16 +325,10 @@ proc ::tsp::lang_convert_double_string {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_int_var {targetVarName sourceVarName errMsg} {
     append result "// ::tsp::lang_convert_int_var\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_convert_int_var(interp, $sourceVarName, [::tsp::lang_quote_string $errMsg]);\n"
-        return $result
-    }
-
-    append result "try {\n"
-    append result "    $targetVarName = TclInteger.get(interp, $sourceVarName);\n"
-    append result "} catch (TclException e) {\n"
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + $sourceVarName.toString() + \"\\n caused by: \" + e.getMessage());\n"
-    append result "}\n"
+    append result "if ((rc = Tcl_GetWideIntFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+    append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
+    append result "    goto cleanup;\n"
+    append result "\}\n"
     return $result
 }
 
@@ -348,16 +339,10 @@ proc ::tsp::lang_convert_int_var {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_double_var {targetVarName sourceVarName errMsg} {
     append result "// ::tsp::lang_convert_double_var\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_convert_double_var(interp, $sourceVarName, [::tsp::lang_quote_string $errMsg]);\n"
-        return $result
-    }
-
-    append result "try {\n"
-    append result "    $targetVarName = TclDouble.get(interp, $sourceVarName);\n"
-    append result "} catch (TclException e) {\n"
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + $sourceVarName.toString() + \"\\n caused by: \" + e.getMessage());\n"
-    append result "}\n"
+    append result "if ((rc = Tcl_GetDoubleFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+    append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
+    append result "    goto cleanup;\n"
+    append result "\}\n"
     return $result
 }
 
@@ -366,7 +351,8 @@ proc ::tsp::lang_convert_double_var {targetVarName sourceVarName errMsg} {
 #
 proc ::tsp::lang_convert_string_boolean {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_string_boolean\n"
-    append result "$targetVarName = $sourceVarName ? : \"1\" : \"0\";\n"
+    append result "Tcl_DStringSetLength(&$targetVarName,0);\n"
+    append result "Tcl_DStringAppend(&$targetVarName, ($sourceVarName ? : \"1\" : \"0\"), -1);\n"
     return $result
 }
 
@@ -375,7 +361,8 @@ proc ::tsp::lang_convert_string_boolean {targetVarName sourceVarName {errMsg ""}
 #
 proc ::tsp::lang_convert_string_int {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_string_int\n"
-    append result "$targetVarName = \"\" + $sourceVarName;\n"
+    append result "TSP_Util_lang_convert_string_int(interp, &$targetVarName, $sourceVarName);\n"
+#FIXME: see UpdateStringOfWideInt()
     return $result
 }
 
@@ -384,7 +371,8 @@ proc ::tsp::lang_convert_string_int {targetVarName sourceVarName {errMsg ""}} {
 #
 proc ::tsp::lang_convert_string_double {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_string_double\n"
-    append result "$targetVarName = \"\" + $sourceVarName;\n"
+    append result "TSP_Util_lang_convert_string_double(interp, &$targetVarName, $sourceVarName);\n"
+#FIXME: see Tcl_PrintDouble()
     return $result
 }
 
@@ -393,7 +381,8 @@ proc ::tsp::lang_convert_string_double {targetVarName sourceVarName {errMsg ""}}
 #
 proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_string_string\n"
-    append result "$targetVarName = $sourceVarName;\n"
+    append result "Tcl_DStringSetLength(&$targetVarName,0);\n"
+    append result "Tcl_DStringAppend(&$targetVarName, Tcl_DStringValue(&$sourceVarName), Tcl_DStringLength(&$sourceVarName));\n"
     return $result
 }
 
@@ -402,7 +391,7 @@ proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}}
 #
 proc ::tsp::lang_convert_string_var {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_string_var\n"
-    append result "$targetVarName = $sourceVarName.toString();\n"
+    append result "TSP_Util_lang_convert_string_var(&$targetVarName, $sourceVarName);\n"
     return $result
 }
 
