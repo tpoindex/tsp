@@ -391,7 +391,9 @@ proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}}
 #
 proc ::tsp::lang_convert_string_var {targetVarName sourceVarName {errMsg ""}} {
     append result "// ::tsp::lang_convert_string_var\n"
+    append result "Tcl_DStringSetLength(&$targetVarName,0);\n"
     append result "TSP_Util_lang_convert_string_var(&$targetVarName, $sourceVarName);\n"
+#FIXME: Tcl_GetStringFromObj, set DString as a result
     return $result
 }
 
@@ -414,28 +416,28 @@ proc ::tsp::lang_get_string_boolean {sourceVarName} {
 # get a string from an int value
 #
 proc ::tsp::lang_get_string_int {sourceVarName} {
-    return "\"\" + $sourceVarName"
+    return TSP_Util_lang_get_string_int($sourceVarName)"
 }
 
 ##############################################
 # get a string from a double value
 #
 proc ::tsp::lang_get_string_double {sourceVarName} {
-    return "\"\" + $sourceVarName"
+    return TSP_Util_lang_get_string_double($sourceVarName)"
 }
 
 ##############################################
 # get a string from a string value
 #
 proc ::tsp::lang_get_string_string {sourceVarName} {
-    return "$sourceVarName"
+    return "Tcl_DStringValue(&$sourceVarName)"
 }
 
 ##############################################
 # get a string from a var value
 #
 proc ::tsp::lang_get_string_var {sourceVarName} {
-    return "$sourceVarName.toString()"
+    return "Tcl_GetString($sourceVarName)"
 }
 
 
@@ -443,14 +445,14 @@ proc ::tsp::lang_get_string_var {sourceVarName} {
 # preserve / incrRefCount a TclObject variable
 #
 proc ::tsp::lang_preserve {obj} {
-    return "$obj.preserve();\n"
+    return "Tcl_IncrRefCount($obj);\n"
 }
 
 ##############################################
 # release / decrRefCount a TclObject variable
 #
 proc ::tsp::lang_release {obj} {
-    return "$obj.release();\n"
+    return "Tcl_DecrRefCount($obj);\n"
 }
 
 ##############################################
@@ -459,7 +461,7 @@ proc ::tsp::lang_release {obj} {
 # checks for null before release
 #
 proc ::tsp::lang_safe_release {obj} {
-    return "if ($obj != null) { $obj.release(); $obj = null; } \n"
+    return "if ($obj != null) { Tcl_DecrRefCount($obj); $obj = null; } \n"
 }
 
 
@@ -499,7 +501,7 @@ proc ::tsp::lang_quote_string {str} {
 # appends long designation for java
 proc ::tsp::lang_int_const {n} {
     if {[string is wide $n]} {
-        append n L
+        append n TCL_LL_MODIFIER
     }
     return $n
 }
@@ -509,7 +511,7 @@ proc ::tsp::lang_int_const {n} {
 # appends double designation for java
 proc ::tsp::lang_double_const {n} {
     if {[string is wide $n] || [string is double $n]} {
-        append n D
+        append n d
     }
     return $n
 }
@@ -535,7 +537,7 @@ proc ::tsp::lang_false_const {} {
 proc ::tsp::lang_assign_empty_zero {var type} {
     set code "//::tsp::lang_assign_empty_zero\n"
     switch $type {
-        boolean {append code "$var = false;\n"}
+        boolean {append code "$var = 0;\n"}
         int -
         double {append code "$var = 0;\n"}
         string {append code [::tsp::lang_convert_string_string $var {""}]}
@@ -556,17 +558,11 @@ proc ::tsp::lang_assign_empty_zero {var type} {
 proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype errMsg} {
     append result "// ::tsp::lang_array_get_array_idxvar\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetObj = TspUtil.lang_assign_var_array_idxvar(interp, $arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], [::tsp::lang_quote_string $errMsg]);\n"
-        return $result
-    }
-
-    append result "try {\n"
-    append result "    $targetObj = interp.getVar($arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], 0);\n"
-    append result "} catch (TclException te) {\n"
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + sourceVarName + \"\\ncaused by: \" + te.getMessage());\n"
-    append result "}\n"
-
+    append result "$targetObj = Tcl_GetVar2Ex(interp, $arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], TCL_LEAVE_ERR_MSG);\n"
+    append result "if {$targetObj == NULL) \{\n"
+    append result "    /* Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], (char *) NULL);*/\n"
+    append result "    goto cleanup;\n"
+    append result "\}\n"
     return $result
 }
 
@@ -578,16 +574,13 @@ proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype err
 proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
     append result "// ::tsp::lang_array_get_array_idxtext\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetObj = TspUtil.lang_assign_var_array_idxtext(interp, $arrVar, $idxTxtVar, [::tsp::lang_quote_string $errMsg]);\n"
-        return $result
-    }
+    append result "$targetObj = Tcl_GetVar2Ex(interp, $arrVar, $idxTxtVar, TCL_LEAVE_ERR_MSG);\n"
+    append result "if {$targetObj == NULL) \{\n"
+    append result "    /* Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], (char *) NULL);*/\n"
+    append result "    goto cleanup;\n"
+    append result "\}\n"
+    return $result
 
-    append result "try {\n"
-    append result "    $targetObj = interp.getVar($arrVar, $idxTxtVar, 0);\n"
-    append result "} catch (TclException te) {\n"
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + \"\\ncaused by: \" + te.getMessage());\n"
-    append result "}\n"
     return $result
 }
 
@@ -595,6 +588,7 @@ proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
 # get a TclObject from a interp array with a scalar or var index
 #
 proc ::tsp::lang_array_get_array_idxvar {arrVar idxVar idxVartype} {
+#FIXME: is this even used???? if not remove here and in tsp-java.tcl
     append result "// ::tsp::lang_array_get_array_idxvar\n"
     append result "interp.getVar($arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], 0);"
     return $result
@@ -607,7 +601,8 @@ proc ::tsp::lang_array_get_array_idxvar {arrVar idxVar idxVartype} {
 #
 proc ::tsp::lang_assign_string_const {targetVarName sourceText} {
     append result "// ::tsp::lang_assign_string_const\n"
-    append result "$targetVarName = [::tsp::lang_quote_string $sourceText];\n"
+    append result "Tcl_DStringSetLength(&$targetVarName,0);\n" 
+    append result "Tcl_DStringAppend($$targetVarName, [::tsp::lang_quote_string $sourceText], -1);\n"
     return $result
 }
 
@@ -615,22 +610,10 @@ proc ::tsp::lang_assign_string_const {targetVarName sourceText} {
 ##############################################
 # assign a tclobj var from a boolean constant
 #
-# FIXME: TclBoolean should have public set() method, just like TclInteger, TclDouble, etc.??
 proc ::tsp::lang_assign_var_boolean {targetVarName sourceVarName {preserve 1}} {
     append result "// ::tsp::lang_assign_var_boolean\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_assign_var_boolean($targetVarName, $sourceVarName);\n"
-        return $result
-    }
-
-    append result "if ($targetVarName != null) {\n"
-    append result "    [::tsp::lang_release $targetVarName]"
-    append result "}\n"
-    append result [::tsp::lang_new_var_boolean $targetVarName $sourceVarName]
-    if {$preserve} {
-        append result [::tsp::lang_preserve $targetVarName]
-    }
+    append result "$targetVarName = TSP_Util_lang_assign_var_boolean($targetVarName, $sourceVarName);\n"
     return $result
 }
 
@@ -640,27 +623,7 @@ proc ::tsp::lang_assign_var_boolean {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_var_int {targetVarName sourceVarName {preserve 1}} {
     append result "// ::tsp::lang_assign_var_int\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_assign_var_int($targetVarName, (long) $sourceVarName);\n"
-        return $result
-    }
-
-    append result "if ($targetVarName != null) {\n"
-    append result "    if ($targetVarName.isShared()) {\n"
-    append result "        [::tsp::lang_release $targetVarName]"
-    append result "        [::tsp::lang_new_var_int $targetVarName $sourceVarName]"
-    if {$preserve} {
-        append result "        [::tsp::lang_preserve $targetVarName]"
-    }
-    append result "    } else {\n"
-    append result "        TclInteger.set($targetVarName, (long) $sourceVarName);\n"
-    append result "    }\n"
-    append result "} else {\n"
-    append result "    [::tsp::lang_new_var_int $targetVarName $sourceVarName]"
-    if {$preserve} {
-        append result "    [::tsp::lang_preserve $targetVarName]"
-    }
-    append result "}\n"
+    append result "$targetVarName = TSP_Util_lang_assign_var_int($targetVarName, (TCL_LL_MODIFIER) $sourceVarName;\n"
     return $result
 }
 
@@ -670,27 +633,7 @@ proc ::tsp::lang_assign_var_int {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_var_double {targetVarName sourceVarName {preserve 1}} {
     append result "// ::tsp::lang_assign_var_double\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_assign_var_double($targetVarName, (double) $sourceVarName);\n"
-        return $result
-    }
-
-    append result "if ($targetVarName != null) {\n"
-    append result "    if ($targetVarName.isShared()) {\n"
-    append result "        [::tsp::lang_release $targetVarName]"
-    append result "        [::tsp::lang_new_var_double $targetVarName $sourceVarName]"
-    if {$preserve} {
-        append result "        [::tsp::lang_preserve $targetVarName]"
-    }
-    append result "    } else {\n"
-    append result "        TclDouble.set($targetVarName, (double) $sourceVarName);\n"
-    append result "    }\n"
-    append result "} else {\n"
-    append result "    [::tsp::lang_new_var_double $targetVarName $sourceVarName]"
-    if {$preserve} {
-        append result "    [::tsp::lang_preserve $targetVarName]"
-    }
-    append result "}\n"
+    append result "$targetVarName = TSP_Util_lang_assign_var_double($targetVarName, (double) $sourceVarName);\n"
     return $result
 }
 
@@ -700,28 +643,7 @@ proc ::tsp::lang_assign_var_double {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_var_string {targetVarName sourceVarName {preserve 1}} {
     append result "// ::tsp::lang_assign_var_string\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_assign_var_string($targetVarName, $sourceVarName);\n"
-        return $result
-    }
-
-    append result "if ($targetVarName != null) {\n"
-    append result "    if ($targetVarName.isShared()) {\n"
-    append result "        [::tsp::lang_release $targetVarName]"
-    append result "        [::tsp::lang_new_var_string $targetVarName $sourceVarName]"
-    if {$preserve} {
-        append result "        [::tsp::lang_preserve $targetVarName]"
-    }
-    append result "    } else {\n"
-    append result "        TclString.empty($targetVarName);\n"  
-    append result "        TclString.append($targetVarName, $sourceVarName);\n"
-    append result "    }\n"
-    append result "} else {\n"
-    append result "    [::tsp::lang_new_var_string $targetVarName $sourceVarName]"
-    if {$preserve} {
-        append result "    [::tsp::lang_preserve $targetVarName]"
-    }
-    append result "}\n"
+    append result "$targetVarName = TSP_Util_lang_assign_var_string($targetVarName, $sourceVarName);\n"
     return $result
 }
 
@@ -732,22 +654,7 @@ proc ::tsp::lang_assign_var_string {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
     append result "// ::tsp::lang_assign_var_var\n"
 
-    if {! $::tsp::INLINE} {
-        append result "$targetVarName = TspUtil.lang_assign_var_var($targetVarName, $sourceVarName);\n"
-        return $result
-    }
-
-    append result "if ($targetVarName != null) {\n"
-    append result "    [::tsp::lang_release $targetVarName]"
-    append result "}\n"
-    append result "$targetVarName = $sourceVarName;\n"
-
-    # older code - duplicate source into target
-    #append result "$targetVarName = $sourceVarName.duplicate();\n"
-
-    if {$preserve} {
-        append result [::tsp::lang_preserve $targetVarName]
-    }
+    append result "$targetVarName = TSP_Util_lang_assign_var_var($targetVarName, $sourceVarName);\n"
     return $result
 }
 
@@ -761,19 +668,7 @@ proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_array_var {targetArrayStr targetIdxStr var} {
     append result "// ::tsp::lang_assign_array_var\n"
 
-    if {! $::tsp::INLINE} {
-        append result "TspUtil.lang_assign_array_var(interp, $targetArrayStr, $targetIdxStr, $var);\n"
-        return $result
-    }
-
-    append result "try {\n"
-    append result "    [::tsp::lang_preserve $var]"
-    append result "    interp.setVar($targetArrayStr, $targetIdxStr, $var, 0);\n"
-    append result "} catch (TclException te) {\n"
-    append result "    throw te;\n"
-    append result "} finally {\n"
-    append result "    [::tsp::lang_release $var]"
-    append result "}\n"
+    append result "TSP_Util_lang_assign_array_var(interp, $targetArrayStr, $targetIdxStr, $var);\n"
     return $result
 }
 
@@ -797,7 +692,11 @@ proc ::tsp::lang_append_string {targetVarName source} {
 #
 proc ::tsp::lang_append_var {targetVarName source} {
     append result "// ::tsp::lang_append_var\n"
-    append result "TclString.append($targetVarName, $source);\n"
+    if {[string range $source 0 0] eq "\""} {
+        append result "Tcl_AppendToObj($targetVarName, $source, -1);\n"
+    } else {
+        append result "Tcl_AppendToObj($targetVarName, Tcl_DStringValue(&$source), Tcl_DStringLength(&$source));\n"
+    }
     return $result
 }
 
@@ -807,7 +706,7 @@ proc ::tsp::lang_append_var {targetVarName source} {
 #
 proc ::tsp::lang_lappend_var {targetVarName sourceVarName} {
     append result "// ::tsp::lang_lappend_var\n"
-    append result "TclList.append(interp, $targetVarName, $sourceVarName);\n"
+    append result "Tcl_LisObjAppendElement(interp, $targetVarName, $sourceVarName);\n"
     return $result
 }
 
@@ -818,10 +717,10 @@ proc ::tsp::lang_lappend_var {targetVarName sourceVarName} {
 #
 proc ::tsp::lang_dup_var_if_shared {targetVarName} {
     append result "// ::tsp::lang_dup_var_if_shared\n"
-    append result "if ($targetVarName != null) {\n"
-    append result "    if ($targetVarName.isShared()) {\n"
+    append result "if ($targetVarName != NULL) {\n"
+    append result "    if (Tcl_IsShared($targetVarName)) {\n"
     append result "        [::tsp::lang_release $targetVarName]"
-    append result "        $targetVarName = $targetVarName.duplicate();\n"
+    append result "        $targetVarName = Tcl_DuplicateObj($targetVarName);\n"
     append result "    }\n"
     append result "} else {\n"
     append result "    [::tsp::lang_new_var_string $targetVarName {""}]"
@@ -835,9 +734,13 @@ proc ::tsp::lang_dup_var_if_shared {targetVarName} {
 # allocate a TclObject objv array
 #
 proc ::tsp::lang_alloc_objv_array {compUnitDict size} {
+#FIXME: track argObjvArray size, only free/alloc when too small
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
-    return "argObjvArray_$cmdLevel = new TclObject\[$size\];\n"
+    append result "if (argObjvArray_$cmdLevel != NULL) \{\n"
+    append result "    ckfree(argObjvArray_$cmdLevel);\n"
+    append result "\}\n"
+    return "argObjvArray_$cmdLevel = ckalloc($size * sizeof(Tcl_Obj *));\n"
 }
 
 ##############################################
