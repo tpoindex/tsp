@@ -1675,3 +1675,11 @@ proc ::tsp::lang_string {compUnitDict tree} {
 }
 
 
+##############################################
+# generate a return command
+#
+proc ::tsp::lang_return {compUnit argVar} {
+    return "return $argVar;\n"
+}
+
+

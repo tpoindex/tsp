@@ -387,7 +387,8 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
         append code [::tsp::lang_preserve $argVar]\n
     }
     append result "\n/***** ::tsp::gen_command_return */\n"
-    append result "\n${code}return $argVar;\n"
+    append result "\n${code}\n"
+    append result [::tsp::lang_return compUnit $argVar] \n
     ::tsp::unlock_tmpvar compUnit $argVar
     return [list void "" $result]
 }
