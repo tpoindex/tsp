@@ -893,6 +893,11 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set procArgsCleanup ""
     set comma ""
     set i 0
+    set procVarsDecls ""
+    set procVarsCleanup ""
+    set procStringsInit ""
+    set procStringsCleanup ""
+    set copyStringArgs ""
 
     # create: assignments from proc args to scoped variables; 
     #         declarations of scoped variables
@@ -903,8 +908,20 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         # rest of foreach needs i+1
         incr i
         set nativeType [::tsp::lang_xlate_native_type $type]
-        append nativeTypedArgs $comma $nativeType " " $arg 
-        append declProcArgs [::tsp::lang_decl_native_$type $arg]
+        if {$type eq "string"} { 
+            # strings are passed as pointers
+            append nativeTypedArgs $comma $nativeType " " *Caller_$arg 
+            append declProcArgs [::tsp::lang_decl_native_$type $arg]
+            # and define as proc varaibles
+            append procVarsDecls [::tsp::lang_decl_var $arg]
+            append procStringsInit "Tcl_DStringInit(&$arg);\n"
+            append procStringsCleanup "Tcl_DStringCleanup(&$arg);\n"
+            # and copy from argument
+            append copyStringArgs "Tcl_DStringAppend(&$arg, Tcl_DStringValue(Caller_$arg), Tcl_DStringLength(Caller_$arg));\n"
+        } else {
+            append nativeTypedArgs $comma $nativeType " " $arg 
+            append declProcArgs [::tsp::lang_decl_native_$type $arg]
+        }
         if {$type eq "var"} {
             append argVarAssignments [::tsp::lang_assign_var_var $arg  objv\[$i\]]
             append procArgsCleanup [::tsp::lang_safe_release $arg]
@@ -932,9 +949,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         set returnSetResult "Tcl_ResetResult(interp);"
     }
 
-    # create inner method proc vars and cleanup code (for vars)
-    set procVarsDecls ""
-    set procVarsCleanup ""
+    # create inner method proc vars and cleanup code (for vars and string)
     foreach {var} [lsort [dict keys [dict get $compUnit vars]]] {
         set type [::tsp::getVarType compUnit $var]
         if {[lsearch $procArgs __$var] >= 0} {
@@ -948,6 +963,10 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         if {$type eq "var"} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
             append procVarsCleanup [::tsp::lang_safe_release $pre$var]
+        } elseif {$type eq "string"} {
+            append procVarsDecls [::tsp::lang_decl_var $pre$var]
+            append procStringsInit "Tcl_DStringInit(&$pre$var);\n"
+            append procStringsCleanup "Tcl_DStringCleanup(&$pre$var);\n"
         } elseif {$type ne "array"} {
             append procVarsDecls [::tsp::lang_decl_native_$type $pre$var]
         }
@@ -961,50 +980,28 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         append argObjvArrays "\n    int       argObjc_$i = 0;"
     }
 
+    if {$returnType eq "void"} {
+    } else {
+    }
+
     # class template
 
-    set classTemplate \
+    set cfileTemplate \
 {
 
 #include <tcl.h>
 
+
+/* 
+ * proc implementation
+ *
+ */
 int
-TSP_User_${cmdName}_cmd(ClientData unused, Tcl_Interp* interp,
-				 int objc, Tcl_Obj *const objv[]
+TSP_UserDirect_${cmdName}(Tcl_Interp* interp, ${nativeReturnType}* returnPtr  $nativeTypedArgs
 ) {
-
-    int rc;
-    /*::tsp::lang_builtin_refs */
-
-    $returnVarDecl
-    /* variables used by this command, assigned from argv array */
-    [::tsp::indent compUnit $declProcArgs 1 \n]
-
-    if (objc != [expr {$numProcArgs + 1}]) {
-        Tcl_WrongNumArgs(interp, 1, objv, "[join [dict get $compUnit args]]\\"");
-        return TCL_ERROR;
-    }
-
-    /* assign arg variable from argv array */
-    [::tsp::indent compUnit $argVarAssignments 1 \n]
-    /* invoke inner compile proc method */
-    if ((rc = ${returnVarAssignment}__${name}(interp ${nativeArgs})) == TCL_OK) {
-        $returnSetResult
-    }
-
-cleanup:
-    /* release var variables, if any (includes _tmp variables) */
-    [::tsp::indent compUnit $procArgsCleanup 1 \n]
-    
-    return rc;
-}
-
-
-
-int
-TSP_User_${cmdName}_direct(Tcl_Interp* interp, ${nativeReturnType}* returnPtr  $nativeTypedArgs
-) {
-    int rc = TCL_OK;
+    int rc = -1;     
+    int len;
+    char* exprErr = NULL;
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     CallFrame* frame = NULL;
     $argObjvArrays
@@ -1012,13 +1009,19 @@ TSP_User_${cmdName}_direct(Tcl_Interp* interp, ${nativeReturnType}* returnPtr  $
     /* variables defined in proc, plus temp vars */
     [::tsp::indent compUnit $procVarsDecls 1 \n]
 
+    /* initialize string vars */
+    [::tsp::indent compUnit $procStringsInit 1 \n]
+
     /* any "var" arguments need to be preserved, since they are released in finally block */
     [::tsp::indent compUnit $innerVarPreserves 1 \n]
+
+    /* any "string" arguments need to be copied (FIXME: investigate using COW for strings) */
+    [::tsp::indent compUnit $copyStringArgs 1 \n]
 
     frame = ckalloc(sizeof(CallFrame))
     Tcl_PushCallFrame(interp, frame, Tcl_GetGlobalNamespace(interp), 1);
 
-    /* code must return a value as defined by procdef (unless void), else will raise a compilation error */
+    /* code must return a value as defined by procdef (unless void), else will raise a runtime error */
     [::tsp::indent compUnit $code 1]
 
 cleanup:
@@ -1038,16 +1041,61 @@ cleanup:
     [::tsp::lang_safe_release _tmpVar_cmdResultObj]
     [::tsp::indent compUnit $procArgsCleanup 1 \n]
     [::tsp::indent compUnit $procVarsCleanup 1 \n]
+    [::tsp::indent compUnit $procStringsCleanup 1 \n]
 
-    return returnValue;
+    [if {$returnType ne "void"} {
+    subst {
+    if (rc == -1) {
+        Tcl_ResetResult(interp);
+        Tcl_AppendResult(interp, "$name did not return a $type value", (char*)NULL);
+        rc = TCL_ERROR;
+    }
+    }
+    }]
+
+    return rc;
 
 }
 
+/* 
+ * Tcl command interface 
+ *
+ */
+int
+TSP_UserCmd_${cmdName}(ClientData unused, Tcl_Interp* interp,
+				 int objc, Tcl_Obj *const objv[]
+) {
+
+    int rc;
+    /*::tsp::lang_builtin_refs */
+
+    $returnVarDecl
+    /* variables used by this command, assigned from argv array */
+    [::tsp::indent compUnit $declProcArgs 1 \n]
+
+    if (objc != [expr {$numProcArgs + 1}]) {
+        Tcl_WrongNumArgs(interp, 1, objv, "[join [dict get $compUnit args]]\\"");
+        return TCL_ERROR;
+    }
+
+    /* assign arg variable from argv array */
+    [::tsp::indent compUnit $argVarAssignments 1 \n]
+    /* invoke inner compile proc method */
+    if ((rc = TSP_UserDirect_${cmdName}(interp ${nativeArgs})) == TCL_OK) {
+        $returnSetResult
+    }
+
+cleanup:
+    /* release var variables, if any (includes _tmp variables) */
+    [::tsp::indent compUnit $procArgsCleanup 1 \n]
+    
+    return rc;
+}
 
 }
-# end of classTemplate
+# end of cfileTemplate
 
-    return [subst $classTemplate]
+    return [subst $cfileTemplate]
 
 }
 
@@ -1062,7 +1110,7 @@ proc ::tsp::lang_compile {compUnitDict code} {
     dict set compUnit buf $code
     set name [dict get $compUnit name]
     set rc [catch {
-        hyde::jclass ${name}Cmd -package tsp.cmd -source $code
+        critcl::cproc .....
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
     } result ]
     if {$rc} {
@@ -1115,13 +1163,20 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 # if using any TspFunc methods, wrap in try/catch because those can throw exceptions
 #
 proc ::tsp::lang_expr {exprAssignment} {
-    if {[string first TspFunc. $exprAssignment] == -1} {
+    if {[string first TSP_Func_ $exprAssignment] == -1} {
         return $exprAssignment
     } else {
-        append result "try {\n"
-        append result "    $exprAssignment"
-        append result "\n} catch (Exception e) {\n"
-        append result "    TspFunc.ExprError(interp, e.getMessage()); // sets interp error code and throws a new TclException\n"
+        append result "exprErr = NULL;
+        # add first argument as exprErr pointer for functions
+        regsub -all {(TSP_Func_[^(]*\()(/*)} $exprAssignment {\1\&exprErr,\2} exprAssignment
+        # but fix for functions that have no args :-)
+        regsub -all {&exprErr,\)} $exprAssignment {)} exprAssignment
+        append result "$exprAssignment"
+        append result "if (exprErr != NULL) {\n"
+        append result "    Tcl_ResetResult(interp);\n"
+        append result "    Tcl_AppendResult(interp, exprErr, (char*)NULL);\n"
+        append result "    rc = TCL_ERROR;\n"
+        append result "    goto cleanup;\n"
         append result "}\n"
         append result "\n"
         return $result
@@ -1143,7 +1198,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
         return ""
     }
 
-    set buf "// ::tsp::::tsp::lang_spill_vars $varList\n"
+    set buf "/* ::tsp::::tsp::lang_spill_vars $varList */\n"
     foreach var $varList {
         set type [::tsp::getVarType compUnit $var]
         if {$type eq "undefined"} {
@@ -1167,15 +1222,21 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
         # probably shouldn't get tmpvars here, but get prefix anyway
         set pre [::tsp::var_prefix $var]
 
-        append buf "// interp.setVar $var \n"
+        append buf "/* interp.setVar $var */\n"
         if {$type eq "var"} {
-            append buf "if ($pre$var == null) \{\n"
-            append buf "    $pre$var = TclString.newInstance(\"\");\n"
-            append buf "    $pre$var.preserve();\n"
+            append buf "if ($pre$var == NULL) \{\n"
+            append buf "    $pre$var = Tcl_NewStringObj(\"\");\n"
+            append buf "    Tcl_IncrRefCount($pre$var);\n"
             append buf "\}\n"
-            append buf "interp.setVar([::tsp::lang_quote_string  $var], null, $pre$var, 0);\n"
+            append buf "Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0);\n"
         } else {
-            append buf "interp.setVar([::tsp::lang_quote_string  $var], null, $pre$var, 0);\n"
+            switch $type {
+                boolean {set newobj "Tcl_NewBooleanObj($pre$var)"}
+                int     {set newobj "Tcl_NewWideIntObj($pre$var)"}
+                double  {set newobj "Tcl_NewDoubleObj($pre$var)"}
+                string  {set newobj "Tcl_NewStringObj(Tcl_DStringValue(&$pre$var), Tcl_DStringLength(&$pre$var))"}
+            }
+            append buf "Tcl_SetVar2Ex(interp,[::tsp::lang_quote_string  $var], null, $newobj, 0);\n"
         }
     }
     return $buf
@@ -1227,16 +1288,16 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
         }
 
         if {$setEmptyWhenNotExists} {
-            append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
+            append buf "/* ::tsp::lang_load_vars  interp.getVar $var */\n"
             append buf [::tsp::lang_safe_release $interpVar]
-            append buf "try \{\n"
-            append buf "    $interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
+            append buf "$interpVar = Tcl_GetVar2Ex(interp,[::tsp::lang_quote_string $var], NULL, 0);\n"
+            append buf "if ($intepVar != NULL) {\n"
             append buf "    [::tsp::lang_preserve $interpVar]"
             if {! $isvar} {
                 # for not-var types, convert into native type
                 append buf [::tsp::indent compUnit [::tsp::lang_convert_${type}_var $pre$var $interpVar "can't convert var \"$var\" to type: \"$type\""] 1]
             } 
-            append buf "\n\} catch (TclException e) \{\n"
+            append buf "\n\} else \{\n"
             append buf "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $pre$var $type] 1]\n"
             if {$isvar} {
                 append buf "[::tsp::indent compUnit [::tsp::lang_preserve $pre$var] 1]\n"
@@ -1245,9 +1306,14 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
         } else {
             # no try/catch here - if variable is deleted, or cannot be converted, allow TclException to be thrown.
             # program needs to catch for this case
-            append buf "// ::tsp::lang_load_vars  interp.getVar $var\n"
+            append buf "/* ::tsp::lang_load_vars  interp.getVar $var */\n"
             append buf [::tsp::lang_safe_release $interpVar]
-            append buf "$interpVar = interp.getVar([::tsp::lang_quote_string $var], 0);\n"
+            append buf "$interpVar = Tcl_GetVar2Ex(interp,[::tsp::lang_quote_string $var], NULL, 0);\n"
+            append buf "if ($interpVar == NULL) {\n"
+            append buf "    Tcl_AppendResult(interp, [::tsp::lang_quote_string "cannot load $var from interp"], (char*)NULL);\n"
+            append buf "    rc = TCL_ERROR;\n"
+            append buf "    goto cleanup;\n"
+            append buf "}\n"
             append buf "[::tsp::lang_preserve $interpVar]"
             if {! $isvar} {
                 # for not-var types, convert into native type
@@ -1269,11 +1335,13 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
 #
 proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
-    append code "// lang_llength\n"
-    append code "try {\n"
-    append code "    $returnVar = TclList.getLength(interp, $argVar);\n"
-    append code "} catch (TclException te) {\n"
-    append code "    throw new TclException(interp, $errMsg);\n"
+    append code "/* lang_llength */\n"
+    append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len) == TCL_OK) {\n"
+    append code "    $returnVar = len;\n"
+    append code "} else {\n"
+    append code "    Tcl_AppendResult(interp, errMsg, (char*)NULL);\n"
+    append code "    rc = TCL_ERROR;\n"
+    append code "    goto cleanup;\n"
     append code "}\n"
     return $code
 }
@@ -1285,7 +1353,7 @@ proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
 #
 proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
-    append code "// lang_lindex\n"
+    append code "/* lang_lindex */\n"
     append code "try {\n"
     if {$isFromEnd} {
         append code "    int listLength = TclList.getLength(interp, $argVar);\n"
