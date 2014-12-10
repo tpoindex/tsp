@@ -237,13 +237,15 @@ proc ::tsp::lang_convert_boolean_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_boolean_string */\n"
     
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((rc = Tcl_GetBoolean(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetBoolean(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if ((rc = Tcl_GetBoolean(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetBoolean(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
 
     }
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
-    append result "    goto cleanup;\n"
+    append result "    CLEANUP;\n"
+    append result "    RETURN_VALUE_CLEANUP;\n"
+    append result "    return returnValue;\n"
     append result "\}\n"
     return $result
 }
@@ -255,9 +257,11 @@ proc ::tsp::lang_convert_boolean_string {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_boolean_var {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_boolean_var */\n"
 
-    append result "if ((rc = Tcl_GetBooleanFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+    append result "if ((*rc = Tcl_GetBooleanFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], Tcl_GetString($sourceVarName), (char *) NULL);\n"
-    append result "    goto cleanup;\n"
+    append result "    CLEANUP;\n"
+    append result "    RETURN_VALUE_CLEANUP;\n"
+    append result "    return returnValue;\n"
     append result "\}\n"
     return $result
 }
@@ -270,13 +274,15 @@ proc ::tsp::lang_convert_int_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_int_string */\n"
 
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, &$targetVarName)) != TCL_OK) {\n"
+        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, &$targetVarName)) != TCL_OK) {\n"
     } else {
-        append result "if ((rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) {\n"
+        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) {\n"
     }
 #FIXME: see Tcl_GetInt()   but convert use Tcl_GetWideIntFromObj instead.
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], Tcl_GetString($sourceVarName), (char *) NULL);\n"
-    append result "    goto cleanup;\n"
+    append result "    CLEANUP;\n"
+    append result "    RETURN_VALUE_CLEANUP;\n"
+    append result "    return returnValue;\n"
     append result "\}\n"
     return $result
 }
@@ -307,13 +313,15 @@ proc ::tsp::lang_convert_double_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_double_string */\n"
 
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((rc = Tcl_GetDouble(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetDouble(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if ((rc = Tcl_GetDouble(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetDouble(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
 
     }
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
-    append result "    goto cleanup;\n"
+    append result "    CLEANUP;\n"
+    append result "    RETURN_VALUE_CLEANUP;\n"
+    append result "    return returnValue;\n"
     append result "\}\n"
     return $result
 }
@@ -325,9 +333,11 @@ proc ::tsp::lang_convert_double_string {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_int_var {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_int_var */\n"
 
-    append result "if ((rc = Tcl_GetWideIntFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+    append result "if ((*rc = Tcl_GetWideIntFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
-    append result "    goto cleanup;\n"
+    append result "    CLEANUP;\n"
+    append result "    RETURN_VALUE_CLEANUP;\n"
+    append result "    return returnValue;\n"
     append result "\}\n"
     return $result
 }
@@ -339,9 +349,11 @@ proc ::tsp::lang_convert_int_var {targetVarName sourceVarName errMsg} {
 proc ::tsp::lang_convert_double_var {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_double_var */\n"
 
-    append result "if ((rc = Tcl_GetDoubleFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+    append result "if ((*rc = Tcl_GetDoubleFromObj(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
-    append result "    goto cleanup;\n"
+    append result "    CLEANUP;\n"
+    append result "    RETURN_VALUE_CLEANUP;\n"
+    append result "    return returnValue;\n"
     append result "\}\n"
     return $result
 }
@@ -764,8 +776,10 @@ proc ::tsp::lang_invoke_builtin {compUnitDict cmd} {
     set cmdLevel [dict get $compUnit cmdLevel]
 
     append code "\n/*  ::tsp::lang_invoke_builtin */\n"
-    append code "if ((rc = (TSP_Cmd_builtin_$cmd) ((ClientData)NULL, interp,  argObjc_$cmdLevel, argObjvArray_$cmdLevel)) != TCL_OK) \{\n"
-    append code "    goto cleanup;\n"
+    append code "if ((*rc = (TSP_Cmd_builtin_$cmd) ((ClientData)NULL, interp,  argObjc_$cmdLevel, argObjvArray_$cmdLevel)) != TCL_OK) \{\n"
+    append code "    CLEANUP;\n"
+    append code "    RETURN_VALUE_CLEANUP;\n"
+    append code "    return returnValue;\n"
     append code "\}\n"
 
     append code [::tsp::lang_safe_release _tmpVar_cmdResultObj]
@@ -820,7 +834,9 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
     } elseif {$procType eq "string"} {
         append code "Tcl_DStringSetLength(&$returnVar, 0);\n"
     }
-    append code "if ((rc = TSP_User_${cmdName}_direct($invokeArgs)) != TCL_OK) {\n    goto cleanup;\n}\n"
+    append code "if ((*rc = TSP_User_${cmdName}_direct($invokeArgs)) != TCL_OK) {\n"
+    append code "    \n"
+    append code "}\n"
     return $code
 }
 
@@ -939,14 +955,45 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set numProcArgs [llength $procArgs]
     set returnType [dict get $compUnit returns]
     set nativeReturnType [::tsp::lang_xlate_native_type $returnType]
-    if {$returnType ne "void"} {
-        set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
-        set returnVarAssignment "returnValue = "
-        set returnSetResult "Tcl_SetObjResult(interp, returnValue);"
-    } else {
-        set returnVarDecl ""
-        set returnVarAssignment ""
-        set returnSetResult "Tcl_ResetResult(interp);"
+    switch $returnType {
+        var {
+            set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
+            set returnVarAssignment "returnValue = "
+            set returnSetResult "Tcl_SetObjResult(interp, returnValue);"
+            set returnAlloc ""
+        } 
+        string {
+            # note that string return type returns a pointer to an alloc'ed Tcl_DString
+            set nativeReturnType ${nativeReturnType}*
+            set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
+            set returnVarAssignment "returnValue = "
+            set returnSetResult "Tcl_DStringResult(interp, returnValue); ckfree(returnValue);"
+            set returnAlloc "Tcl_DStringInit((returnValue = ckalloc((sizeof Tcl_DString)));
+        } 
+        boolean {
+            set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
+            set returnVarAssignment "returnValue = "
+            set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewBooleanObj((int) returnValue));"
+            set returnAlloc ""
+        }
+        double {
+            set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
+            set returnVarAssignment "returnValue = "
+            set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewDoubleObj((double) returnValue));"
+            set returnAlloc ""
+        }
+        int {
+            set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
+            set returnVarAssignment "returnValue = "
+            set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewWideIntObj((Tcl_WideInt) returnValue));"
+            set returnAlloc ""
+        } 
+        default {
+            set returnVarDecl ""
+            set returnVarAssignment ""
+            set returnSetResult "Tcl_ResetResult(interp);"
+            set returnAlloc ""
+        }
     }
 
     # create inner method proc vars and cleanup code (for vars and string)
@@ -974,14 +1021,30 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     
     # create the argObjvArrays, one for each level of command nesting
     set argObjvArrays ""
+    set argObjvFree ""
     set maxLevel [dict get $compUnit maxLevel]
     for {set i 0} {$i <= $maxLevel} {incr i} {
         append argObjvArrays "\n    Tcl_Obj** argObjvArray_$i = NULL;"
         append argObjvArrays "\n    int       argObjc_$i = 0;"
+        append argObjvFree   "    ckfree(argObjvArray_$i);\n"
     }
 
-    if {$returnType eq "void"} {
+    append cleanup_defs "#define CLEANUP \n"
+    append cleanup_defs [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 1 \n]
+    append cleanup_defs [::tsp::indent compUnit [::tsp::lang_safe_release _tmpVar_cmdResultObj] 1 \n]
+    append cleanup_defs [::tsp::indent compUnit $procArgsCleanup 1 \n]
+    append cleanup_defs [::tsp::indent compUnit $procVarsCleanup 1 \n]
+    append cleanup_defs [::tsp::indent compUnit $procStringsCleanup 1 \n]
+    append cleanup_defs [::tsp::indent compUnit $argObjFree 1 \n]
+
+    regsub {\n} $cleanup_defs "\\\n" cleanup_defs
+    append cleanup_defs "    Tcl_PopCallFrame(interp); \\\n"" 
+    append cleanup_defs "    ckfree(frame)\n"
+    
+    if {$returnType eq "string"} {
+        set return_cleanup_def "#define RETURN_VALUE_CLEANUP ckfree(returnValue); returnValue = (Tcl_DString*)NULL"
     } else {
+        set return_cleanup_def "#define RETURN_VALUE_CLEANUP"
     }
 
     # class template
@@ -991,20 +1054,26 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 
 #include <tcl.h>
 
+$cleanup_defs
+
+$return_cleanup_def
 
 /* 
  * proc implementation
  *
  */
-int
-TSP_UserDirect_${cmdName}(Tcl_Interp* interp, ${nativeReturnType}* returnPtr  $nativeTypedArgs
+$nativeReturnType
+TSP_UserDirect_${cmdName}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
 ) {
-    int rc = -1;     
+    int rc = TCL_OK;     
     int len;
+    $nativeReturnType returnValue;
     char* exprErr = NULL;
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     CallFrame* frame = NULL;
     $argObjvArrays
+
+    $returnAlloc
 
     /* variables defined in proc, plus temp vars */
     [::tsp::indent compUnit $procVarsDecls 1 \n]
@@ -1021,39 +1090,9 @@ TSP_UserDirect_${cmdName}(Tcl_Interp* interp, ${nativeReturnType}* returnPtr  $n
     frame = ckalloc(sizeof(CallFrame))
     Tcl_PushCallFrame(interp, frame, Tcl_GetGlobalNamespace(interp), 1);
 
-    /* code must return a value as defined by procdef (unless void), else will raise a runtime error */
+    /* code must return a value as defined by procdef (unless void), else will raise a compile error */
     [::tsp::indent compUnit $code 1]
 
-cleanup:
-
-    [if {[string length [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]]] > 0} {
-    subst {
-    /* spill variables that are global, upvar, or variable back into interp */
-    [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 1 \n]
-
-
-    } ; # inner subst
-    }]
-    Tcl_PopCallFrame(interp);
-    ckfree(frame);
-
-    /* release var variables, if any (includes _tmp variables) */
-    [::tsp::lang_safe_release _tmpVar_cmdResultObj]
-    [::tsp::indent compUnit $procArgsCleanup 1 \n]
-    [::tsp::indent compUnit $procVarsCleanup 1 \n]
-    [::tsp::indent compUnit $procStringsCleanup 1 \n]
-
-    [if {$returnType ne "void"} {
-    subst {
-    if (rc == -1) {
-        Tcl_ResetResult(interp);
-        Tcl_AppendResult(interp, "$name did not return a $type value", (char*)NULL);
-        rc = TCL_ERROR;
-    }
-    }
-    }]
-
-    return rc;
 
 }
 
@@ -1085,7 +1124,6 @@ TSP_UserCmd_${cmdName}(ClientData unused, Tcl_Interp* interp,
         $returnSetResult
     }
 
-cleanup:
     /* release var variables, if any (includes _tmp variables) */
     [::tsp::indent compUnit $procArgsCleanup 1 \n]
     
