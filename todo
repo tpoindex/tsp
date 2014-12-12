@@ -1,3 +1,23 @@
+source tsp.tcl
+
+set compUnit [tsp::init_compunit FILE PROC {ARGBOOL ARGINT ARGDOUBLE ARGSTRING ARGVAR} {}]
+
+dict set compUnit return void
+dict set compUnit argTypes {boolean int double string var}
+::tsp::setVarType compUnit BB boolean
+::tsp::setVarType compUnit II int
+::tsp::setVarType compUnit DD double
+::tsp::setVarType compUnit SS string
+::tsp::setVarType compUnit VV var
+::tsp::get_tmpvar compUnit boolean
+::tsp::get_tmpvar compUnit int
+::tsp::get_tmpvar compUnit double
+::tsp::get_tmpvar compUnit string
+::tsp::get_tmpvar compUnit var
+
+::tsp::lang_create_compilable compUnit {/*CODE*/}
+
+--------------------------------------
 
 
 
