@@ -2,7 +2,7 @@
 int
 TSP_Util_lang_convert_int_string(Tcl_Interp* interp, Tcl_DString* sourceVarName, Tcl_WideInt* targetVarName) {
     int rc;
-    Tcl_Object obj = Tcl_NewString(interp, Tcl_DStringValue(sourceVarName), Tcl_DStringLength(sourceVarName));
+    Tcl_Obj obj = Tcl_NewStringObj(Tcl_DStringValue(sourceVarName), Tcl_DStringLength(sourceVarName));
     Tcl_IncrRefCount(obj);
     rc = Tcl_GetWideIntFromObj(interp, obj, targetVarName);
     Tcl_DecrRefCount(obj);
@@ -10,36 +10,111 @@ TSP_Util_lang_convert_int_string(Tcl_Interp* interp, Tcl_DString* sourceVarName,
 }
 
 void
-TSP_Util_lang_convert_string_int(Tcl_Interp* interp, Tcl_DString* targetVarName, Tcl_WideInt sourceVarName) {
+TSP_Util_lang_convert_string_int(Tcl_Interp* interp, Tcl_DString** targetVarName, Tcl_WideInt sourceVarName) {
     char str[500];
-    char *format = "%d" TCL_LL;
+    char *format = "%" TCL_LL_MODIFIER "d";
+    if (*targetVarName != null) {
+        Tcl_DStringFree(*targetVarName);
+    }
     sprintf(str, format, sourceVarName);
-    Tcl_DString(targetVarName, str, -1);
+    Tcl_DString(*targetVarName, str, -1);
 }
 
 
 void
-TSP_Util_lang_convert_string_double(interp, Tcl_DString targetVarName, double sourceVarName) {
-
+TSP_Util_lang_convert_string_double(Tcl_Interp* interp, Tcl_DString** targetVarName, double sourceVarName) {
+    char str[500];
+    if (*targetVarName != null) {
+        Tcl_DStringFree(*targetVarName);
+    }
+    Tcl_PrintDouble(interp, sourceVarName, str);
+    Tcl_DString(*targetVarName, str, -1);
 }
 
-    append result "TSP_Util_lang_convert_string_var(&$targetVarName, $sourceVarName);\n"
+void
+TSP_Util_lang_convert_string_var(Tcl_DString** targetVarName, Tcl_Obj* sourceVarName) {
+    char* str;
+    int len;
+    if (*targetVarName != null) {
+        Tcl_DStringFree(*targetVarName);
+    }
+    str = Tcl_GetStringFromObj(sourceVarName, &len);
+    Tcl_DStringAppend(*targetVarName, str, len);
+}
 
-    return TSP_Util_lang_get_string_int($sourceVarName)"
+Tcl_DString*
+TSP_Util_lang_get_string_int(Tcl_WideInt sourceVarName) {
+    Tcl_DString* ds;
+    ds = ckalloc(sizeof Tcl_DString);
+    Tcl_DStringInit(ds);
+    TSP_Util_lang_convert_string_int(NULL, ds, sourceVarName);
+    return ds;
+}
 
-    return TSP_Util_lang_get_string_double($sourceVarName)"
+Tcl_DString*
+TSP_Util_lang_get_string_double(double sourceVarName) {
+    Tcl_DString* ds;
+    ds = ckalloc(sizeof Tcl_DString);
+    Tcl_DStringInit(ds);
+    TSP_Util_lang_convert_string_double(NULL, ds, sourceVarName);
+    return ds;
+}
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_boolean($targetVarName, $sourceVarName);\n"
+Tcl_Obj*
+TSP_Util_lang_assign_var_boolean(Tcl_Obj* targetVarName, int sourceVarName) {
+    if (*targetVarName != NULL) {
+        Tcl_DecrRefCount(targetVarName);
+    }
+    targetVarName = Tcl_NewBooleanObj(sourceVarName);
+    return targetVarName;
+}
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_int($targetVarName, (TCL_LL_MODIFIER) $sourceVarName;\n"
+Tcl_Obj*
+TSP_Util_lang_assign_var_int(Tcl_Obj* targetVarName, Tcl_WideInt sourceVarName) {
+    if (*targetVarName != NULL) {
+        Tcl_DecrRefCount(targetVarName);
+    }
+    targetVarName = Tcl_NewWideIntObj(sourceVarName);
+    return targetVarName;
+}
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_double($targetVarName, (double) $sourceVarName);\n"
+Tcl_Obj*
+TSP_Util_lang_assign_var_double(Tcl_Obj* targetVarName, double sourceVarName) {
+    if (*targetVarName != NULL) {
+        Tcl_DecrRefCount(targetVarName);
+    }
+    targetVarName = Tcl_NewDoubleObj(sourceVarName);
+    return targetVarName;
+}
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_string($targetVarName, $sourceVarName);\n"
+Tcl_Obj*
+TSP_Util_lang_assign_var_string(Tcl_Obj* targetVarName, Tcl_DString* sourceVarName) {
+    if (*targetVarName != NULL) {
+        Tcl_DecrRefCount(targetVarName);
+    }
+    targetVarName = Tcl_NewStringObj(Tcl_DStringValue(sourceVarName), Tcl_DStringLength(sourceVarName));
+    return targetVarName;
+}
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_var($targetVarName, $sourceVarName);\n"
+Tcl_Obj*
+TSP_Util_lang_assign_var_var(Tcl_Obj* targetVarName, Tcl_Obj* sourceVarName) {
+    if (*targetVarName != NULL) {
+        Tcl_DecrRefCount(targetVarName);
+    }
+    targetVarName = Tcl_DuplicateObj(sourceVarName);
+    return targetVarName;
+}
 
-    append result "TSP_Util_lang_assign_array_var(interp, $targetArrayStr, $targetIdxStr, $var);\n"
+int
+TSP_Util_lang_assign_array_var(Tcl_Interp* interp, char* targetArrayStr, char* targetIdxStr, Tcl_Obj* var) {
+    Tcl_Obj* obj;
+    obj = Tcl_SetVar2Ex(interp, targetArrayStr, targetIdxStr, var, TCL_LEAVE_ERR_MSG);
+    if (obj == NULL) {
+        return TCL_ERROR;
+    } else {
+        return TCL_OK;
+    }
+}
 
     append code "if ((*rc = (TSP_Cmd_builtin_$cmd) ((ClientData)NULL, interp,  argObjc_$cmdLevel, argObjvArray_$cmdLevel)) != TCL_OK) \{\n"
 
