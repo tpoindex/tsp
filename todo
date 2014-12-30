@@ -20,6 +20,7 @@ dict set compUnit argTypes {boolean int double string var}
 --------------------------------------
 
 
+check TspFunc.java - does int_abs need to check for Long.MIN_VALUE ?  (since we can't abs that value)
 
 add sugar and sugar {*} to jtcllib
 
