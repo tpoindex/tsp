@@ -1,3 +1,6 @@
+#ifndef _TCL
+#include <tcl.h>
+#endif
 
 int
 TSP_Util_lang_convert_int_string(Tcl_Interp* interp, Tcl_DString* sourceVarName, Tcl_WideInt* targetVarName) {

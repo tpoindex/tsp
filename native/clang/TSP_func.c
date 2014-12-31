@@ -1,6 +1,15 @@
+#ifndef _TCL
 #include <tcl.h>
+#endif
+
+#ifndef _MATH_H
 #include <math.h>
+#endif
+
+#ifndef _LIBC_LIMITS_H_
 #include <limits.h>
+#endif
+
 
 #define TRUE 1
 #define FALSE 0
