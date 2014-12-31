@@ -2,12 +2,18 @@
 #include <math.h>
 #include <limits.h>
 
+#define TRUE 1
+#define FALSE 0
 #define TSP_DIV_BY_ZERO "tsp: divide by zero"
 #define TSP_DOMAIN_ERROR "tsp: domain error"
+
 #define RAISE_ERROR(m) *rc = TCL_ERROR; *errMsg = (*errMsg == NULL) ? m : *errMsg; return 0
 
+#define CHECK_NAN(a) if (a == NAN) return NAN
 
-#define TSP_func_int_div(a,b) _TSP_func_int_div(&rc, &exprErrMsg, (a), (b))
+
+
+#define TSP_func_int_div(a,b) _TSP_func_int_div(&rc,exprErrMsg, (a), (b))
 Tcl_WideInt
 _TSP_func_int_div(int* rc, char** errMsg, Tcl_WideInt dividend, Tcl_WideInt divisor) {
     Tcl_WideInt quotient;
@@ -48,11 +54,11 @@ _TSP_func_int_mod(int* rc, char** errMsg, Tcl_WideInt dividend, Tcl_WideInt divi
         if (divisor < 0) {
             divisor = -divisor;
             dividend = -dividend;
-            neg_divisor = true;
+            neg_divisor = 1;
         }
         remainder = dividend % divisor;
         if (remainder < 0
-                && !(neg_divisor && (dividend == Long.MIN_VALUE))) {
+                && !(neg_divisor && (dividend == LLONG_MIN))) {
             remainder += divisor;
         }
     }
@@ -67,6 +73,8 @@ _TSP_func_int_mod(int* rc, char** errMsg, Tcl_WideInt dividend, Tcl_WideInt divi
 #define TSP_func_double_div(a,b) _TSP_func_double_div(&rc, &exprErrMsg, (a), (b))
 double
 _TSP_func_double_div(int* rc, char** errMsg, double x, double y) {
+    CHECK_NAN(x);
+    CHECK_NAN(y);
     if (y == 0.0) {
         RAISE_ERROR(TSP_DIV_BY_ZERO);
     } else {
@@ -76,41 +84,41 @@ _TSP_func_double_div(int* rc, char** errMsg, double x, double y) {
 
 int
 TSP_func_str_lt(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfNcasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) < 0) ? TRUE : FALSE;
+    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) < 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_gt(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfNcasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) > 0) ? TRUE : FALSE;
+    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) > 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_le(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfNcasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) <= 0) ? TRUE : FALSE;
+    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) <= 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_ge(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfNcasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) >= 0) ? TRUE : FALSE;
+    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) >= 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_eq(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfNcasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) == 0) ? TRUE : FALSE;
+    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) == 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_ne(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfNcasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) != 0) ? TRUE : FALSE;
+    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) != 0) ? TRUE : FALSE;
 }
 
 Tcl_WideInt
 TSP_func_int_abs(Tcl_WideInt i) {
     if (i < 0) {
         if (i == LLONG_MIN) {
-            retrun 0;
+            return 0;
         } else {
-            return i * -1 TCL_LL_MODIFIER;
+            return i * -1;
         }
     } else {
         return i;
@@ -119,6 +127,7 @@ TSP_func_int_abs(Tcl_WideInt i) {
 
 double
 TSP_func_double_abs(double x) {
+    CHECK_NAN(x);
     if (x < 0) {
         return x * -1.0;
     } else {
@@ -128,8 +137,9 @@ TSP_func_double_abs(double x) {
 
 #define TSP_func_acos(a)  _TSP_func_acos(&rc, &exprErrMsg, (a))
 double
-_TSP_func_acos(int* rc, char** exprErrMsg, double x) {
+_TSP_func_acos(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = acos(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -139,8 +149,9 @@ _TSP_func_acos(int* rc, char** exprErrMsg, double x) {
 
 #define TSP_func_asin(a) _TSP_func_asin(&rc, &exprErrMsg, (a))
 double
-_TSP_func_asin(int* rc, char** exprErrMsg, double x) {
+_TSP_func_asin(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = asin(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -150,8 +161,9 @@ _TSP_func_asin(int* rc, char** exprErrMsg, double x) {
 
 #define TSP_func_atan(a) _TSP_func_atan(&rc, &exprErrMsg, (a))
 double
-_TSP_func_atan(int* rc, char** exprErrMsg, double x) {
+_TSP_func_atan(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = atan(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -161,8 +173,10 @@ _TSP_func_atan(int* rc, char** exprErrMsg, double x) {
 
 #define TSP_func_atan2(a,b) _TSP_func_atan2(&rc, &exprErrMsg, (a), (b))
 double
-_TSP_func_atan2(int* rc, char** exprErrMsg, double x, double y) {
+_TSP_func_atan2(int* rc, char** errMsg, double x, double y) {
     double z;
+    CHECK_NAN(x);
+    CHECK_NAN(y);
     z = atan2(x, y);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -172,8 +186,9 @@ _TSP_func_atan2(int* rc, char** exprErrMsg, double x, double y) {
 
 #define TSP_func_ceil(a)  _TSP_func_ceil(&rc, &exprErrMsg, (a))
 double
-_TSP_func_ceil(int* rc, char** exprErrMsg, double x) {
+_TSP_func_ceil(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = ceil(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -183,8 +198,9 @@ _TSP_func_ceil(int* rc, char** exprErrMsg, double x) {
 
 #define TSP_func_cos(a) _TSP_func_cos(&rc, &exprErrMsg, (a))
 double
-_TSP_func_cos(int* rc, char** exprErrMsg, double x) {
+_TSP_func_cos(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = cos(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -194,8 +210,9 @@ _TSP_func_cos(int* rc, char** exprErrMsg, double x) {
 
 #define TSP_func_cosh(a) _TSP_func_cosh(&rc, &exprErrMsg, (a))
 double
-_TSP_func_cosh(int* rc, char** exprErrMsg, double x) {
+_TSP_func_cosh(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = cosh(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -205,8 +222,9 @@ _TSP_func_cosh(int* rc, char** exprErrMsg, double x) {
 
 #define TSP_func_exp(a) _TSP_func_exp((&rc, &exprErrMsg, (a))
 double
-_TSP_func_exp(int* rc, char** exprErrMsg, double x) {
+_TSP_func_exp(int* rc, char** errMsg, double x) {
     double z;
+    CHECK_NAN(x);
     z = exp(x);
     if (z == NAN) {
         RAISE_ERROR(TSP_DOMAIN_ERROR);
@@ -214,50 +232,169 @@ _TSP_func_exp(int* rc, char** exprErrMsg, double x) {
     return z;
 }
 
+#define TSP_func_floor(a) _TSP_func_floor(&rc, &exprErrMsg, (a))
 double
-TSP_func_floor
+_TSP_func_floor(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = floor(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_fmod(a) _TSP_func_fmod(&rc, &exprErrMsg, (a), (b))
+double
+_TSP_func_fmod(int* rc, char** errMsg, double x, double y) {
+    double z;
+    CHECK_NAN(x);
+    CHECK_NAN(y);
+    z = fmod(x, y);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_hypot(a,b) _TSP_func_hypot(&rc, &exprErrMsg, (a), (b))
+double
+_TSP_func_hypot(int* rc, char** errMsg, double x, double y) {
+    double z;
+    CHECK_NAN(x);
+    CHECK_NAN(y);
+    z = hypot(x, y);
+    if (z == NAN || z == HUGE_VAL) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_log(a) _TSP_func_log(&rc, &exprErrMsg, (a))
+double
+_TSP_func_log(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = log(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_log10(a) _TSP_func_log10(&rc, &exprErrMsg, (a))
+double
+_TSP_func_log10(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = log(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_pow(a,b) _TSP_func_pow(&rc, &exprErrMsg, (a), (b))
+double
+_TSP_func_double_pow(int* rc, char** errMsg, double x, double y) {
+    double z;
+    CHECK_NAN(x);
+    CHECK_NAN(y);
+    z = pow(x, y);
+    if (z == NAN || z == HUGE_VAL) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_int_pow(a,b) _TSP_func_int_pow(&rc, &exprErrMsg, (a), (b))
+double
+_TSP_func_double_int_pow(int* rc, char** errMsg, double x, Tcl_WideInt y) {
+    double z;
+    CHECK_NAN(x);
+    z = pow(x, (double) y);
+    if (z == NAN || z == HUGE_VAL) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
 
 double
-TSP_func_fmod
+TSP_func_rand() {
+    return drand48(); 
+}
 
 double
-TSP_func_hypot
+TSP_func_round(double x) {
+    return round(x);
+}
+
+#define TSP_func_sin(a) _TSP_func_sin(&rc, &exprErrMsg, (a))
+double
+_TSP_func_sin(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = sin(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_sinh(a) _TSP_func_sin(&rc, &exprErrMsg, (a))
+double
+_TSP_func_sinh(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = sinh(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
+
+#define TSP_func_sqrt(a) _TSP_func_sqrt(&rc, &exprErrMsg, (a))
+double
+_TSP_func_sqrt(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = sqrt(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
 
 double
-TSP_func_log
+TSP_func_int_srand(Tcl_WideInt i) {
+    srand48((long) i);
+    return drand48();
+}
 
+#define TSP_func_tan(a) _TSP_func_tan(&rc, &exprErrMsg, (a))
 double
-TSP_func_log10
+_TSP_func_tan(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = tan(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
 
+#define TSP_func_tanh(a) _TSP_func_tanh(&rc, &exprErrMsg, (a))
 double
-TSP_func_double_pow
-
-double
-TSP_func_double_int_pow
-
-double
-TSP_func_rand
-
-double
-TSP_func_round
-
-double
-TSP_func_sin 
-
-double
-TSP_func_sinh
-
-double
-TSP_func_sqrt
-
-double
-TSP_func_int_srand
-
-double
-TSP_func_tan
-
-double
-TSP_func_tanh
+_TSP_func_tanh(int* rc, char** errMsg, double x) {
+    double z;
+    CHECK_NAN(x);
+    z = tanh(x);
+    if (z == NAN) {
+        RAISE_ERROR(TSP_DOMAIN_ERROR);
+    }
+    return z;
+}
 
 
 
