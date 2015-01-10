@@ -1,11 +1,7 @@
 # FIXME: have to figure out how to handle ensemble commands
 
-# FIXME: should Tcl_DString be pointers?
-
 # if we want to be able to directly call these commands.  Have to
 # get function pointer at runtime??  see: BUILTIN_TCL_ENSEMBLE_COMMANDS 
-
-# FIXME: need to initialize Tcl_DStrings on function entry
 
 ##################################################################33
 
@@ -167,14 +163,14 @@ proc ::tsp::lang_decl_native_double {varName} {
 # declare a native string
 #
 proc ::tsp::lang_decl_native_string {varName} {
-    return "Tcl_DString $varName;\n"
+    return "Tcl_DString* $varName;\n"
 }
 
 ##############################################
 # free a native string
 #
 proc ::tsp::lang_free_native_string {varName} {
-    return "Tcl_DStringFree(&${varName});\n"
+    return "Tcl_DStringFree(${varName});\n"
 }
 
 ##############################################
@@ -219,7 +215,7 @@ proc ::tsp::lang_new_var_string {varName str} {
     if {[string range $str 0 0] eq "\""} {
         return "$varName = Tcl_NewStringObj($str,-1);\n"
     } else {
-        return "$varName = Tcl_NewStringObj(Tcl_DStrigValue(&$str), Tcl_DStringLength(&$str));\n"
+        return "$varName = Tcl_NewStringObj(Tcl_DStrigValue($str), Tcl_DStringLength($str));\n"
     }
 }
 
@@ -237,9 +233,9 @@ proc ::tsp::lang_convert_boolean_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_boolean_string */\n"
     
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((*rc = Tcl_GetBoolean(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetBoolean(interp, $sourceVarName, $targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if ((*rc = Tcl_GetBoolean(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetBoolean(interp, $sourceVarName, Tcl_DStringValue($targetVarName))) != TCL_OK) \{\n"
 
     }
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
@@ -274,9 +270,9 @@ proc ::tsp::lang_convert_int_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_int_string */\n"
 
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, $targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
+        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, Tcl_DStringValue($targetVarName))) != TCL_OK) \{\n"
     }
 #FIXME: see Tcl_GetInt()   but convert use Tcl_GetWideIntFromObj instead.
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], Tcl_GetString($sourceVarName), (char *) NULL);\n"
@@ -313,9 +309,9 @@ proc ::tsp::lang_convert_double_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_double_string */\n"
 
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((*rc = Tcl_GetDouble(interp, $sourceVarName, &$targetVarName)) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetDouble(interp, $sourceVarName, $targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if ((*rc = Tcl_GetDouble(interp, $sourceVarName, Tcl_DStringValue(&$targetVarName))) != TCL_OK) \{\n"
+        append result "if ((*rc = Tcl_GetDouble(interp, $sourceVarName, Tcl_DStringValue($targetVarName))) != TCL_OK) \{\n"
 
     }
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], \"$sourceVarName\", (char *) NULL);\n"
@@ -363,8 +359,8 @@ proc ::tsp::lang_convert_double_var {targetVarName sourceVarName errMsg} {
 #
 proc ::tsp::lang_convert_string_boolean {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_boolean */\n"
-    append result "Tcl_DStringSetLength(&$targetVarName,0);\n"
-    append result "Tcl_DStringAppend(&$targetVarName, ($sourceVarName ? : \"1\" : \"0\"), -1);\n"
+    append result "Tcl_DStringSetLength($targetVarName,0);\n"
+    append result "Tcl_DStringAppend($targetVarName, ($sourceVarName ? : \"1\" : \"0\"), -1);\n"
     return $result
 }
 
@@ -393,8 +389,8 @@ proc ::tsp::lang_convert_string_double {targetVarName sourceVarName {errMsg ""}}
 #
 proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_string */\n"
-    append result "Tcl_DStringSetLength(&$targetVarName,0);\n"
-    append result "Tcl_DStringAppend(&$targetVarName, Tcl_DStringValue(&$sourceVarName), Tcl_DStringLength(&$sourceVarName));\n"
+    append result "Tcl_DStringSetLength($targetVarName,0);\n"
+    append result "Tcl_DStringAppend($targetVarName, Tcl_DStringValue($sourceVarName), Tcl_DStringLength($sourceVarName));\n"
     return $result
 }
 
@@ -403,7 +399,7 @@ proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}}
 #
 proc ::tsp::lang_convert_string_var {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_var */\n"
-    append result "Tcl_DStringSetLength(&$targetVarName,0);\n"
+    append result "Tcl_DStringSetLength($targetVarName,0);\n"
     append result "TSP_Util_lang_convert_string_var(&$targetVarName, $sourceVarName);\n"
 #FIXME: Tcl_GetStringFromObj, set DString as a result
     return $result
@@ -442,7 +438,7 @@ proc ::tsp::lang_get_string_double {sourceVarName} {
 # get a string from a string value
 #
 proc ::tsp::lang_get_string_string {sourceVarName} {
-    return "Tcl_DStringValue(&$sourceVarName)"
+    return "Tcl_DStringValue($sourceVarName)"
 }
 
 ##############################################
@@ -617,8 +613,8 @@ proc ::tsp::lang_array_get_array_idxvar {arrVar idxVar idxVartype} {
 #
 proc ::tsp::lang_assign_string_const {targetVarName sourceText} {
     append result "/* ::tsp::lang_assign_string_const */\n"
-    append result "Tcl_DStringSetLength(&$targetVarName,0);\n" 
-    append result "Tcl_DStringAppend($$targetVarName, [::tsp::lang_quote_string $sourceText], -1);\n"
+    append result "Tcl_DStringSetLength($targetVarName,0);\n" 
+    append result "Tcl_DStringAppend($targetVarName, [::tsp::lang_quote_string $sourceText], -1);\n"
     return $result
 }
 
@@ -711,7 +707,7 @@ proc ::tsp::lang_append_var {targetVarName source} {
     if {[string range $source 0 0] eq "\""} {
         append result "Tcl_AppendToObj($targetVarName, $source, -1);\n"
     } else {
-        append result "Tcl_AppendToObj($targetVarName, Tcl_DStringValue(&$source), Tcl_DStringLength(&$source));\n"
+        append result "Tcl_AppendToObj($targetVarName, Tcl_DStringValue($source), Tcl_DStringLength($source));\n"
     }
     return $result
 }
@@ -836,7 +832,7 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
     if {$procType eq "var"} {
         append code [::tsp::lang_safe_release $returnVar]
     } elseif {$procType eq "string"} {
-        append code "Tcl_DStringSetLength(&$returnVar, 0);\n"
+        append code "Tcl_DStringSetLength($returnVar, 0);\n"
     }
     append code "if ((*rc = TSP_User_${cmdName}_direct($invokeArgs)) != TCL_OK) {\n"
     append code "    \n"
@@ -862,7 +858,7 @@ proc ::tsp::lang_release_vars {compUnitDict} {
                 append buf "}\n"
             }
             string { 
-                append buf "Tcl_DStringFree(&$var);\n"
+                append buf "Tcl_DStringFree($var);\n"
             }
         }
     }
@@ -917,6 +913,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set procVarsCleanup ""
     set procStringsInit ""
     set procStringsCleanup ""
+    set procStringsAlloc ""
     set copyStringArgs ""
 
     # create: assignments from proc args to scoped variables; 
@@ -934,10 +931,10 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append declProcArgs [::tsp::lang_decl_native_$type $arg]
             # and define as proc varaibles
             append procVarsDecls [::tsp::lang_decl_var $arg]
-            append procStringsInit "Tcl_DStringInit(&$arg);\n"
-            append procStringsCleanup "Tcl_DStringCleanup(&$arg);\n"
+            append procStringsInit "Tcl_DStringInit($arg);\n"
+            append procStringsCleanup "Tcl_DStringCleanup($arg);\n"
             # and copy from argument
-            append copyStringArgs "Tcl_DStringAppend(&$arg, Tcl_DStringValue(Caller_$arg), Tcl_DStringLength(Caller_$arg));\n"
+            append copyStringArgs "Tcl_DStringAppend($arg, Tcl_DStringValue(Caller_$arg), Tcl_DStringLength(Caller_$arg));\n"
         } else {
             append nativeTypedArgs $comma $nativeType " " $arg 
             append declProcArgs [::tsp::lang_decl_native_$type $arg]
@@ -1026,8 +1023,10 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append procVarsCleanup [::tsp::lang_safe_release $pre$var]
         } elseif {$type eq "string"} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
-            append procStringsInit "Tcl_DStringInit(&$pre$var);\n"
-            append procStringsCleanup "Tcl_DStringCleanup(&$pre$var);\n"
+            append procStringsAlloc "Tcl_DString Proc_$pre$var;\n"
+            append procStringsInit "Tcl_DStringInit(Proc_$pre$var);\n"
+            append procStringsInit "$pre$var = &Proc_$pre$var;\n"
+            append procStringsCleanup "Tcl_DStringCleanup($pre$var);\n"
         } elseif {$type ne "array"} {
             append procVarsDecls [::tsp::lang_decl_native_$type $pre$var]
         }
@@ -1095,6 +1094,7 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     CallFrame* frame = NULL;
     $argObjvArrays
+    $procStringsAlloc
 
     $returnAlloc
 
@@ -1319,7 +1319,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
                 boolean {set newobj "Tcl_NewBooleanObj($pre$var)"}
                 int     {set newobj "Tcl_NewWideIntObj($pre$var)"}
                 double  {set newobj "Tcl_NewDoubleObj($pre$var)"}
-                string  {set newobj "Tcl_NewStringObj(Tcl_DStringValue(&$pre$var), Tcl_DStringLength(&$pre$var))"}
+                string  {set newobj "Tcl_NewStringObj(Tcl_DStringValue($pre$var), Tcl_DStringLength($pre$var))"}
             }
             append buf "Tcl_SetVar2Ex(interp,[::tsp::lang_quote_string  $var], null, $newobj, 0);\n"
         }
@@ -1742,7 +1742,7 @@ proc ::tsp::lang_return {compUnitDict argVar} {
     upvar $compUnitDict compUnit
     set returnType [dict get $compUnit returns]
     switch $returnType {
-        string {append code "Tcl_DStringAppend(returnPtr, Tcl_DStringValue(&$argVar), Tcl_DStringLength(&$argVar));\n"}
+        string {append code "Tcl_DStringAppend(returnPtr, Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"}
         var    {append code "*returnPtr = Tcl_DuplicateObj($argVar);\n"}
         default {append code "*returnPtr = $argVar;\n"}
     }
