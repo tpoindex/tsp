@@ -88,9 +88,9 @@ proc ::tsp::lang_xlate_native_type {tsp_type} {
         boolean {return int}
         int     {return Tcl_WideInt}
         double  {return double}
-        var     {return Tcl_Obj}
-        array   {return Tcl_Obj}
-        string  {return Tcl_DString}
+        var     {return Tcl_Obj*}
+        array   {return Tcl_Obj*}
+        string  {return Tcl_DString*}
     }
     # rest are also java types
     return $tsp_type
@@ -927,7 +927,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         set nativeType [::tsp::lang_xlate_native_type $type]
         if {$type eq "string"} { 
             # strings are passed as pointers
-            append nativeTypedArgs $comma $nativeType " " *Caller_$arg 
+            append nativeTypedArgs $comma $nativeType " " Caller_$arg 
             append declProcArgs [::tsp::lang_decl_native_$type $arg]
             # and define as proc varaibles
             append procVarsDecls [::tsp::lang_decl_var $arg]
@@ -950,7 +950,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     }
 
     # argVarAssignments need to use local 'rc' variable, not a pointer
-    regsub -a;; {*rc} $argVarAssignments {rc} argVarAssignments
+    regsub -all {\*rc} $argVarAssignments {rc} argVarAssignments
 
     if {[string length $nativeTypedArgs]} {
         set nativeTypedArgs ", $nativeTypedArgs"
@@ -970,7 +970,6 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         } 
         string {
             # note that string return type returns a pointer to an alloc'ed Tcl_DString
-            set nativeReturnType ${nativeReturnType}*
             set returnVar returnValue
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
@@ -1087,14 +1086,13 @@ $return_var_def
 $nativeReturnType
 TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
 ) {
-    int rc = TCL_OK;     
     int len;
     $nativeReturnType returnValue;
     char* exprErr = NULL;
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     CallFrame* frame = NULL;
-    $argObjvArrays
-    $procStringsAlloc
+    [::tsp::indent compUnit \n$argObjvArrays 1 \n]
+    [::tsp::indent compUnit \n$procStringsAlloc 1 \n]
 
     $returnAlloc
 
@@ -1113,11 +1111,16 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
     frame = ckalloc(sizeof(CallFrame))
     Tcl_PushCallFrame(interp, frame, Tcl_GetGlobalNamespace(interp), 1);
 
+    *rc = TCL_OK;     
+
     /* code must return a value as defined by procdef (unless void), else will raise a compile error */
     [::tsp::indent compUnit $code 1]
 
 
 }
+
+
+/* redefine macros for the Tcl interface function */
 
 #undef CLEANUP
 #undef RETURN_VALUE_CLEANUP
@@ -1125,7 +1128,7 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
 
 #define CLEANUP
 #define RETURN_VALUE_CLEANUP
-#define RETURN_VALUE
+#define RETURN_VALUE TCL_ERROR
 
 /* 
  * Tcl command interface 
@@ -1133,8 +1136,8 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
  */
 int
 TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
-				 int objc, Tcl_Obj *const objv[]
-) {
+				 int objc, Tcl_Obj *const objv[]) {
+
 
     int rc;
     /*::tsp::lang_builtin_refs */
@@ -1142,6 +1145,7 @@ TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
     $returnVarDecl
     /* variables used by this command, assigned from argv array */
     [::tsp::indent compUnit $declProcArgs 1 \n]
+
 
     /* check arg count */
     if (objc != [expr {$numProcArgs + 1}]) {
@@ -1151,9 +1155,14 @@ TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
 
     /* assign arg variable from argv array */
     [::tsp::indent compUnit $argVarAssignments 1 \n]
+
+    rc = TCL_OK;
     /* invoke inner compile proc method */
-    if ((rc = TSP_UserDirect_${name}(interp ${nativeArgs})) == TCL_OK) {
+
+    returnValue = TSP_UserDirect_${name}(interp, &rc ${nativeArgs});
+    if (rc == TCL_OK) {
         $returnSetResult
+    } else {
     }
 
     /* release var variables, if any (includes _tmp variables) */

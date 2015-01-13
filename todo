@@ -2,7 +2,7 @@ source tsp.tcl
 
 set compUnit [tsp::init_compunit FILE PROC {ARGBOOL ARGINT ARGDOUBLE ARGSTRING ARGVAR} {}]
 
-dict set compUnit return void
+dict set compUnit returns void
 dict set compUnit argTypes {boolean int double string var}
 ::tsp::setVarType compUnit BB boolean
 ::tsp::setVarType compUnit II int
