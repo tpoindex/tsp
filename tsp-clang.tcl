@@ -912,7 +912,9 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set procVarsDecls ""
     set procVarsCleanup ""
     set procStringsInit ""
+    set declStringsInit ""
     set procStringsCleanup ""
+    set declStringsCleanup ""
     set procStringsAlloc ""
     set copyStringArgs ""
 
@@ -929,10 +931,12 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             # strings are passed as pointers
             append nativeTypedArgs $comma $nativeType " " Caller_$arg 
             append declProcArgs [::tsp::lang_decl_native_$type $arg]
-            # and define as proc varaibles
+            # and define as proc variables
             append procVarsDecls [::tsp::lang_decl_var $arg]
             append procStringsInit "Tcl_DStringInit($arg);\n"
+            append declStringsInit "Tcl_DStringInit(&$arg);\n"
             append procStringsCleanup "Tcl_DStringCleanup($arg);\n"
+            append declStringsCleanup "Tcl_DStringCleanup($arg);\n"
             # and copy from argument
             append copyStringArgs "Tcl_DStringAppend($arg, Tcl_DStringValue(Caller_$arg), Tcl_DStringLength(Caller_$arg));\n"
         } else {
@@ -941,10 +945,9 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         }
         if {$type eq "var"} {
             append argVarAssignments [::tsp::lang_assign_var_var $arg  objv\[$i\]]
-            append procArgsCleanup [::tsp::lang_safe_release $arg]
             append innerVarPreserves [::tsp::lang_preserve $arg]
         } else {
-            append argVarAssignments [::tsp::lang_convert_${type}_var $arg argv\[$i\] "can't convert arg $i to $type"]
+            append argVarAssignments [::tsp::lang_convert_${type}_var $arg objv\[$i\] "can't convert arg $i to $type"]
         }
         set comma ", "
     }
@@ -1023,7 +1026,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         } elseif {$type eq "string"} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
             append procStringsAlloc "Tcl_DString Proc_$pre$var;\n"
-            append procStringsInit "Tcl_DStringInit(Proc_$pre$var);\n"
+            append procStringsInit "Tcl_DStringInit(&Proc_$pre$var);\n"
             append procStringsInit "$pre$var = &Proc_$pre$var;\n"
             append procStringsCleanup "Tcl_DStringCleanup($pre$var);\n"
         } elseif {$type ne "array"} {
@@ -1041,19 +1044,28 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         append argObjvFree   "    ckfree(argObjvArray_$i);\n"
     }
 
-    append cleanup_defs "#define CLEANUP \n"
+    append cleanup_defs "#define CLEANUP \\\n"
     append cleanup_defs [::tsp::indent compUnit [::tsp::lang_spill_vars compUnit [dict get $compUnit finalSpill]] 1 \n]
     append cleanup_defs [::tsp::indent compUnit [::tsp::lang_safe_release _tmpVar_cmdResultObj] 1 \n]
-    append cleanup_defs [::tsp::indent compUnit $procArgsCleanup 1 \n]
     append cleanup_defs [::tsp::indent compUnit $procVarsCleanup 1 \n]
     append cleanup_defs [::tsp::indent compUnit $procStringsCleanup 1 \n]
     append cleanup_defs [::tsp::indent compUnit $argObjvFree 1 \n]
+
+    set arg_cleanup_defs ""
+    if {[string length $declStringsCleanup]} {
+        append arg_cleanup_defs "#define CLEANUP \n"
+        append arg_cleanup_defs [::tsp::indent compUnit $declStringsCleanup 1 \n]
+    }
 
     regsub "^\[ \n\]*" $cleanup_defs {} cleanup_defs
     regsub -all {\n *$} $cleanup_defs "\n" cleanup_defs
     regsub -all {\n} $cleanup_defs "\\\n" cleanup_defs
     append cleanup_defs "    Tcl_PopCallFrame(interp); \\\n" 
     append cleanup_defs "    ckfree(frame)\n"
+
+    regsub "^\[ \n\]*" $arg_cleanup_defs {} arg_cleanup_defs
+    regsub -all {\n *$} $arg_cleanup_defs "\n" arg_cleanup_defs
+    regsub -all {\n} $arg_cleanup_defs "\\\n" arg_cleanup_defs
     
     if {$returnType eq "void"} {
         set return_cleanup_def "#define RETURN_VALUE_CLEANUP"
@@ -1080,7 +1092,7 @@ $return_cleanup_def
 $return_var_def
 
 /* 
- * proc implementation
+ * proc implementation (inner)
  *
  */
 $nativeReturnType
@@ -1126,9 +1138,9 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
 #undef RETURN_VALUE_CLEANUP
 #undef RETURN_VALUE
 
-#define CLEANUP
-#define RETURN_VALUE_CLEANUP
-#define RETURN_VALUE TCL_ERROR
+$arg_cleanup_defs
+#define RETURN_VALUE_CLEANUP rc = rc
+#define RETURN_VALUE rc
 
 /* 
  * Tcl command interface 
@@ -1143,7 +1155,7 @@ TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
     /*::tsp::lang_builtin_refs */
 
     $returnVarDecl
-    /* variables used by this command, assigned from argv array */
+    /* variables used by this command, assigned from objv array */
     [::tsp::indent compUnit $declProcArgs 1 \n]
 
 
@@ -1153,7 +1165,7 @@ TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
         return TCL_ERROR;
     }
 
-    /* assign arg variable from argv array */
+    /* assign arg variable from objv array */
     [::tsp::indent compUnit $argVarAssignments 1 \n]
 
     rc = TCL_OK;
@@ -1165,8 +1177,8 @@ TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
     } else {
     }
 
-    /* release var variables, if any (includes _tmp variables) */
-    [::tsp::indent compUnit $procArgsCleanup 1 \n]
+    /* release string variables, if any  */
+    CLEANUP;
     
     return rc;
 }
