@@ -1230,6 +1230,23 @@ proc ::tsp::lang_builtin_refs {} {
     append result "#ifndef _TCL\n"
     append result "#include <tcl.h>\n"
     append result "#endif\n\n"
+
+    append result "void*\n"
+    append result "TSP_User_getCmd(Tcl_Interp* interp, char* cmd) \{\n"
+    append result "    Tcl_CmdInfo cmdInfo;\n"
+    append result "    int rc;\n"
+    append result "    Tcl_ObjCmdProc* objCmd;\n"
+    append result "    void* userCmd = NULL;\n"
+    append result "    rc = Tcl_GetCommandInfo(interp, cmd, &cmdInfo);\n"
+    append result "    if (rc == 0) \{\n"
+    append result "        Tcl_Panic(\"TSP_User_getCmd: can't get command proc for %s\", cmd);\n"
+    append result "    \} else \{\n"
+    append result "       objCmd = cmdInfo.objProc;\n"
+    append result "       rc = objCmd(&userCmd, interp, 0, NULL);\n"
+    append result "       return userCmd;\n"
+    append result "    \}\n"
+    append result "\}\n\n"
+
     append result "Tcl_ObjCmdProc*\n"
     append result "TSP_Cmd_getCmd(Tcl_Interp* interp, char* cmd) \{\n"
     append result "    Tcl_CmdInfo cmdInfo;\n"
@@ -1241,12 +1258,13 @@ proc ::tsp::lang_builtin_refs {} {
     append result "        return cmdInfo.objProc;\n"
     append result "    \}\n"
     append result "\}\n\n\n"
+
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
         append result "int\n"
         append result "TSP_Cmd_builtin_$cmd (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) \{\n"
         append result "    static Tcl_ObjCmdProc* cmdProc = NULL;\n"
         append result "    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, \"::$cmd\");}\n" 
-        append result "    return (*cmdProc)(clientData, interp, objc, objv);\n"
+        append result "    return (cmdProc)(clientData, interp, objc, objv);\n"
         append result "\}\n\n"
     }
     return $result
