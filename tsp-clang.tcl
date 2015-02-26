@@ -1,8 +1,3 @@
-# FIXME: have to figure out how to handle ensemble commands
-
-# if we want to be able to directly call these commands.  Have to
-# get function pointer at runtime??  see: BUILTIN_TCL_ENSEMBLE_COMMANDS 
-
 ##################################################################33
 
 # language specific procs - c
@@ -26,38 +21,25 @@ package require tcc4tcl
 # for details
 
 namespace eval ::tsp {
-    variable BUILTIN_TCL_COMMANDS [list					\
-        after       append      apply                               	\
-        break       case        catch       cd                      	\
-        close       concat      continue                encoding    	\
-        eof         error       eval        exec        exit        	\
-        expr        fblocked    fconfigure  fcopy                   	\
-        fileevent   flush                   foreach     format      	\
-        gets        glob        global      if          incr        	\
-                    interp      join        lappend     lassign     	\
-        lindex      linsert     list        llength     lrange      	\
-        lmap                                                            \
-        lrepeat     lreplace    lreverse    lsearch     lset        	\
-        lsort                   open        package                 	\
-        proc        puts        pwd         read        regexp      	\
-        regsub      rename      return      scan        seek        	\
-        set         socket      source      split                   	\
-        subst       switch      tell        time        trace       	\
-        try                                                         	\
-        unset       update      uplevel     upvar       variable    	\
-        vwait       while						\
+    variable BUILTIN_TCL_COMMANDS [list		 	           \
+        after       append      apply       array       binary     \
+        break       case        catch       cd          chan       \
+        clock       close       concat      continue    dict       \
+        encoding    eof         error       eval        exec       \
+        exit        expr        fblocked    fconfigure  fcopy      \
+        file        fileevent   flush       for         foreach    \
+        format      gets        glob        global      if         \
+        incr        info        interp      join        lappend    \
+        lassign     lindex      linsert     list        llength    \
+        load        lrange      lrepeat     lreplace    lreverse   \
+        lsearch     lset        lsort       namespace   open       \
+        package     pid         proc        puts        pwd        \
+        read        regexp      regsub      rename      return     \
+        scan        seek        set         socket      source     \
+        split       string      subst       switch      tell       \
+        time        trace       unload      unset       update     \
+        uplevel     upvar       variable    vwait       while      \
     ]
-
-    # FIX ME: have to figure out how to handle ensemble commands
-    # if we want to be able to directly call these commands.  Have to
-    # get function pointer at runtime??
-    variable BUILTIN_TCL_ENSEMBLE_COMMANDS [list                        \
-        array       binary      chan        dict        file            \
-        info        namespace   string                                  \
-    ]
-
-    # FIXME: how far back in Tcl versions should we support? e.g 8.4/8.5 doesn't
-    # have some of these commands.
 
     variable SPILL_LOAD_COMMANDS [list                               \
 	[list binary     scan       4  end    var      load]         \
