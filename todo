@@ -19,6 +19,10 @@ dict set compUnit argTypes {boolean int double string var}
 
 --------------------------------------
 
+tsp-clang -  CLEANUP, et.al. macros only to be used in return statement, and as part of
+  error exit.  may have to have an compUnit dict field to inidicate the goto was coded
+  somewhere, or make sure a dummy goto is code after function entry.
+
 
 check TspFunc.java - does int_abs need to check for Long.MIN_VALUE ?  (since we can't abs that value)
 

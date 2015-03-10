@@ -1,4 +1,12 @@
 source tsp.tcl
+tsp::proc foo {i} {
+  #tsp::procdef int -args int
+  return $i
+}
+
+
+
+source tsp.tcl
 set body {
     #::tsp::procdef returns: int args: int string
     #::tsp::var sum 
