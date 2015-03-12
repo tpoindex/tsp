@@ -50,7 +50,7 @@ namespace eval ::tsp {
         [list dict       unset      2  2      var      spill/load]   \
         [list dict       update     2  2      var      spill/load]   \
         [list dict       with       2  2      var      spill/load]   \
-        [list gets       ""         1  1      var      spill/load]   \
+        [list gets       ""         2  2      var      spill/load]   \
         [list lassign    ""         2  end    var      load]         \
         [list lset       ""         1  1      var      spill/load]   \
         [list regexp     --        +2  end    var      spill/load]   \
