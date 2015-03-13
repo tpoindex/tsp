@@ -1,6 +1,6 @@
 tsp::proc main {} {
 	#tsp::procdef void
-	#tsp::var argv d file f buf
+	#tsp::string argv d file f buf
 	#tsp::int len
 	global	argv
 

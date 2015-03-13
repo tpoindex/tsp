@@ -1,6 +1,7 @@
 tsp::proc wordsplit {str} {
 	#tsp::procdef var -args string
-	#tsp::var list word char
+	#tsp::var list char
+	#tsp::string word 
 	#tsp::boolean is_space
 	#tsp::int len
 	set list {}
@@ -27,7 +28,7 @@ tsp::proc wordsplit {str} {
 tsp::proc doit {file} {
 	#tsp::procdef int -args var
 	#tsp::var f buf words
-	#tsp::int n len
+	#tsp::int n len i
 	set f [open $file r]
 	fconfigure $f -translation binary
 	set buf ""
@@ -35,7 +36,8 @@ tsp::proc doit {file} {
 	set len [gets $f buf]
 	while {$len >= 0} {
 		set words [wordsplit $buf]
-		incr n [llength $words]
+		set i [llength $words]
+		incr n $i
 		set len [gets $f buf]
 	}
 	close $f

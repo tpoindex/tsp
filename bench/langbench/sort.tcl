@@ -1,6 +1,7 @@
 tsp::proc main {} {
 	#tsp::procdef void
-	#tsp::var f buf l
+	#tsp::var l sorted
+	#tsp::string f buf file
 	#tsp::int len
 	global	argv
 
@@ -17,7 +18,8 @@ tsp::proc main {} {
 	}
 
 	# takes 7.9 seconds/12.3
-	foreach buf [lsort $l] {
+        set sorted [lsort $l]
+	foreach buf $sorted {
 		puts $buf
 	}
 }

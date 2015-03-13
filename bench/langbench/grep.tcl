@@ -1,6 +1,6 @@
 tsp::proc grep {file} {
-	#tsp::procdef void -args var
-	#tsp::var f buf
+	#tsp::procdef void -args string
+	#tsp::string f buf
 	#tsp::int len
 	#tsp::boolean matched
 	set f [open $file r]

@@ -1,10 +1,11 @@
 tsp::proc cat {file} {
-	#tsp::procdef void -args var
-	#tsp::int len
+	#tsp::procdef void -args string
+	#tsp::boolean is_eof
 	#tsp::string f buf
 	set f [open $file r]
-        set len [gets $f buf]
-	while {$len >= 0} { puts $buf ; set len [gets $f buf] }
+        set buf [gets $f]
+        set is_eof [eof $f]
+	while {! $is_eof} { puts $buf ; set buf [gets $f] ; set is_eof [eof $f]  }
 	close $f
 }
 

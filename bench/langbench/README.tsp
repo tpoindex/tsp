@@ -36,5 +36,7 @@ TCL_SRC_DIR to your tcl8.6.x source directory:
 	done | head -1000000 > DATA
 
 
-To run using JTcl:  ../../jtcltsp.sh RUN.tcl DATA
-To run using CTcl:  tclsh8.6 RUN.tcl DATA
+RUN.tcl requires tclsh8.6
+
+To run using benchmarks with JTcl:  TSP_INTERP=jtsp tclsh8.6 RUN.tcl DATA
+To run using benchmarks with CTcl:  TSP_INTERP=ctsp tclsh8.6 RUN.tcl DATA

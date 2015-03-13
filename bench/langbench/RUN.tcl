@@ -1,23 +1,32 @@
-# invoke with jtcltsp.sh or tclsh8.6
+#!/usr/local/bin/tclsh8.6
 
-set progs {cat grep hash hash2 loop proc fib sort wc}
+set progs {cat grep hash loop proc fib sort wc}
 
+# make sure some data file is specified
 set data [lindex $argv 0]
 if {[string length $data] == 0} {
     set data /dev/null
 }
 
-if {[info command jaclloadjava] ne ""} {
-    puts stderr [format %-8s jtsp*]
+puts stderr "lang	cat	grep	hash	loop	proc	fib	sort	wc"
+
+# determine which interp to use with tsp: "jtsp"  or "ctsp" 
+set interp ""
+catch {set interp $env(TSP_INTERP)}
+if {$interp eq "jtsp"} {
+    puts -nonewline stderr [format %-8s jtsp*]
     set interp ../../jtcltsp.sh
-} else {
-    puts stderr [format %-8s ctsp*]
+} elseif {$interp eq "ctsp"} {
+    puts -nonewline stderr [format %-8s ctsp*]
     set interp tclsh8.6
+} else {
+    puts stderr "env var TSP_INTERP must be: jtsp or ctsp"
+    exit 1
 }
 
+
 foreach prog $progs {
-    #exec $interp RUN_PROG.tcl $prog $data
-    exec $interp RUN_PROG.tcl $prog $data >/dev/null
+    exec -ignorestderr $interp RUN_PROG.tcl $prog $data >/dev/null </dev/null 
 }
 
 puts stderr ""
