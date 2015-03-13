@@ -1,3 +1,10 @@
+PERFORMANCE: 
+  - allocate argument arrays once to a max size, or maybe one array per call
+  - check that assignment to var is doing copy only when needed
+  - check that 'gets' is load not spill/load, and other cmds
+  - check that 'load' does not always cause 'spill'
+
+
 source tsp.tcl
 
 set compUnit [tsp::init_compunit FILE PROC {ARGBOOL ARGINT ARGDOUBLE ARGSTRING ARGVAR} {}]
