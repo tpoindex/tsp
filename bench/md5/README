@@ -1,0 +1,6 @@
+This is the md5 procedure from tcllib, version 1.4.4.
+
+It has been un-obfuscated (i.e., the preprocessing steps
+have already been performed), expr simplified to move nested
+commands outside the expr expression, and tsp annotations 
+and proc command applied. 
