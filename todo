@@ -5,6 +5,7 @@ PERFORMANCE:
   - check that 'load' does not always cause 'spill'
   - whys is spill vars emitting double the code?  (see cat.java)
   - check assign_var_var is just copying ref and preserve
+  - check why code outside a loop uses argv_1, and inside it used argv_0
 
 
 source tsp.tcl
