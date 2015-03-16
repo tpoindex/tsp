@@ -3,6 +3,8 @@ PERFORMANCE:
   - check that assignment to var is doing copy only when needed
   - check that 'gets' is load not spill/load, and other cmds
   - check that 'load' does not always cause 'spill'
+  - whys is spill vars emitting double the code?  (see cat.java)
+  - check assign_var_var is just copying ref and preserve
 
 
 source tsp.tcl
