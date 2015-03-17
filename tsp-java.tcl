@@ -54,7 +54,7 @@ namespace eval ::tsp {
         [list dict       unset      2  2      var      spill/load]   \
         [list dict       update     2  2      var      spill/load]   \
         [list dict       with       2  2      var      spill/load]   \
-        [list gets       ""         2  2      var      spill/load]   \
+        [list gets       ""         2  2      var      load]         \
         [list lassign    ""         2  end    var      load]         \
         [list lset       ""         1  1      var      spill/load]   \
         [list regexp     --        +2  end    var      spill/load]   \
@@ -836,19 +836,22 @@ proc ::tsp::lang_dup_var_if_shared {targetVarName} {
 ##############################################
 # allocate a TclObject objv array
 #
+#FIX ME - just move the call of ::tsp::addArgsPerLevel to ::tsp::gen_objv_array 
 proc ::tsp::lang_alloc_objv_array {compUnitDict size} {
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
-    return "argObjvArray_$cmdLevel = new TclObject\[$size\];\n"
+    ::tsp::addArgsPerLevel compUnit $cmdLevel $size
+    #return "argObjvArray_$cmdLevel = new TclObject\[$size\];\n"
+    return ""
 }
 
 ##############################################
 # assign a TclObject var to a TclObject objv array
 #
-proc ::tsp::lang_assign_objv {compUnitDict n obj} {
+proc ::tsp::lang_assign_objv {compUnitDict n max obj} {
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
-    return "argObjvArray_$cmdLevel\[$n\] = $obj;\n"
+    return "argObjvArray_${cmdLevel}_${max}\[$n\] = $obj;\n"
 }
 
 
@@ -856,16 +859,16 @@ proc ::tsp::lang_assign_objv {compUnitDict n obj} {
 # invoke a builtin tcl command
 #  assumes argObjvArray has been constructed
 #
-proc ::tsp::lang_invoke_builtin {compUnitDict cmd} {
+proc ::tsp::lang_invoke_builtin {compUnitDict cmd max} {
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
 
     append code "\n//  ::tsp::lang_invoke_builtin\n"
-    append code "TspCmd.builtin_$cmd.cmdProc(interp, argObjvArray_$cmdLevel);\n"
+    append code "TspCmd.builtin_$cmd.cmdProc(interp, argObjvArray_${cmdLevel}_${max});\n"
 
-    #append code "builtin_$cmd.cmdProc(interp, argObjvArray_$cmdLevel);\n"
-    #append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray_$cmdLevel);\n"
-    #append code "(TspUtil.builtin_${cmd}).cmdProc(interp, argObjvArray_$cmdLevel);\n"
+    #append code "builtin_$cmd.cmdProc(interp, argObjvArray_${cmdLevel}_${max});\n"
+    #append code "(new tcl.lang.cmd.[string totitle $cmd]Cmd()).cmdProc(interp, argObjvArray_${cmdLevel}_${max});\n"
+    #append code "(TspUtil.builtin_${cmd}).cmdProc(interp, argObjvArray_${cmdLevel}_${max});\n"
 
     append code [::tsp::lang_safe_release _tmpVar_cmdResultObj]
     append code "_tmpVar_cmdResultObj = interp.getResult();\n"
@@ -886,12 +889,12 @@ proc ::tsp::lang_alloc_objv_list {varName} {
 # invoke a tcl command via the interp
 #  assumes argObjvArray has been constructed
 #
-proc ::tsp::lang_invoke_tcl {compUnitDict} {
+proc ::tsp::lang_invoke_tcl {compUnitDict max} {
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
 
     append code "\n//  ::tsp::lang_invoke_tcl\n"
-    append code "interp.invoke(argObjvArray_$cmdLevel, 0);\n"
+    append code "interp.invoke(argObjvArray_${cmdLevel}_${max}, 0);\n"
     append code [::tsp::lang_safe_release _tmpVar_cmdResultObj]
     append code "_tmpVar_cmdResultObj = interp.getResult();\n"
     append code [::tsp::lang_preserve _tmpVar_cmdResultObj] \n
@@ -1049,10 +1052,14 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     }
     
     # create the argObjvArrays, one for each level of command nesting
-    set argObjvArrays ""
+    set argObjvArrays "\n        // arg arrays to call builtin or tcl invoke commands, one per level, per max args"
     set maxLevel [dict get $compUnit maxLevel]
     for {set i 0} {$i <= $maxLevel} {incr i} {
-        append argObjvArrays "\n        TclObject\[\] argObjvArray_$i = null;"
+        if {[dict exists $compUnit argsPerLevel $i]} {
+            foreach argc [dict get $compUnit argsPerLevel $i] {
+                append argObjvArrays "\n        TclObject\[\] argObjvArray_${i}_${argc} = new TclObject\[$argc\];"
+            }
+        }
     }
 
     # class template

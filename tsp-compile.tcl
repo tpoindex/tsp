@@ -21,7 +21,8 @@
 # breakable - count of nested while/for/foreach, when > 1  break/continue are allowed
 # depth - count of block nesting level (if/while/for/foreach etc.)
 # cmdLevel - count of nested commands (per outer word boundary)
-# maxLevel - max level of nexted commands
+# maxLevel - max level of nested commands
+# argsPerLevel - sub dict of level number and argv lengths
 # lineNum - current line number
 # errors - list of errors
 # warnings - list of warnings
@@ -51,6 +52,7 @@ proc ::tsp::init_compunit {file name procargs body} {
         depth 0 \
         cmdLevel 0 \
         maxLevel 0 \
+        argsPerLevel [dict create] \
         lineNum 1 \
         errors "" \
         warnings "" \

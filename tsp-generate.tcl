@@ -43,6 +43,26 @@ proc ::tsp::incrCmdLevel {compUnitDict {n 1}} {
     }
 }
 
+#########################################################
+# add an argv count usage at a level
+# each usage of a builtin Tcl command or indirect Tcl call needs 
+# to record how many args are used, per level.
+# for java, alloc one array per level & argv count
+# for c, alloc one array per level at max argv count
+#
+proc ::tsp::addArgsPerLevel {compUnitDict level argc} {
+    upvar $compUnitDict compUnit
+    if {[dict exists $compUnit argsPerLevel $level]} {
+        set argsCount [dict get $compUnit argsPerLevel $level]
+        if {[lsearch $argsCount $argc] == -1} {
+            lappend argsCount $argc
+            dict set compUnit argsPerLevel $level [lsort -integer $argsCount]
+        }
+    } else {
+        dict set compUnit argsPerLevel $level $argc
+    }
+}
+
 
 #########################################################
 # check a command string for nested commands
@@ -277,10 +297,11 @@ proc ::tsp::gen_direct_tcl {compUnitDict tree} {
 
     set cmdComponent [lindex [::tsp::parse_word compUnit [lindex $tree 0]] 0]
     set cmdName [lindex $cmdComponent 1]
+    set max [llength $tree]
     
     append result "\n/***** ::tsp::gen_direct_tcl $cmdName */\n"
     append result [::tsp::gen_objv_array compUnit $tree [::tsp::lang_builtin_cmd_obj $cmdName]]
-    lassign [::tsp::lang_invoke_builtin compUnit $cmdName] cmdResultVar code
+    lassign [::tsp::lang_invoke_builtin compUnit $cmdName $max] cmdResultVar code
     append result $code
 
     return [list var $cmdResultVar $result]
@@ -298,10 +319,11 @@ proc ::tsp::gen_invoke_tcl {compUnitDict tree} {
 
     set cmdComponent [lindex [::tsp::parse_word compUnit [lindex $tree 0]] 0]
     set cmdName [lindex $cmdComponent 1]
+    set max [llength $tree]
     
     append result "\n/***** ::tsp::gen_invoke_tcl $cmdName */\n"
     append result [::tsp::gen_objv_array compUnit $tree]
-    lassign [::tsp::lang_invoke_tcl compUnit] cmdResultVar code
+    lassign [::tsp::lang_invoke_tcl compUnit $max] cmdResultVar code
     append result $code
 
     return [list var $cmdResultVar $result]
@@ -377,7 +399,7 @@ proc ::tsp::gen_objv_array {compUnitDict argTree {firstObj {}}} {
             append result $conversionCode
         }
 
-        append result [::tsp::lang_assign_objv compUnit $idx $argVar]
+        append result [::tsp::lang_assign_objv compUnit $idx $max $argVar]
         incr idx
     }
     return $result
