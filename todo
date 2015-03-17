@@ -1,11 +1,14 @@
 PERFORMANCE: 
-  - allocate argument arrays once to a max size, or maybe one array per call
+  DONE - allocate argument arrays once to a max size, or maybe one array per call
   - check that assignment to var is doing copy only when needed
   - check that 'gets' is load not spill/load, and other cmds
   - check that 'load' does not always cause 'spill'
-  - whys is spill vars emitting double the code?  (see cat.java)
+  - why is spill vars emitting double the code?  (see cat.java)
   - check assign_var_var is just copying ref and preserve
-  - check why code outside a loop uses argv_1, and inside it used argv_0
+  DONE - check why code outside a loop uses argv_1, and inside it used argv_0
+  - array variable cause "TclObject has been deallocated" exception (see langbench hash2.tcl)
+  - check if we need to preserve()/release on involing tcl builtin command
+  
 
 
 source tsp.tcl
