@@ -1064,7 +1064,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 
     # class template
 
-    set cfileTemplate \
+    set cfileTemplate1 \
 {
 
 #include <tcl.h>
@@ -1130,9 +1130,15 @@ $arg_cleanup_defs
  * Tcl command interface 
  *
  */
-int
-TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
-				 int objc, Tcl_Obj *const objv\[\]) {
+
+}
+# end of cfileTemplate1
+
+    # defined by critcl::ccomand: 
+    #   int TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp, int objc, Tcl_Obj *const objv\[\]) 
+
+    set cfileTemplate2 \
+{
 
 
     int rc;
@@ -1165,12 +1171,12 @@ TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp,
     CLEANUP;
     
     return rc;
-}
 
 }
-# end of cfileTemplate
+# end of cfileTemplate2
 
-    return [subst $cfileTemplate]
+    # critcl needs two pieces, so return a list
+    return [list [subst $cfileTemplate1] [subst $cfileTemplate2]]
 
 }
 
@@ -1185,12 +1191,16 @@ proc ::tsp::lang_compile {compUnitDict code} {
     dict set compUnit buf $code
     set name [dict get $compUnit name]
     set rc [catch {
-        critcl::cproc .....
+        critcl::config keepsrc 1
+        critcl::ccode [lindex $code 0]
+        critcl::ccommand {clientData interp objc objv} [lindex $code 1]
+        critcl::load
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
     } result ]
     if {$rc} {
         ::tsp::addError compUnit $result
     }
+    critcl::reset
     return $rc
 }
 
