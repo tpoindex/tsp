@@ -738,8 +738,10 @@ proc ::tsp::gen_assign_array_text {compUnitDict targetVarName targetArrayIdxtext
         set idx [::tsp::get_tmpvar compUnit string]
         if {$sourceType eq "string"} {
             append code [::tsp::lang_new_var_$sourceType  $value [::tsp::lang_quote_string $sourceText]]
+            append code [::tsp::lang_preserve $value]
         } else {
             append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
+            append code [::tsp::lang_preserve $value]
         }
         set idxPre [::tsp::var_prefix $targetArrayIdxvar]
         append code [::tsp::lang_convert_string_string $idx [::tsp::lang_get_string_$targetArrayIdxvarType $idxPre$targetArrayIdxvar]]
