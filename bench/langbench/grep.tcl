@@ -1,5 +1,5 @@
 tsp::proc grep {file} {
-	#tsp::procdef void -args string
+	#tsp::procdef void -args var
 	#tsp::string f buf
 	#tsp::int len
 	#tsp::boolean matched
