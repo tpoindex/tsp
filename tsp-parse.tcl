@@ -36,13 +36,17 @@ proc ::tsp::parse_body {compUnitDict range} {
 
         # check spill/load variables that command might use and can be implicitly defined
         set spillLoadType ""
+        set spillvarnames ""
         set loadvarnames ""
         if {[llength $tree] > 1} {
             set spillLoadList [::tsp::check_varname_args compUnit $tree]
-            set loadvarnames [lassign $spillLoadList spillLoadType spillVartype]
+            set spillvarnames [lassign $spillLoadList spillLoadType spillVartype]
+            set loadvarnames $spillvarnames
+
             if {$spillLoadType eq "spill/load"} {
-                ::tsp::append_volatile_list compUnit $loadvarnames
+                ::tsp::append_volatile_list compUnit $spillvarnames
             }
+
             # if spillLoadType is "load", the loadvarnames will be non-null and 
             # added below for loading after the command is executed
         }
@@ -117,6 +121,9 @@ proc ::tsp::parse_body {compUnitDict range} {
                 append gencode [::tsp::gen_load_vars compUnit $volatile]
             }
         }
+
+        # reset volatile list, if any
+        dict set compUnit volatile [list]
 
         # continue parsing
         set range $restRange
