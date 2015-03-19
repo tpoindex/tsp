@@ -50,7 +50,7 @@ namespace eval ::tsp {
         [list dict       unset      2  2      var      spill/load]   \
         [list dict       update     2  2      var      spill/load]   \
         [list dict       with       2  2      var      spill/load]   \
-        [list gets       ""         2  2      var      spill/load]   \
+        [list gets       ""         2  2      var      load]         \
         [list lassign    ""         2  end    var      load]         \
         [list lset       ""         1  1      var      spill/load]   \
         [list regexp     --        +2  end    var      spill/load]   \
@@ -124,7 +124,7 @@ proc ::tsp::lang_type_null {} {
 # declare a native boolean
 #
 proc ::tsp::lang_decl_native_boolean {varName} {
-    return "int $varName = 0\n"
+    return "int $varName = 0;\n"
 }
 
 ##############################################
@@ -731,12 +731,14 @@ proc ::tsp::lang_alloc_objv_array {compUnitDict size} {
 #FIXME: track argObjvArray size, only free/alloc when too small
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
-    append result "if (argObjvArray_$cmdLevel != NULL) \{\n"
-    append result "    ckfree(argObjvArray_$cmdLevel);\n"
-    append result "\}\n"
-    append result "argObjvArray_$cmdLevel = ckalloc($size * sizeof(Tcl_Obj *));\n"
-    append result "argObjc_$cmdLevel = $size;\n"
-    return $result
+    ::tsp::addArgsPerLevel compUnit $cmdLevel $size
+    #append result "if (argObjvArray_$cmdLevel != NULL) \{\n"
+    #append result "    ckfree(argObjvArray_$cmdLevel);\n"
+    #append result "\}\n"
+    #append result "argObjvArray_$cmdLevel = ckalloc($size * sizeof(Tcl_Obj *));\n"
+    #append result "argObjc_$cmdLevel = $size;\n"
+    #return $result
+    return ""
 }
 
 ##############################################
@@ -914,7 +916,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append nativeTypedArgs $comma $nativeType " " Caller_$arg 
             append declProcArgs [::tsp::lang_decl_native_$type $arg]
             # and define as proc variables
-            append procVarsDecls [::tsp::lang_decl_var $arg]
+            append procVarsDecls [::tsp::lang_decl_native_string $arg]
             append procStringsInit "Tcl_DStringInit($arg);\n"
             append declStringsInit "Tcl_DStringInit(&$arg);\n"
             append procStringsCleanup "Tcl_DStringCleanup($arg);\n"
@@ -1006,7 +1008,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
             append procVarsCleanup [::tsp::lang_safe_release $pre$var]
         } elseif {$type eq "string"} {
-            append procVarsDecls [::tsp::lang_decl_var $pre$var]
+            append procVarsDecls [::tsp::lang_decl_native_string $pre$var]
             append procStringsAlloc "Tcl_DString Proc_$pre$var;\n"
             append procStringsInit "Tcl_DStringInit(&Proc_$pre$var);\n"
             append procStringsInit "$pre$var = &Proc_$pre$var;\n"
@@ -1018,12 +1020,17 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     
     # create the argObjvArrays, one for each level of command nesting
     set argObjvArrays ""
+    set argObjvAlloc ""
     set argObjvFree ""
     set maxLevel [dict get $compUnit maxLevel]
-    for {set i 0} {$i <= $maxLevel} {incr i} {
-        append argObjvArrays "\n    Tcl_Obj** argObjvArray_$i = NULL;"
-        append argObjvArrays "\n    int       argObjc_$i = 0;"
-        append argObjvFree   "    ckfree(argObjvArray_$i);\n"
+    if {[llength [dict get $compUnit argsPerLevel]]} {
+        for {set i 0} {$i <= $maxLevel} {incr i} {
+            append argObjvArrays "\n    Tcl_Obj** argObjvArray_$i = NULL;"
+            append argObjvArrays "\n    int       argObjc_$i = 0;"
+            set size [lindex [dict get $compUnit argsPerLevel $i] end]
+            append argObjvAlloc  "\n    argObjvArray_$i = ckalloc($size * sizeof(Tcl_Obj *));"
+            append argObjvFree   "    ckfree(argObjvArray_$i);\n"
+        }
     }
 
     append cleanup_defs "#define CLEANUP " \ \n
@@ -1083,11 +1090,13 @@ $nativeReturnType
 TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
 ) {
     int len;
-    $nativeReturnType returnValue;
+    $returnVarDecl
     char* exprErr = NULL;
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     Tcl_CallFrame* frame = NULL;
     [::tsp::indent compUnit \n$argObjvArrays 1 \n]
+
+    /* stack allocated strings */
     [::tsp::indent compUnit \n$procStringsAlloc 1 \n]
 
     $returnAlloc
@@ -1175,8 +1184,11 @@ $arg_cleanup_defs
 }
 # end of cfileTemplate2
 
-    # critcl needs two pieces, so return a list
-    return [list [subst $cfileTemplate1] [subst $cfileTemplate2]]
+    # critcl needs two pieces, one for ccode and another form ccommand, so return as a list
+    #return [list [subst $cfileTemplate1] [subst $cfileTemplate2]]
+
+puts [subst $cfileTemplate1]
+puts [subst $cfileTemplate2]
 
 }
 
@@ -1193,12 +1205,12 @@ proc ::tsp::lang_compile {compUnitDict code} {
     set rc [catch {
         critcl::config keepsrc 1
         critcl::ccode [lindex $code 0]
-        critcl::ccommand {clientData interp objc objv} [lindex $code 1]
+        critcl::ccommand $name {clientData interp objc objv} [lindex $code 1]
         critcl::load
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
     } result ]
     if {$rc} {
-        ::tsp::addError compUnit $result
+        ::tsp::addError compUnit "error compiling $name:\n$result"
     }
     critcl::reset
     return $rc
@@ -1209,10 +1221,8 @@ proc ::tsp::lang_compile {compUnitDict code} {
 # define a compiledReference in the interp
 #
 proc ::tsp::lang_interp_define {compUnitDict} {
-    upvar $compUnitDict compUnit
-    set class [dict get $compUnit compiledReference]
-    set name [dict get $compUnit name]
-    [java::getinterp] createCommand $name [java::new $class]
+    # this is handled by critcl
+    return
 }
 
 
