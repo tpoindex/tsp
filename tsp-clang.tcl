@@ -2,8 +2,13 @@
 
 # language specific procs - c
 package require critcl
-package require tcc4tcl
+#package require tcc4tcl
 
+# debugging critcl
+critcl::config lines 0
+critcl::config keepsrc 1
+critcl::cache ./.critcl
+critcl::clean_cache
 
 # BUILTIN_TCL_COMMANDS
 # interpreter builtin commands that we can call directly
@@ -1052,7 +1057,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     regsub -all {\n *$} $cleanup_defs "\n" cleanup_defs
     regsub -all {\n} $cleanup_defs "\\\n" cleanup_defs
     append cleanup_defs "    Tcl_PopCallFrame(interp); \\\n" 
-    append cleanup_defs "    ckfree(frame) \n"
+    append cleanup_defs "    ckfree((char*)frame) \n"
 
     regsub "^\[ \n\]*" $arg_cleanup_defs {} arg_cleanup_defs
     regsub -all {\n *$} $arg_cleanup_defs "\n" arg_cleanup_defs
@@ -1087,8 +1092,7 @@ $return_var_def
  *
  */
 $nativeReturnType
-TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
-) {
+TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     int len;
     $returnVarDecl
     char* exprErr = NULL;
@@ -1107,13 +1111,13 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs
     /* initialize string vars */
     [::tsp::indent compUnit $procStringsInit 1 \n]
 
-    /* any "var" arguments need to be preserved, since they are released in finally block */
+    /* any "var" arguments need to be preserved, since they are released in CLEANUP */
     [::tsp::indent compUnit $innerVarPreserves 1 \n]
 
     /* any "string" arguments need to be copied (FIXME: investigate using COW for strings) */
     [::tsp::indent compUnit $copyStringArgs 1 \n]
 
-    frame = ckalloc(sizeof(Tcl_CallFrame));
+    frame = (Tcl_CallFrame*) ckalloc(sizeof(Tcl_CallFrame));
     Tcl_PushCallFrame(interp, frame, Tcl_GetGlobalNamespace(interp), 1);
 
     *rc = TCL_OK;     
@@ -1185,11 +1189,11 @@ $arg_cleanup_defs
 # end of cfileTemplate2
 
     # critcl needs two pieces, one for ccode and another form ccommand, so return as a list
-    #return [list [subst $cfileTemplate1] [subst $cfileTemplate2]]
 
-puts [subst $cfileTemplate1]
-puts [subst $cfileTemplate2]
+    #puts [subst $cfileTemplate1]
+    #puts [subst $cfileTemplate2]
 
+    return [list [subst $cfileTemplate1] [subst $cfileTemplate2]]
 }
 
 
@@ -1203,9 +1207,8 @@ proc ::tsp::lang_compile {compUnitDict code} {
     dict set compUnit buf $code
     set name [dict get $compUnit name]
     set rc [catch {
-        critcl::config keepsrc 1
         critcl::ccode [lindex $code 0]
-        critcl::ccommand $name {clientData interp objc objv} [lindex $code 1]
+        critcl::ccommand ::$name {clientData interp objc objv} [lindex $code 1]
         critcl::load
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
     } result ]

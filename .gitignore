@@ -1,3 +1,4 @@
 *.class
 *.obj
 hyde/
+.critcl
