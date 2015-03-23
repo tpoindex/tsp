@@ -1207,6 +1207,8 @@ proc ::tsp::lang_compile {compUnitDict code} {
     dict set compUnit buf $code
     set name [dict get $compUnit name]
     set rc [catch {
+        #redefine internal critcl PkgInit to return a custom package name
+        proc ::critcl::PkgInit {file} [list return TSP_USER_PKG_${name}]
         critcl::ccode [lindex $code 0]
         critcl::ccommand ::$name {clientData interp objc objv} [lindex $code 1]
         critcl::load
