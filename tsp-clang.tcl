@@ -1,14 +1,13 @@
 ##################################################################33
 
 # language specific procs - c
-package require critcl
 #package require tcc4tcl
+package require critcl
 
-# debugging critcl
-critcl::config lines 0
-critcl::config keepsrc 1
-critcl::cache ./.critcl
-critcl::clean_cache
+# force critcl to load so we can capture the original PkgInit bodhy
+catch {::critcl::cproc}
+variable ::tsp::critcl_pkginit [info body ::critcl::PkgInit]
+
 
 # BUILTIN_TCL_COMMANDS
 # interpreter builtin commands that we can call directly
@@ -496,7 +495,7 @@ proc ::tsp::lang_quote_string {str} {
 # appends long designation for java
 proc ::tsp::lang_int_const {n} {
     if {[string is wideinteger $n]} {
-        append n TCL_LL_MODIFIER
+        append n LL
     }
     return $n
 }
@@ -749,9 +748,10 @@ proc ::tsp::lang_alloc_objv_array {compUnitDict size} {
 ##############################################
 # assign a TclObject var to a TclObject objv array
 #
-proc ::tsp::lang_assign_objv {compUnitDict n obj} {
+proc ::tsp::lang_assign_objv {compUnitDict n max obj} {
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
+    ::tsp::addArgsPerLevel compUnit $cmdLevel $max
     return "argObjvArray_$cmdLevel\[$n\] = $obj;\n"
 }
 
@@ -1207,17 +1207,47 @@ proc ::tsp::lang_compile {compUnitDict code} {
     dict set compUnit buf $code
     set name [dict get $compUnit name]
     set rc [catch {
+        # debugging critcl
+        ::critcl::config lines 0
+        ::critcl::config keepsrc 1
+        ::critcl::cache ./.critcl
+        ::critcl::clean_cache
+
+        # redefine internal critcl print to not print
+        ::proc ::critcl::print {args} {}
+
         #redefine internal critcl PkgInit to return a custom package name
-        proc ::critcl::PkgInit {file} [list return TSP_USER_PKG_${name}]
-        critcl::ccode [lindex $code 0]
-        critcl::ccommand ::$name {clientData interp objc objv} [lindex $code 1]
-        critcl::load
+        ::proc ::critcl::PkgInit {file} [list return Tsp_user_pkg_foo_${name}]
+
+        # tcl 8.5 has wide ints, make that the min version
+        ::critcl::tcl 8.5
+
+        # cause compile to fail if return is not coded in execution branch
+        ::critcl::cflags -Werror=return-type
+
+        # create the code, first is the inner proc (ccode), second is the tcl interface (ccommand)
+        ::critcl::ccode [lindex $code 0]
+        ::critcl::ccommand ::$name {clientData interp objc objv} [lindex $code 1]
+
+	# cause critcl to compile the code and load the resulting .so lib
+        ::critcl::load
+
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
+        format "done"
     } result ]
+    set errors [dict get [critcl::cresults] log]
+puts "---------------------------------------------------------"
+puts "rc = $rc"
+puts "result = $result"
+puts "errors = $errors"
+puts "---------------------------------------------------------"
     if {$rc} {
-        ::tsp::addError compUnit "error compiling $name:\n$result"
+        ::tsp::addError compUnit "error compiling $name:\n$result\n$errors"
     }
     critcl::reset
+
+    # reset the PkgInit proc for other critcl usage
+    ::proc ::critcl::PkgInit {file} $::tsp::critcl_pkginit
     return $rc
 }
 
