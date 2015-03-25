@@ -12,12 +12,18 @@ PERFORMANCE:
   
 --------------------------------------
 critcl::load bug??
+--------------------------------------
+
+
+# simple test
 
 source tsp.tcl; tsp::proc foo {} {
-#tsp::procdef int 
-#tsp::int a
-set a 1
+  #tsp::procdef  void
+  puts -nonewline "hi "
+  puts planet
 }
+
+
 
 
 --------------------------------------

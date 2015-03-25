@@ -256,9 +256,9 @@ proc ::tsp::lang_convert_int_string {targetVarName sourceVarName errMsg} {
     append result "/* ::tsp::lang_convert_int_string */\n"
 
     if {[string range $sourceVarName 0 0] eq "\""} {
-        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, $targetVarName)) != TCL_OK) \{\n"
+        append result "if ((*rc = TSP_Util_lang_convert_int_string_const(interp, $sourceVarName, $targetVarName)) != TCL_OK) \{\n"
     } else {
-        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, Tcl_DStringValue($targetVarName))) != TCL_OK) \{\n"
+        append result "if ((*rc = TSP_Util_lang_convert_int_string(interp, $sourceVarName, $targetVarName)) != TCL_OK) \{\n"
     }
 #FIXME: see Tcl_GetInt()   but convert use Tcl_GetWideIntFromObj instead.
     append result "    Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], Tcl_GetString($sourceVarName), (char *) NULL);\n"
@@ -641,7 +641,11 @@ proc ::tsp::lang_assign_var_double {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_var_string {targetVarName sourceVarName {preserve 1}} {
     append result "/* ::tsp::lang_assign_var_string */\n"
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_string($targetVarName, $sourceVarName);\n"
+    if {[string range $sourceVarName 0 0] eq {"}} {
+        append result "$targetVarName = TSP_Util_lang_assign_var_string_const($targetVarName, $sourceVarName);\n"
+    } else {
+        append result "$targetVarName = TSP_Util_lang_assign_var_string($targetVarName, $sourceVarName);\n"
+    }
     return $result
 }
 
@@ -760,12 +764,12 @@ proc ::tsp::lang_assign_objv {compUnitDict n max obj} {
 # invoke a builtin tcl command
 #  assumes argObjvArray has been constructed
 #
-proc ::tsp::lang_invoke_builtin {compUnitDict cmd} {
+proc ::tsp::lang_invoke_builtin {compUnitDict cmd max} {
     upvar $compUnitDict compUnit
     set cmdLevel [dict get $compUnit cmdLevel]
 
     append code "\n/*  ::tsp::lang_invoke_builtin */\n"
-    append code "if ((*rc = (TSP_Cmd_builtin_$cmd) ((ClientData)NULL, interp,  argObjc_$cmdLevel, argObjvArray_$cmdLevel)) != TCL_OK) \{\n"
+    append code "if ((*rc = (TSP_Cmd_builtin_$cmd) ((ClientData)NULL, interp,  $max, argObjvArray_$cmdLevel)) != TCL_OK) \{\n"
     append code "    CLEANUP;\n"
     append code "    RETURN_VALUE_CLEANUP;\n"
     append code "    return RETURN_VALUE;\n"
@@ -955,46 +959,59 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     switch $returnType {
         var {
             set returnVar returnValue
+            set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
             set returnSetResult "Tcl_SetObjResult(interp, returnValue);"
             set returnAlloc ""
+            set returnCleanup ""
         } 
         string {
             # note that string return type returns a pointer to an alloc'ed Tcl_DString
             set returnVar returnValue
+            set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
-            set returnSetResult "Tcl_DStringResult(interp, returnValue); ckfree(returnValue);"
+            set returnSetResult "Tcl_DStringResult(interp, returnValue); ckfree((char*) returnValue);"
             set returnAlloc "Tcl_DStringInit((returnValue = ckalloc((sizeof Tcl_DString)));"
+            set returnCleanup ""
         } 
         boolean {
             set returnVar returnValue
+            set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
             set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewBooleanObj((int) returnValue));"
             set returnAlloc ""
+            set returnCleanup ""
         }
         double {
             set returnVar returnValue
+            set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
             set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewDoubleObj((double) returnValue));"
             set returnAlloc ""
+            set returnCleanup ""
         }
         int {
             set returnVar returnValue
+            set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
             set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewWideIntObj((Tcl_WideInt) returnValue));"
             set returnAlloc ""
+            set returnCleanup ""
         } 
+        void -
         default {
             set returnVar ""
+            set returnValueCmd ""
             set returnVarDecl ""
             set returnVarAssignment ""
             set returnSetResult "Tcl_ResetResult(interp);"
             set returnAlloc ""
+            set returnCleanup "CLEANUP; /* void return type - cleanup */"
         }
     }
 
@@ -1030,11 +1047,13 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set maxLevel [dict get $compUnit maxLevel]
     if {[llength [dict get $compUnit argsPerLevel]]} {
         for {set i 0} {$i <= $maxLevel} {incr i} {
-            append argObjvArrays "\n    Tcl_Obj** argObjvArray_$i = NULL;"
-            append argObjvArrays "\n    int       argObjc_$i = 0;"
-            set size [lindex [dict get $compUnit argsPerLevel $i] end]
-            append argObjvAlloc  "\n    argObjvArray_$i = ckalloc($size * sizeof(Tcl_Obj *));"
-            append argObjvFree   "    ckfree(argObjvArray_$i);\n"
+            if {[dict exists $compUnit argsPerLevel $i]} {
+                append argObjvArrays "\n    Tcl_Obj** argObjvArray_$i = NULL;"
+                append argObjvArrays "\n    int       argObjc_$i = 0;"
+                set size [lindex [dict get $compUnit argsPerLevel $i] end]
+                append argObjvAlloc  "\n    argObjvArray_$i = (Tcl_Obj**) ckalloc($size * sizeof(Tcl_Obj *));"
+                append argObjvFree   "    ckfree((char*) argObjvArray_$i);\n"
+            }
         }
     }
 
@@ -1057,7 +1076,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     regsub -all {\n *$} $cleanup_defs "\n" cleanup_defs
     regsub -all {\n} $cleanup_defs "\\\n" cleanup_defs
     append cleanup_defs "    Tcl_PopCallFrame(interp); \\\n" 
-    append cleanup_defs "    ckfree((char*)frame) \n"
+    append cleanup_defs "    ckfree((char*) frame) \n"
 
     regsub "^\[ \n\]*" $arg_cleanup_defs {} arg_cleanup_defs
     regsub -all {\n *$} $arg_cleanup_defs "\n" arg_cleanup_defs
@@ -1067,7 +1086,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         set return_cleanup_def "#define RETURN_VALUE_CLEANUP"
         set return_var_def "#define RETURN_VALUE"
     } elseif {$returnType eq "string"} {
-        set return_cleanup_def "#define RETURN_VALUE_CLEANUP ckfree(returnValue); returnValue = (Tcl_DString*)NULL"
+        set return_cleanup_def "#define RETURN_VALUE_CLEANUP ckfree((char*) returnValue); returnValue = (Tcl_DString*)NULL"
         set return_var_def "#define RETURN_VALUE returnValue"
     } else {
         set return_cleanup_def "#define RETURN_VALUE_CLEANUP"
@@ -1080,6 +1099,10 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 {
 
 #include <tcl.h>
+
+#include "$::tsp::HOME_DIR/native/clang/TSP_cmd.c"
+#include "$::tsp::HOME_DIR/native/clang/TSP_func.c"
+#include "$::tsp::HOME_DIR/native/clang/TSP_util.c"
 
 $cleanup_defs
 
@@ -1117,6 +1140,9 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     /* any "string" arguments need to be copied (FIXME: investigate using COW for strings) */
     [::tsp::indent compUnit $copyStringArgs 1 \n]
 
+    /* allocate any argvObj arrays */
+    [::tsp::indent compUnit $argObjvAlloc 1 \n]
+
     frame = (Tcl_CallFrame*) ckalloc(sizeof(Tcl_CallFrame));
     Tcl_PushCallFrame(interp, frame, Tcl_GetGlobalNamespace(interp), 1);
 
@@ -1125,6 +1151,7 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     /* code must return a value as defined by procdef (unless void), else will raise a compile error */
     [::tsp::indent compUnit $code 1]
 
+    $returnCleanup    
 
 }
 
@@ -1147,8 +1174,12 @@ $arg_cleanup_defs
 }
 # end of cfileTemplate1
 
-    # defined by critcl::ccomand: 
-    #   int TSP_UserCmd_${name}(ClientData unused, Tcl_Interp* interp, int objc, Tcl_Obj *const objv\[\]) 
+
+
+
+    # defined by critcl::ccomand
+    #   int TSP_UserCmd_${name}(ClientData clientData, Tcl_Interp* interp, int objc, Tcl_Obj *const objv\[\]) 
+
 
     set cfileTemplate2 \
 {
@@ -1161,6 +1192,12 @@ $arg_cleanup_defs
     /* variables used by this command, assigned from objv array */
     [::tsp::indent compUnit $declProcArgs 1 \n]
 
+    /* allow other compiled procs to find the inner function at runtime, see TSP_cmd.TSP_User_getCmd() */
+    if (clientData != NULL && objc == 0) {
+        void** cd = clientData;
+        *cd = (void*) TSP_UserDirect_${name};
+        return TCL_OK;
+    }
 
     /* check arg count */
     if (objc != [expr {$numProcArgs + 1}]) {
@@ -1171,10 +1208,10 @@ $arg_cleanup_defs
     /* assign arg variable from objv array */
     [::tsp::indent compUnit $argVarAssignments 1 \n]
 
+    /* invoke inner compiled proc method */
     rc = TCL_OK;
-    /* invoke inner compile proc method */
 
-    returnValue = TSP_UserDirect_${name}(interp, &rc ${nativeArgs});
+    ${returnValueCmd}TSP_UserDirect_${name}(interp, &rc ${nativeArgs});
     if (rc == TCL_OK) {
         $returnSetResult
     } else {
@@ -1200,12 +1237,15 @@ $arg_cleanup_defs
 
 ##############################################
 # compile a class/function
+
 # on successful compile, set the compiledReference in the compUnit
 #
 proc ::tsp::lang_compile {compUnitDict code} {
     upvar $compUnitDict compUnit
     dict set compUnit buf $code
     set name [dict get $compUnit name]
+    variable ::tsp::cc_output 
+    set ::tsp::cc_output ""
     set rc [catch {
         # debugging critcl
         ::critcl::config lines 0
@@ -1213,8 +1253,10 @@ proc ::tsp::lang_compile {compUnitDict code} {
         ::critcl::cache ./.critcl
         ::critcl::clean_cache
 
-        # redefine internal critcl print to not print
-        ::proc ::critcl::print {args} {}
+        # redefine internal critcl print to capture error messages
+        ::proc ::critcl::print {args} {
+            append ::tsp::cc_output [lindex $args end]
+        }
 
         #redefine internal critcl PkgInit to return a custom package name
         ::proc ::critcl::PkgInit {file} [list return Tsp_user_pkg_foo_${name}]
@@ -1223,7 +1265,9 @@ proc ::tsp::lang_compile {compUnitDict code} {
         ::critcl::tcl 8.5
 
         # cause compile to fail if return is not coded in execution branch
-        ::critcl::cflags -Werror=return-type
+        if {[regexp gcc [::critcl::targetconfig]]} {
+            ::critcl::cflags -Werror=return-type
+        }
 
         # create the code, first is the inner proc (ccode), second is the tcl interface (ccommand)
         ::critcl::ccode [lindex $code 0]
@@ -1236,13 +1280,14 @@ proc ::tsp::lang_compile {compUnitDict code} {
         format "done"
     } result ]
     set errors [dict get [critcl::cresults] log]
-puts "---------------------------------------------------------"
-puts "rc = $rc"
-puts "result = $result"
-puts "errors = $errors"
-puts "---------------------------------------------------------"
-    if {$rc} {
-        ::tsp::addError compUnit "error compiling $name:\n$result\n$errors"
+    set cc_errors ""
+    foreach line [split $::tsp::cc_output \n] {
+        if {[regexp -nocase error $line]} {
+            append cc_errors $line \n
+        }
+    }
+    if {$rc || [string length $cc_errors] > 0} {
+        ::tsp::addError compUnit "error compiling $name:\n$result\n$errors\n$cc_errors"
     }
     critcl::reset
 
@@ -1315,7 +1360,7 @@ proc ::tsp::lang_builtin_refs {} {
 # note - no checking if cmd is actually a builtin command
 #
 proc ::tsp::lang_builtin_cmd_obj {cmd} {
-    return TspCmd.CmdStringObj[string totitle $cmd];
+    return "(Tcl_Obj*) TSP_Cmd_builtin_$cmd";
 }
 
 

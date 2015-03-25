@@ -16,8 +16,8 @@ TSP_User_getCmd(Tcl_Interp* interp, char* cmd) {
     } else {
        objCmd = cmdInfo.objProc;
        rc = objCmd(&userCmd, interp, 0, NULL);
-       return userCmd;
     }
+    return userCmd;
 }
 
 /* return a pointer to a Tcl command function */
@@ -28,9 +28,8 @@ TSP_Cmd_getCmd(Tcl_Interp* interp, char* cmd) {
     rc = Tcl_GetCommandInfo(interp, cmd, &cmdInfo);
     if (rc == 0) {
         Tcl_Panic("TSP_Cmd_getCmd: can't get command proc for %s", cmd);
-    } else {
-        return cmdInfo.objProc;
     }
+    return cmdInfo.objProc;
 }
 
 

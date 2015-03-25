@@ -28,6 +28,9 @@ namespace eval ::tsp {
     # inline - whether to inline code or use utility methods/functions where applicable
     variable INLINE 0
 
+    # home_dir - tsp installation dir, so we can find native files
+    variable HOME_DIR
+
     # other ::tsp namespace variables are set in language specific files, 
     # e.g., tsp-java.tcl, tsp-clang.tcl
 } 
@@ -53,3 +56,5 @@ if {$::tcl_platform(platform) eq "java"} {
     source [file join [file dirname [info script]] tsp-clang.tcl]
 }
 
+set ::tsp::HOME_DIR [file normalize [file dirname [info script]]]
+format ""

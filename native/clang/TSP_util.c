@@ -12,6 +12,16 @@ TSP_Util_lang_convert_int_string(Tcl_Interp* interp, Tcl_DString* sourceVarName,
     return rc;
 }
 
+int
+TSP_Util_lang_convert_int_string_const(Tcl_Interp* interp, char* sourceVarName, Tcl_WideInt* targetVarName) {
+    int rc;
+    Tcl_Obj* obj = Tcl_NewStringObj(sourceVarName, -1);
+    Tcl_IncrRefCount(obj);
+    rc = Tcl_GetWideIntFromObj(interp, obj, targetVarName);
+    Tcl_DecrRefCount(obj);
+    return rc;
+}
+
 void
 TSP_Util_lang_convert_string_int(Tcl_Interp* interp, Tcl_DString** targetVarName, Tcl_WideInt sourceVarName) {
     char str[500];
@@ -48,7 +58,7 @@ TSP_Util_lang_convert_string_var(Tcl_DString** targetVarName, Tcl_Obj* sourceVar
 Tcl_DString*
 TSP_Util_lang_get_string_int(Tcl_WideInt sourceVarName) {
     Tcl_DString* ds;
-    ds = ckalloc(sizeof(Tcl_DString));
+    ds = (Tcl_DString*) ckalloc(sizeof(Tcl_DString));
     Tcl_DStringInit(ds);
     TSP_Util_lang_convert_string_int(NULL, &ds, sourceVarName);
     return ds;
@@ -57,7 +67,7 @@ TSP_Util_lang_get_string_int(Tcl_WideInt sourceVarName) {
 Tcl_DString*
 TSP_Util_lang_get_string_double(double sourceVarName) {
     Tcl_DString* ds;
-    ds = ckalloc(sizeof(Tcl_DString));
+    ds = (Tcl_DString*) ckalloc(sizeof(Tcl_DString));
     Tcl_DStringInit(ds);
     TSP_Util_lang_convert_string_double(NULL, &ds, sourceVarName);
     return ds;
@@ -96,6 +106,15 @@ TSP_Util_lang_assign_var_string(Tcl_Obj* targetVarName, Tcl_DString* sourceVarNa
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_NewStringObj(Tcl_DStringValue(sourceVarName), Tcl_DStringLength(sourceVarName));
+    return targetVarName;
+}
+
+Tcl_Obj*
+TSP_Util_lang_assign_var_string_const(Tcl_Obj* targetVarName, char* sourceVarName) {
+    if (targetVarName != NULL) {
+        Tcl_DecrRefCount(targetVarName);
+    }
+    targetVarName = Tcl_NewStringObj(sourceVarName, -1);
     return targetVarName;
 }
 
