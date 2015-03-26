@@ -20,6 +20,7 @@
 # buf - code buffer, what is actually compiled
 # breakable - count of nested while/for/foreach, when > 1  break/continue are allowed
 # depth - count of block nesting level (if/while/for/foreach etc.)
+# direct - list of other compiled procs called directly 
 # cmdLevel - count of nested commands (per outer word boundary)
 # maxLevel - max level of nested commands
 # argsPerLevel - sub dict of level number and argv lengths
@@ -50,6 +51,7 @@ proc ::tsp::init_compunit {file name procargs body} {
         buf "" \
         breakable 0 \
         depth 0 \
+        direct "" \
         cmdLevel 0 \
         maxLevel 0 \
         argsPerLevel [dict create] \

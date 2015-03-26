@@ -22,6 +22,11 @@ source tsp.tcl; tsp::proc foo {} {
   puts -nonewline "hi "
   puts planet
 }
+tsp::proc bar {} {
+  #tsp::procdef  void
+  ::puts "in bar"
+  foo
+}
 
 
 

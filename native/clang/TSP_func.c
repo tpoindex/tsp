@@ -92,33 +92,48 @@ _TSP_func_double_div(int* rc, char** errMsg, double x, double y) {
 }
 
 int
+TSP_func_util_strcmp(Tcl_DString* s1, Tcl_DString* s2) {
+    int match;
+    int length1 = Tcl_DStringLength(s1);
+    int length2 = Tcl_DStringLength(s2);
+    length1 = Tcl_NumUtfChars(Tcl_DStringValue(s1), length1);
+    length2 = Tcl_NumUtfChars(Tcl_DStringValue(s2), length2);
+    match = Tcl_UtfNcmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2), (length1 < length2) ? length1 : length2);
+    if (match == 0) {
+        return length1 - length2;
+    } else {
+        return match;
+    }
+}
+
+int
 TSP_func_str_lt(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) < 0) ? TRUE : FALSE;
+    return (TSP_func_util_strcmp(s1, s2) < 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_gt(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) > 0) ? TRUE : FALSE;
+    return (TSP_func_util_strcmp(s1, s2) > 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_le(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) <= 0) ? TRUE : FALSE;
+    return (TSP_func_util_strcmp(s1, s2) <= 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_ge(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) >= 0) ? TRUE : FALSE;
+    return (TSP_func_util_strcmp(s1, s2) >= 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_eq(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) == 0) ? TRUE : FALSE;
+    return (TSP_func_util_strcmp(s1, s2) == 0) ? TRUE : FALSE;
 }
 
 int
 TSP_func_str_ne(Tcl_DString* s1, Tcl_DString* s2) {
-    return (Tcl_UtfCasecmp(Tcl_DStringValue(s1), Tcl_DStringValue(s2)) != 0) ? TRUE : FALSE;
+    return (TSP_func_util_strcmp(s1, s2) != 0) ? TRUE : FALSE;
 }
 
 Tcl_WideInt

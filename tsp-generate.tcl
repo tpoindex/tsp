@@ -278,6 +278,8 @@ proc ::tsp::gen_direct_tsp_compiled {compUnitDict tree} {
         set returnVar ""
     }
 
+    ::tsp::directInvoked compUnit $cmdName
+
     append result [::tsp::lang_invoke_tsp_compiled $cmdName $procType $returnVar $argVarList $preserveVarList]
     ::tsp::unlock_tmpvar compUnit $returnVar
 
@@ -327,6 +329,17 @@ proc ::tsp::gen_invoke_tcl {compUnitDict tree} {
     append result $code
 
     return [list var $cmdResultVar $result]
+}
+
+
+##############################################
+# add the command name to the list of directly invoked commands
+#
+proc ::tsp::directInvoked {compUnitDict cmdName} {
+    upvar $compUnitDict compUnit
+    if {[lsearch -exact [dict get $compUnit direct] $cmdName] == -1} {
+        dict lappend compUnit direct $cmdName
+    }
 }
 
 
