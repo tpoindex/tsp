@@ -4,6 +4,13 @@
 #package require tcc4tcl
 package require critcl
 
+
+# for testing, set cache dir and clear cache once
+# this is also in ::tsp::lang_compile
+::critcl::cache ./.critcl
+::critcl::clean_cache
+
+
 # force critcl to load so we can capture the original PkgInit bodhy
 catch {::critcl::cproc}
 variable ::tsp::critcl_pkginit [info body ::critcl::PkgInit]
@@ -355,7 +362,7 @@ proc ::tsp::lang_convert_string_boolean {targetVarName sourceVarName {errMsg ""}
 #
 proc ::tsp::lang_convert_string_int {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_int */\n"
-    append result "TSP_Util_lang_convert_string_int(interp, &$targetVarName, $sourceVarName);\n"
+    append result "TSP_Util_lang_convert_string_int(interp, &$targetVarName, (TCL_WIDE_INT_TYPE) $sourceVarName);\n"
 #FIXME: see UpdateStringOfWideInt()
     return $result
 }
@@ -410,7 +417,7 @@ proc ::tsp::lang_get_string_boolean {sourceVarName} {
 # get a string from an int value
 #
 proc ::tsp::lang_get_string_int {sourceVarName} {
-    return "TSP_Util_lang_get_string_int($sourceVarName)"
+    return "TSP_Util_lang_get_string_int((TCL_WIDE_INT_TYPE) $sourceVarName)"
 }
 
 ##############################################
@@ -611,7 +618,7 @@ proc ::tsp::lang_assign_string_const {targetVarName sourceText} {
 proc ::tsp::lang_assign_var_boolean {targetVarName sourceVarName {preserve 1}} {
     append result "/* ::tsp::lang_assign_var_boolean */\n"
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_boolean($targetVarName, $sourceVarName);\n"
+    append result "$targetVarName = TSP_Util_lang_assign_var_boolean($targetVarName, (int) $sourceVarName);\n"
     return $result
 }
 
@@ -621,7 +628,7 @@ proc ::tsp::lang_assign_var_boolean {targetVarName sourceVarName {preserve 1}} {
 proc ::tsp::lang_assign_var_int {targetVarName sourceVarName {preserve 1}} {
     append result "/* ::tsp::lang_assign_var_int */\n"
 
-    append result "$targetVarName = TSP_Util_lang_assign_var_int($targetVarName, (TCL_LL_MODIFIER) $sourceVarName;\n"
+    append result "$targetVarName = TSP_Util_lang_assign_var_int($targetVarName, (TCL_WIDE_INT_TYPE) $sourceVarName);\n"
     return $result
 }
 
@@ -1143,7 +1150,7 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     static int directInit = 0;
     int len;
     $returnVarDecl
-    char* exprErr = NULL;
+    char* exprErrMsg = NULL;
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     Tcl_CallFrame* frame = NULL;
     [::tsp::indent compUnit $argObjvArrays 1 \n]
@@ -1283,7 +1290,10 @@ proc ::tsp::lang_compile {compUnitDict code} {
         # debugging critcl
         ::critcl::config lines 0
         ::critcl::config keepsrc 1
-        ::critcl::cache ./.critcl
+
+# for testing, this is executed on startup, 
+# uncomment for non-dev
+        #::critcl::cache ./.critcl
         #::critcl::clean_cache
 
         # redefine internal critcl print to capture error messages
@@ -1401,24 +1411,21 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 ##############################################
 # produce a compile expression assignment. 
 # simple expression produced as is,
-# if using any TspFunc methods, wrap in try/catch because those can throw exceptions
+# if using any TspFunc methods, watch for exprErrMsg != NULL
 #
 proc ::tsp::lang_expr {exprAssignment} {
-    if {[string first TSP_Func_ $exprAssignment] == -1} {
+    if {[string first TSP_func_ $exprAssignment] == -1} {
         return $exprAssignment
     } else {
-        append result "exprErr = NULL;"
-        # add first argument as exprErr pointer for functions
-        regsub -all {(TSP_Func_[^(]*\()(/*)} $exprAssignment {\1\&exprErr,\2} exprAssignment
-        # but fix for functions that have no args :-)
-        regsub -all {&exprErr,\)} $exprAssignment {)} exprAssignment
-        append result "$exprAssignment"
-        append result "if (exprErr != NULL) \{\n"
+        append result "exprErrMsg = NULL;\n"
+        append result "$exprAssignment" \n
+        append result "if (exprErrMsg != NULL) \{\n"
         append result "    Tcl_ResetResult(interp);\n"
-        append result "    Tcl_AppendResult(interp, exprErr, (char*)NULL);\n"
+        append result "    Tcl_AppendResult(interp, exprErrMsg, (char*)NULL);\n"
         append result "    *rc = TCL_ERROR;\n"
         append result "    CLEANUP;\n"
         append result "    RETURN_VALUE_CLEANUP;\n"
+        append result "    return RETURN_VALUE;\n"
         append result "\}\n"
         append result "\n"
         return $result

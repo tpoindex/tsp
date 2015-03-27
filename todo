@@ -15,6 +15,19 @@ critcl::load bug??
 --------------------------------------
 
 
+source tsp.tcl
+tsp::proc foo {} {
+  #tsp::procdef void
+  #tsp::int a b c
+  set a  3
+  set b  0
+  set c [expr {$a / $b}]
+  puts $c
+}
+tsp::printLog
+
+
+
 # simple test
 
 source tsp.tcl; tsp::proc foo {} {
@@ -36,6 +49,9 @@ tsp::proc bar {} {
 tsp-clang -  CLEANUP, et.al. macros only to be used in return statement, and as part of
   error exit.  may have to have an compUnit dict field to inidicate the goto was coded
   somewhere, or make sure a dummy goto is code after function entry.
+
+steal tcl.h determination of TCL_LL_MODIFIER and adapt to use as
+TSP_LL_SUFFIX, since vc++, osx may need other than LL (e.g., vc++ I64 )
 
 
 check TspFunc.java - does int_abs need to check for Long.MIN_VALUE ?  (since we can't abs that value)
