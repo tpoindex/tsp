@@ -1,62 +1,74 @@
 Introduction
 
-  - Brief description and example code
-  - Fallback to Tcl proc if compilation fails
+  - What is TSP?
 
-Tcl Static Prime (tsp) is a compiler for the Tcl langauge that produces C or Java code, which 
-is then compiled on-the-fly during execution of a Tcl program.  TSP compiles select 
+Tcl Static Prime (TSP) is a compiler for the Tcl langauge that produces C or Java code, which 
+is then compiled on-the-fly during execution of a Tcl program.  TSP compiles selected 
 Tcl *procs*, not an entire program.   TSP can speed up procs by several orders of magnitude,
 at a slight cost in Tcl language features.  Procs that are not able to be compiled due to
-unsupported features are instead defined as normal Tcl procedures and executed by the Tcl
-interpreter.  TSP is written entirely in Tcl, and uses the Tcl extension *tclparser* for
-low level command and expression parsing.  
+unsupported features are instead defined as normal Tcl procedures as a fallback for normal execution.
+The TSP compiler is written entirely in Tcl, with support libraries written C and Java.
+TSP uses the Tcl extension *tclparser* for low level command and expression parsing.  
+TSP uses the *hyde* extension for compiling Java when used with JTcl, and the *critcl*
+extension for compiling C when used with C/Tcl.
 
 
-  - Use of native types
+  - Statically defined native types
 
 TSP achieves much of its performance increases due to use of natives types. Integers are defined
 as native 64-bit integer types, doubles as 64 bit double types, booleans as target language 
 appropriate types (int or boolean).  Strings are stored as dynamically sizeable types or 
-structures (with library support).  Tcl objects are also used for non-native types, such as
-lists and dicts.  The only variables that are explicitly given to the Tcl interpreter for
-storage and management are arrays, whose elements are already Tcl Objects.  
+structures (with library support).  Tcl objects (var type) are also used for non-native 
+types, such as lists and dicts.  The only variables that are explicitly given to the 
+Tcl interpreter for storage and management are arrays, whose elements are already Tcl Objects.  
 
-
-  - TSP pragmas (annotations) for proc and variable definitions
+  - TSP annotations for proc and variable definitions
 
 The use of native types requires that the programmer define variable usage through use of
-compile time pragmas, that is, annotations in the form of Tcl comments.  Besides defining
-variable types, Tcl procs are also annotated to define the return type of the proc.
+compile time annotations in the form of Tcl comments.  Besides defining
+variable types, Tcl procs are also annotated to define the return type of the proc and the 
+type of proc arguments.  Since TSP type annotations are in the form of comments,
+they can be added to existing Tcl procs without affecting existing code.
+
+TSP can infer certain type usage and will caused variables to be typed accordingly.  Procedure
+arguments and variables that whose type is not defined and cannot be inferred are defined
+as 'var'.
 
   - Subset of Tcl language
 
 TSP also requires that a subset of the Tcl language be used to compile procs.  This is required
-to that the TSP compiler can easily track type information of variables and proc.  
+to that the TSP compiler can easily track type information of variables and proc.  Perhaps the 
+most significant limitation is Tcl expression syntax found in the expr, if, and while commands.
+TSP requires that nested commands and array references be moved out of the expression, and all
+variables used in the expression must be defined as native types (boolean, int, or double).
 
-  - Trends of other systems: asm.js, typescript.js, python type annotations proposal, mira (ruby)
-
-TSP follows a trend of compiling other dynamic languages.  Notably the languages subset asm.js and
-typescript.js are subsets of Javascript/Emcascript to support producing efficient and type safe code.
-asm.js allows runtime Javascript interpreters to JIT compile Javascript to machine code.  Python 
-is now exploring type annotations as well.  Another example is the Mira language, that uses type
-annotations to efficiently compile Ruby to Java classes.
-
+TSP also acheives higher performance by avoiding invocation of the Tcl interpreter.  This has a 
+few implications that may subtlebly alter customary Tcl semantics.  First, since typed variables are not
+stored in the interpreter, variable read and writes will not normally trigger a 'trace' that may
+have been defined for a variable (array types are an exception, since they are stored in the
+interpreter.)  Second, Tcl bultin commands (set, puts, list, etc.) are either directly compiled 
+into native code or are invoked directly.  Redefinition of builtin commands (via 'rename') is
+not recoginized by TSP compiled procs; the original builtin command is always invoked.  Third, TSP
+procs may only be defined in the global namespace ('::').  
+   
   - Use of profiler to target procs
 
-TSP is best used selectively.  In a typical "80% / 20%" scenario,  the bulk of program execution
-time is confined to approximately 20% of the actual code.  Likely candidate procs are those that
-perform math operations or loop over one or more lists tsp of items.  Profiling Tcl programs is a 
-better way to select procs for TSP compilation.  Since TSP compiles at the proc level, profilers that
-also gather performance metrics as the proc level are ideal.
+TSP is best used selectively.  Since even in the most basic of programs, a significant portion of code
+is executed only once, or even just a few times during the lifetime of a program.  In a typical 
+"80% : 20%" scenario, the bulk of program execution time is likely attributed to perhaps just 
+20% of the actual code.  Likely candidate procs are those that perform math operations or loop 
+over one or more lists of items.  Profiling Tcl programs is a better way to select procs for 
+TSP compilation.  Since TSP compiles at the proc level, profilers that also gather performance 
+metrics as the proc level are ideal.
 
-  - Importance of Unit testing
+  - Importance of Unit testing and argument checking
 
 Another factor to consider when using TSP is unit testing of procs that are compiled, and those uncompiled
 procs that invoke the compiled procs.  Since TSP is more sensitive to mis-matched data types than standard
 Tcl, unit testing helps to locate code that may otherwise cause Tcl exceptions to be thrown.  For example,
 a Tcl proc may expect an integer argument, and will only raise an exception when that variable is used
 by a command that expects an integer (for example, the "incr" command).  TSP instead will raise 
-an error immediately when the proc is invoked.  This requires that the invoking code to: a) ensures
+an error immediately when the proc is invoked.  This requires that the invoking code to: a) ensure
 that the proper type (or one that can be converted to the type) is passed to the compiled proc, or
 b) catch the Tcl error tha can be generated by a failed conversion.
 
