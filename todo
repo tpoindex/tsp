@@ -10,6 +10,8 @@ PERFORMANCE:
   - check if we need to preserve()/release on involing tcl builtin command
 
   
+Add 'vwait' to spill/load list
+
 --------------------------------------
 critcl::load bug??
 --------------------------------------
