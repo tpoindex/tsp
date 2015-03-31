@@ -16,34 +16,34 @@ proc ::tsp::gen_command_for {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    set preComponent  [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    set exprComponent [lindex [::tsp::parse_word compUnit [lindex $tree 2]] 0]
-    set postComponent [lindex [::tsp::parse_word compUnit [lindex $tree 3]] 0]
-    set bodyComponent [lindex [::tsp::parse_word compUnit [lindex $tree 4]] 0]
 
-    lassign $preComponent type rawtext pretext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 1]]
+    if {[string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "start code argument not a braced word"
         return [list void "" ""]
     }
+    set pretext [lindex $rawtext 0]
 
-    lassign $exprComponent type rawtext exprtext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 2]]
+    if {[string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "test expr argument not a braced expression"
         return [list void "" ""]
     }
+    set exprtext [lindex $rawtext 0]
 
-    lassign $postComponent type rawtext posttext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 3]]
+    if {[string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "next code argument not a braced word"
         return [list void "" ""]
     }
+    set posttext [lindex $rawtext 0]
 
-    lassign $bodyComponent type rawtext bodytext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 4]]
+    if {[string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "body code argument not a braced word"
         return [list void "" ""]
     }
+    set bodytext [lindex $rawtext 0]
 
     set rc [catch {set exprTypeCode [::tsp::compileBooleanExpr compUnit $exprtext]} result]
     if {$rc != 0} {
@@ -110,12 +110,12 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     }
 
     # get expr component, make sure it is braced
-    set exprComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    lassign $exprComponent type rawtext exprtext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 1]]
+    if {[string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "expr argument not a braced expression"
         return [list void "" ""]
     }
+    set exprtext [lindex $rawtext 0]
 
     set rc [catch {set exprTypeCode [::tsp::compileBooleanExpr compUnit $exprtext]} result]
     if {$rc != 0} {
@@ -129,12 +129,12 @@ proc ::tsp::gen_command_while {compUnitDict tree} {
     lassign $exprTypeCode type exprCode
 
     # get body component make sure it is braced
-    set bodyComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    lassign $bodyComponent type rawtext bodytext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 2]]
+    if {[string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "body argument not a braced expression"
         return [list void "" ""]
     }
+    set bodytext [lindex $rawtext 0]
 
     set bodyRange [lindex [lindex $tree 2] 1]
     lassign $bodyRange start end
@@ -179,20 +179,16 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
     while {$i < $argMax} {
 
         # get the condition
-        set nextComponent [lindex [::tsp::parse_word compUnit [lindex $tree $i]] 0]
-        lassign $nextComponent type rawtext text
-        if {$type ne "text"} {
-            ::tsp::addError compUnit "unexpected \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
-            return [list void "" ""]
-        }
+        set rawtext [::tsp::parse_getstring compUnit [lindex $tree $i]]
         if {[string range $rawtext 0 0] ne "\{"} {
-            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
+            ::tsp::addError compUnit "unbraced \"if\" argument (expression): \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         }
+        set text [lindex $rawtext 0]
         # compile the expression
         set rc [catch {set exprTypeCode [::tsp::compileBooleanExpr compUnit $text]} result]
         if {$rc != 0} {
-            ::tsp::addError compUnit "couldn't parse expr: \"$exprtext\", $result"
+            ::tsp::addError compUnit "couldn't parse expr: \"$text\", $result"
             return [list void "" ""]
         }
         lassign $exprTypeCode type exprCode
@@ -217,7 +213,7 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
             lassign $nextComponent type rawtext text
         }
         if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
-            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
+            ::tsp::addError compUnit "unbraced \"if\" argument (if body): \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         } 
         set bodyRange [lindex [lindex $tree $i] 1]
@@ -265,7 +261,7 @@ proc ::tsp::gen_command_if {compUnitDict tree} {
             lassign $nextComponent type rawtext text
         }
         if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
-            ::tsp::addError compUnit "unbraced \"if\" argument: \"[string trim [string range $rawtext 0 30]]\""
+            ::tsp::addError compUnit "unbraced \"if\" argument (else body): \"[string trim [string range $rawtext 0 30]]\""
             return [list void "" ""]
         } 
         append code " else \{\n"
@@ -357,7 +353,7 @@ proc ::tsp::gen_command_return {compUnitDict tree} {
             ::tsp::addError compUnit "wrong # args: proc return type declared as \"$returnType\", but \"return\" has arguments"
             return [list void "" ""]
         }
-        return [list void "" \nreturn;\n"]
+        return [list void "" "\nreturn;\n"]
     }
 
     if {[llength $tree] != 2} {
@@ -541,7 +537,7 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
     incr end -2
     set bodyRange [list $start $end]
     ::tsp::incrDepth compUnit
-    set bodyCode [lindex [::tsp::parse_body compUnit $preRange] 2]
+    set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
     set returnVar [::tsp::get_tmpvar compUnit int]
 
     append code "\n/***** ::tsp::gen_command_catch */\n"
@@ -652,7 +648,7 @@ proc ::tsp::gen_command_switch {compUnitDict tree} {
         set firstPatt 0
  
         if {[string trim $script] eq ""} {
-            set script Code ""
+            set scriptCode ""
         } elseif {$script eq "-"} { 
             set scriptCode "-"
         } else {

@@ -440,7 +440,7 @@ proc ::tsp::gen_objv_list {compUnitDict argTree varName} {
         set appendNodeType [lindex [lindex $appendNodeComponents 0] 0]
         if {$appendNodeType eq "invalid"} {
             ::tsp::unlock_tmpvar compUnit $argVar
-            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\"
+            ::tsp::addError compUnit "lappend argument parsed as \"$appendNodeType\""
             return [list void "" ""]
         }
         set setTree ""
@@ -686,7 +686,7 @@ proc ::tsp::check_varname_args {compUnitDict tree} {
                             if {$start ne "end"} {
                                 incr start $i
                             }
-                            if {$end ne "end} {
+                            if {$end ne "end"} {
                                 incr end $i
                             }
                             foreach node [lrange $tree $start $end] {

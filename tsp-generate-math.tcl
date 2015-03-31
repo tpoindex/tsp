@@ -14,12 +14,14 @@ proc ::tsp::gen_command_expr {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    set exprComponent [lindex [::tsp::parse_word compUnit [lindex $tree 1]] 0]
-    lassign $exprComponent type rawtext exprtext
-    if {$type ne "text" || [string range $rawtext 0 0] ne "\{"} {
+    # just get raw text from body
+    set rawtext [::tsp::parse_getstring compUnit [lindex $tree 1]]
+
+    if { [string range $rawtext 0 0] ne "\{"} {
         ::tsp::addError compUnit "expr argument not a braced expression"
         return [list void "" ""]
     }
+    set exprtext [lindex $rawtext 0]
 
     set rc [catch {set exprTypeCode [::tsp::compileExpr compUnit $exprtext]} result]
     if {$rc != 0} {

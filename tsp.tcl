@@ -58,3 +58,4 @@ if {$::tcl_platform(platform) eq "java"} {
 
 set ::tsp::HOME_DIR [file normalize [file dirname [info script]]]
 format ""
+

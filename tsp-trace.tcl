@@ -160,7 +160,7 @@ proc ::tsp::trace_return_check {procName procReturnType command code result op} 
     }
 
     set typeList [::tsp::literalTypes $value]
-        switch -- $returnType {
+    switch -- $procReturnType {
         int     {if {[::tsp::typeIsInt     $typeList]} {return}}
         double  {if {[::tsp::typeIsDouble  $typeList] || [::tsp::typeIsInt     $typeList]} {return}}
         boolean {if {[::tsp::typeIsBoolean $typeList]} {return}}

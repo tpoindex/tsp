@@ -419,3 +419,13 @@ proc ::tsp::isComplex {parseList} {
 }
 
 
+#########################################################
+# get a raw string from a parse node subtree
+proc ::tsp::parse_getstring {compUnitDict subtree} {
+    upvar $compUnitDict compUnit
+    set body [dict get $compUnit body]
+    lassign $subtree type idx subtree 
+    set wordStr [parse getstring $body $idx]
+    return $wordStr
+}
+

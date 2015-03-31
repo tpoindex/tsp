@@ -1286,14 +1286,15 @@ proc ::tsp::lang_compile {compUnitDict code} {
     set name [dict get $compUnit name]
     variable ::tsp::cc_output 
     set ::tsp::cc_output ""
+    set results ""
     set rc [catch {
         # debugging critcl
         ::critcl::config lines 0
         ::critcl::config keepsrc 1
+        ::critcl::cache ./.critcl
 
 # for testing, this is executed on startup, 
 # uncomment for non-dev
-        #::critcl::cache ./.critcl
         #::critcl::clean_cache
 
         # redefine internal critcl print to capture error messages
@@ -1323,7 +1324,9 @@ proc ::tsp::lang_compile {compUnitDict code} {
         dict set compUnit compiledReference tsp.cmd.${name}Cmd
         format "done"
     } result ]
-    set errors [dict get [critcl::cresults] log]
+    set critcl_results_dict [critcl::cresults]
+    set errors ""
+    catch {set errors [dict get [critcl::cresults] log]}
     set cc_errors ""
     foreach line [split $::tsp::cc_output \n] {
         if {[regexp -nocase error $line]} {

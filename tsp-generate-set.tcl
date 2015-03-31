@@ -467,7 +467,7 @@ proc ::tsp::gen_assign_scalar_text {compUnitDict targetVarName targetType source
                      if {[string is true $sourceText]} {
                          append result "$targetPre$targetVarName = [::tsp::lang_true_const];\n";
                          return $result
-                     } elseif {[string is false]} {
+                     } elseif {[string is false $sourceText]} {
                          append result "$targetPre$targetVarName = [::tsp::lang_false_const];\n";
                          return $result
                      } else {

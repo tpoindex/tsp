@@ -1611,7 +1611,7 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList da
             set targetPre   [::tsp::var_prefix $target]
 
             if {$targetType eq $dataListType} {
-                append code "$target = $dataLisPre$dataList;\n"
+                append code "$target = $dataListPre$dataList;\n"
             } else {
                 append code "[::tsp::lang_convert_${targetType}_${dataListType} $targetPre$target $dataListPre$dataList "unable to convert $dataListType to $targetType"]"
             }

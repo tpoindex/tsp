@@ -190,7 +190,7 @@ proc ::tsp::proc {name argList body} {
 # or use functions where possible.  value is true/false
 #
 proc ::tsp::setInline {value} {
-    if {[string is -strict boolean $value]} {
+    if {[string is boolean -strict $value]} {
         if {$value} {
             set ::tsp::INLINE 1
         } else {
