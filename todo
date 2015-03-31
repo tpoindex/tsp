@@ -10,38 +10,16 @@ PERFORMANCE:
   - check if we need to preserve()/release on involing tcl builtin command
 
   
-Add 'vwait' to spill/load list
+
+Add line numbers to tsp::lang_expr error messages. will need to pass compUnit
+to proc.
 
 --------------------------------------
 critcl::load bug??
 --------------------------------------
 
 
-source tsp.tcl
-tsp::proc foo {} {
-  #tsp::procdef void
-  #tsp::int a b c
-  set a  3
-  set b  0
-  set c [expr {$a / $b}]
-  puts $c
-}
-tsp::printLog
 
-
-
-# simple test
-
-source tsp.tcl; tsp::proc foo {} {
-  #tsp::procdef  void
-  puts -nonewline "hi "
-  puts planet
-}
-tsp::proc bar {} {
-  #tsp::procdef  void
-  ::puts "in bar"
-  foo
-}
 
 
 

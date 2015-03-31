@@ -67,6 +67,7 @@ namespace eval ::tsp {
         [list regexp     --        +2  end    var      spill/load]   \
         [list regsub     --        +3  end    var      spill/load]   \
         [list scan       ""         3  end    var      load]         \
+        [list vwait      ""         1  1      var      load]         \
     ]
 }
 
