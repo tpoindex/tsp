@@ -1,7 +1,7 @@
 
-Type system
+# TSP Type system
 
-  - Native types
+## Native types
 
 Tcl uses annotation comments to define the proc return type, proc arguments, 
 and variables for type definitions.
@@ -21,7 +21,7 @@ accessed in the Tcl interpreter.  Array elements of course are TclObjects, and c
 hold any specific TclObject data type.  Tcl 8.5+ 'big integer (unlimited precision)' 
 types are not supported.
 
-  - Conversions and conversion errors
+## Conversions and conversion errors
 
 TSP will perform automatic conversions as necessary, the same as the Tcl interpreter. 
 The major difference is when the conversion happens.  In ordinary Tcl, conversion
@@ -35,39 +35,41 @@ potentially generating a conversion error much earlier.  This includes the invoc
 of a Tcl procedure by a compiled or non-compiled code when a procedure argument can
 not be converted.  
 
-Conversions:
+## Conversions:
   
-       from: 	integer		double		boolean		string		var
 
-   to: integer 	  -    		int()		true->1		is int?		is int?
-						false->0
-
-       double	double()	   -		true->1.0	is double?	is double?
-						false->0.0
-
-       boolean  0->false	0->false	   -		is boolean?	is boolean?
-                else->true	else->true
-
-       string	   -		   -		   -		   -		   -
-
-       var   	   -		   -		   -		   -		   -
-
-
-	The notation "is type?" uses type appropriate Tcl functions to perform conversions.
- 	In the case of string or var to boolean, any of the Tcl recognized values for true/false
-	can be used, true: any int or double not zero, "true", "yes"  false: 0, 0.0, "false", "no"
+|     |  from:  | integer       | double        | boolean      | string        | var
+|-----|---------|---------------|---------------|--------------|---------------|------------
+|  to:| integer | y             | int           | true->1      | is int?       | is int?
+|     |         |               |               | false->0     |               |
+|-----|---------|---------------|---------------|--------------|---------------|------------
+|     | double  | double()      | y             | true->1.0    | is double?    | is double?
+|     |         |               |               | false->0.0   |               |
+|-----|---------|---------------|---------------|--------------|---------------|------------
+|     | boolean | 0->false      | 0->false      | y            | is boolean?   | is boolean?
+|     |         | else->true    | else->true    |              |               |
+|-----|---------|---------------|---------------|--------------|---------------|------------
+|     | string  | y             | y             | y            |  y            |  y
+|-----|---------|---------------|---------------|--------------|---------------|------------
+|     | var     | y             | y             | y            |  y            |  y
 
 
+ > The notation "is type?" uses type appropriate Tcl functions to perform conversions.
+ > If a conversion fails, a Tcl error is raised as the time of conversion.
+ > In the case of string or var to boolean, any of the Tcl recognized values for true/false
+ > can be used, true: any int or double not zero, "true", "yes"  false: 0, 0.0, "false", "no"
 
 
-  - Implicit declarations
+
+
+## Implicit declarations
 
 TSP will automatically assign variable types based on their usage, if not previously defined.
 For instance, if a previously undefined variable is assigned from the results of a "llength",
 it will be defined as an integer type.  
 
 
-  - Variables defined on proc entry
+## Variables defined on proc entry
 
 TSP compiled procs define variables statically on procedure invocation, unlike Tcl where the 
 variable is defined the first time it is assigned.  This could potentially cause subtle 
@@ -76,7 +78,7 @@ interpreter.  Note that the "info" command itself may not function as expected f
 compiled procs anyway, as variables are not automatically exported to the Tcl interpreter.
 
 
-  - Global, variable, and upvar commands
+## Global, variable, and upvar commands
 
 Tcl commands global, variable, and upvar are supported.  When these commands are used,
 the variables should be defined as 'var' or 'array'.  When variables are defined with these
@@ -84,7 +86,7 @@ commands, the variable's value is copied to the local native variable when the c
 is executed.  When 'return' is encountered or the end of proc is reached (for proc type 'void'),
 the value is copied back to the global scope or stack frame.
 
-  - Procs must use explicit return command
+## Procs must use explicit return command
 
 TSP compiled procs require that the return command be used to return a value.  Since there is
 no 'current' value necessarily generated, return must be used to explicitly terminate a proc.
@@ -92,7 +94,7 @@ The only exception is for procs defined as 'void', where the proc's control flow
 at the end of the proc without an explicit return command.
 
 
-  - Variable names used by commands and tsp::volatile annotation
+## Variable names used by commands and tsp::volatile annotation
 
 Tcl commands that use variable names, rather than their values, that are not otherwise
 compiled directly by TSP, are 'spilled' into the Tcl interpreter before executing the

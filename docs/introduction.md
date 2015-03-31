@@ -1,6 +1,6 @@
-Introduction
+# Introduction
 
-  - What is TSP?
+##  What is TSP?
 
 Tcl Static Prime (TSP) is a compiler for the Tcl langauge that produces C or Java code, which 
 is then compiled on-the-fly during execution of a Tcl program.  TSP compiles selected 
@@ -13,7 +13,7 @@ TSP uses the *hyde* extension for compiling Java when used with JTcl, and the *c
 extension for compiling C when used with C/Tcl.
 
 
-  - Statically defined native types
+## Statically defined native types
 
 TSP achieves much of its performance increases due to use of natives types. Integers are defined
 as native 64-bit integer types, doubles as 64 bit double types, booleans as target language 
@@ -22,7 +22,7 @@ structures (with library support).  Tcl objects (var type) are also used for non
 types, such as lists and dicts.  The only variables that are explicitly given to the 
 Tcl interpreter for storage and management are arrays, whose elements are already Tcl Objects.  
 
-  - TSP annotations for proc and variable definitions
+## TSP annotations for proc and variable definitions
 
 The use of native types requires that the programmer define variable usage through use of
 compile time annotations in the form of Tcl comments.  Besides defining
@@ -34,7 +34,7 @@ TSP can infer certain type usage and will caused variables to be typed according
 arguments and variables that whose type is not defined and cannot be inferred are defined
 as 'var'.
 
-  - Subset of Tcl language
+## Subset of Tcl language
 
 TSP also requires that a subset of the Tcl language be used to compile procs.  This is required
 to that the TSP compiler can easily track type information of variables and proc.  Perhaps the 
@@ -51,7 +51,7 @@ into native code or are invoked directly.  Redefinition of builtin commands (via
 not recoginized by TSP compiled procs; the original builtin command is always invoked.  Third, TSP
 procs may only be defined in the global namespace ('::').  
    
-  - Use of profiler to target procs
+## Use of profiler to target procs
 
 TSP is best used selectively.  Since even in the most basic of programs, a significant portion of code
 is executed only once, or even just a few times during the lifetime of a program.  In a typical 
@@ -61,7 +61,7 @@ over one or more lists of items.  Profiling Tcl programs is a better way to sele
 TSP compilation.  Since TSP compiles at the proc level, profilers that also gather performance 
 metrics as the proc level are ideal.
 
-  - Importance of Unit testing and argument checking
+## Importance of Unit testing and argument checking
 
 Another factor to consider when using TSP is unit testing of procs that are compiled, and those uncompiled
 procs that invoke the compiled procs.  Since TSP is more sensitive to mis-matched data types than standard
