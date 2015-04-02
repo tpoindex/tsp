@@ -1444,7 +1444,7 @@ proc ::tsp::lang_expr {compUnitDict exprAssignment} {
 # compiled commands that use varName arguments, and
 # spilling final var values for upvar/global/variable.
 # returns code
-# NOTE: TclException throw if variable is already defined as an array in the interp
+# NOTE: Tcl error raised if variable is already defined as an array in the interp
 #
 proc ::tsp::lang_spill_vars {compUnitDict varList} {
     upvar $compUnitDict compUnit
@@ -1483,7 +1483,12 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             append buf "    $pre$var = Tcl_NewStringObj(\"\");\n"
             append buf "    Tcl_IncrRefCount($pre$var);\n"
             append buf "\}\n"
-            append buf "Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0);\n"
+            append buf "if (Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0)  == NULL) \{\n"
+            append buf "    *rc = TCL_ERROR;\n"
+            append buf "    CLEANUP;\n"
+            append buf "    RETURN_VALUE_CLEANUP;\n"
+            append buf "    return RETURN_VALUE;\n"
+            append buf "\}\n"
         } else {
             switch $type {
                 boolean {set newobj "Tcl_NewBooleanObj($pre$var)"}
@@ -1491,7 +1496,12 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
                 double  {set newobj "Tcl_NewDoubleObj($pre$var)"}
                 string  {set newobj "Tcl_NewStringObj(Tcl_DStringValue($pre$var), Tcl_DStringLength($pre$var))"}
             }
-            append buf "Tcl_SetVar2Ex(interp,[::tsp::lang_quote_string  $var], NULL, $newobj, 0);\n"
+            append buf "if (Tcl_SetVar2Ex(interp,[::tsp::lang_quote_string  $var], NULL, $newobj, TCL_LEAVE_ERR_MSG) == NULL) \{\n"
+            append buf "    *rc = TCL_ERROR;\n"
+            append buf "    CLEANUP;\n"
+            append buf "    RETURN_VALUE_CLEANUP;\n"
+            append buf "    return RETURN_VALUE;\n"
+            append buf "\}\n"
         }
     }
     return $buf
@@ -1563,12 +1573,13 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
             # program needs to catch for this case
             append buf "/* ::tsp::lang_load_vars  interp.getVar $var */\n"
             append buf [::tsp::lang_safe_release $interpVar]
-            append buf "$interpVar = Tcl_GetVar2Ex(interp,[::tsp::lang_quote_string $var], NULL, 0);\n"
+            append buf "$interpVar = Tcl_GetVar2Ex(interp,[::tsp::lang_quote_string $var], NULL, TCL_LEAVE_ERR_MSG);\n"
             append buf "if ($interpVar == NULL) \{\n"
             append buf "    Tcl_AppendResult(interp, [::tsp::lang_quote_string "cannot load $var from interp"], (char*)NULL);\n"
             append buf "    *rc = TCL_ERROR;\n"
             append buf "    CLEANUP;\n"
             append buf "    RETURN_VALUE_CLEANUP;\n"
+            append buf "    return RETURN_VALUE;\n"
             append buf "\}\n"
             append buf "[::tsp::lang_preserve $interpVar]"
             if {! $isvar} {
@@ -1599,6 +1610,7 @@ proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
     append code "    *rc = TCL_ERROR;\n"
     append code "    CLEANUP;\n"
     append code "    RETURN_VALUE_CLEANUP;\n"
+    append code "    return RETURN_VALUE;\n"
     append code "\}\n"
     return $code
 }
@@ -1611,19 +1623,23 @@ proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
 proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
     append code "/* lang_lindex */\n"
-    append code "try \{\n"
     if {$isFromEnd} {
-        append code "    int listLength = TclList.getLength(interp, $argVar);\n"
-        append code "    $returnVar = TclList.index(interp, $argVar, (int) (listLength - 1 - $idx));\n"
+        append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len) == TCL_OK) \{\n"
+        append code "    Tcl_ListObjIndex(interp, $argVar, (int) (len - 1 - $idx), &$returnVar);\n"
+        append code "\} else \{\n"
+        append code "    Tcl_AppendResult(interp, errMsg, (char*)NULL);\n"
+        append code "    *rc = TCL_ERROR;\n"
+        append code "    CLEANUP;\n"
+        append code "    RETURN_VALUE_CLEANUP;\n"
+        append code "    return RETURN_VALUE;\n"
+        append code "\}\n"
     } else {
-        append code "    $returnVar = TclList.index(interp, $argVar, (int) $idx);\n"
+        append code "Tcl_ListObjIndex(interp, $argVar, (int) $idx, &$returnVar);\n"
     }
-    append code "    if ($returnVar == NULL) \{\n"
-    append code "        [::tsp::lang_new_var_string $returnVar {""}]"
-    append code "    \}\n"
-    append code "    $returnVar.preserve();\n"
-    append code "\} catch (TclException te) \{\n"
-    append code "    throw new TclException(interp, $errMsg);\n"
+    append code "if ($returnVar == NULL) \{\n"
+    append code "    [::tsp::lang_new_var_string $returnVar {""}]"
+    append code "\}\n"
+    append code "    Tcl_IncrRefCount($returnVar);\n"
     append code "\}\n"
     return $code
 }
@@ -1636,17 +1652,17 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
 #
 proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
     append code "// lang_string_index\n"
-    # note: make this a new string, in java 1.6 and early 1.7 versions, substring() doesn't create new string,
-    # so ensure that we're not keeping references to large some char[] buf 
+    append code "len = Tcl_NumUtfChars(Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"
+    append code "Tcl_DStringSetLength($returnVar, 0);\n"
     if {$isFromEnd} {
-        append code "if (($argVar.length() - 1 - $idx >= 0) && ($argVar.length() - 1 - $idx < $argVar.length())) \{\n"
-        append code "    $returnVar = new String((int) $argVar.substring($argVar.length() - 1 - $idx, (int) $argVar.length() - $idx));\n"
+        append code "if ((len - 1 - (int) $idx >= 0) && (len - 1 - (int) $idx < len)) \{\n"
+        append code "    Tcl_DStringAppend($returnVar, Tcl_UtfAtIndex($argVar, len - 1 - (int) $idx), -1);\n"
     } else {
-        append code "if (($idx >= 0) && ($idx < $argVar.length())) \{\n"
-        append code "    $returnVar = new String($argVar.substring((int) $idx, (int) $idx + 1));\n"
+        append code "if (($idx >= 0) && ((int) $idx < len)) \{\n"
+        append code "    Tcl_DStringAppend($returnVar, Tcl_UtfAtIndex($argVar, (int) $idx), -1;\n"
     }
     append code "\} else \{\n"
-    append code "    $returnVar = \"\";\n"
+    append code "    /* index out of range, leave result as empty string */;\n"
     append code "\}\n"
     return $code
 }
@@ -1659,7 +1675,7 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
 #
 proc ::tsp::lang_string_length {returnVar argVar} {
     append code "// lang_string_length\n"
-    append code "$returnVar = $argVar.length();\n"
+    append code "$returnVar = Tcl_NumUtfChars(Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"
     return $code
 }
 
@@ -1671,8 +1687,6 @@ proc ::tsp::lang_string_length {returnVar argVar} {
 #
 proc ::tsp::lang_string_range {returnVar firstIdx firstIsFromEnd lastIdx lastIsFromEnd argVar} {
     append code "// lang_string_range\n"
-    # note: make this a new string, in java 1.6 and early 1.7 versions, substring() doesn't create new string,
-    # so ensure that we're not keeping references to large some char[] buf 
     # using local temp vars, so enclose in a block
     append code "\{\n"
     append code "    int strLen = $argVar.length();\n"
