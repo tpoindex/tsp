@@ -58,7 +58,7 @@ proc ::tsp::parse_body {compUnitDict range} {
             set toRange [list 0 $commentFirst]
             set lines [parse getstring $body $toRange]
             set lineNum [regexp -all \n $lines]
-            dict set compUnit lineNum $lineNum
+            dict set compUnit lineNum [incr lineNum]
 
             set comment [parse getstring $body $commentRange]
             ::tsp::parse_pragma compUnit $comment
@@ -73,7 +73,7 @@ proc ::tsp::parse_body {compUnitDict range} {
             set toRange [list 0 $commandFirst]
             set lines [parse getstring $body $toRange]
             set lineNum [regexp -all \n $lines]
-            dict set compUnit lineNum $lineNum
+            dict set compUnit lineNum [incr lineNum]
 
             # append the tcl command that we're compiling
             append gencode [::tsp::source_comments compUnit $commandRange]

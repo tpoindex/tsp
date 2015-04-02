@@ -1417,7 +1417,9 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 # simple expression produced as is,
 # if using any TspFunc methods, watch for exprErrMsg != NULL
 #
-proc ::tsp::lang_expr {exprAssignment} {
+proc ::tsp::lang_expr {compUnitDict exprAssignment} {
+    upvar $compUnitDict compUnit
+    append loc ", in proc: " [dict get $compUnit name] " line: " [dict get $compUnit lineNum]
     if {[string first TSP_func_ $exprAssignment] == -1} {
         return $exprAssignment
     } else {
@@ -1425,7 +1427,7 @@ proc ::tsp::lang_expr {exprAssignment} {
         append result "$exprAssignment" \n
         append result "if (exprErrMsg != NULL) \{\n"
         append result "    Tcl_ResetResult(interp);\n"
-        append result "    Tcl_AppendResult(interp, exprErrMsg, (char*)NULL);\n"
+        append result "    Tcl_AppendResult(interp, exprErrMsg, \"$loc\", (char*)NULL);\n"
         append result "    *rc = TCL_ERROR;\n"
         append result "    CLEANUP;\n"
         append result "    RETURN_VALUE_CLEANUP;\n"
@@ -1792,11 +1794,11 @@ proc ::tsp::lang_while {compUnitDict loopVar expr body} {
     append code "// ::tsp::lang_while\n"
 
     append code "\n// evaluate condition \n"
-    append code [::tsp::lang_expr "$loopVar = $expr;"] \n\n
+    append code [::tsp::lang_expr compUnit "$loopVar = $expr;"] \n\n
     append code "while ( " $loopVar " ) {\n"
     append code $body
     append code "\n    // evaluate condition \n"
-    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $expr;"]]
+    append code [::tsp::indent compUnit [::tsp::lang_expr compUnit "$loopVar = $expr;"]]
     append code "\n}\n"
 
     return $code

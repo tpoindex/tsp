@@ -13,8 +13,8 @@
 
 #define TRUE 1
 #define FALSE 0
-#define TSP_DIV_BY_ZERO "tsp: divide by zero"
-#define TSP_DOMAIN_ERROR "tsp: domain error"
+#define TSP_DIV_BY_ZERO "divide by zero"
+#define TSP_DOMAIN_ERROR "domain error"
 
 /* only record the first error */
 #define RAISE_ERROR(m) *rc = TCL_ERROR; if (*exprErrMsg == NULL) *exprErrMsg = m; return 0
@@ -29,7 +29,7 @@ _TSP_func_int_div(int* rc, char** exprErrMsg, Tcl_WideInt dividend, Tcl_WideInt 
     Tcl_WideInt quotient;
 
     if (divisor == 0) {
-        RAISE_ERROR(TSP_DIV_BY_ZERO);
+        RAISE_ERROR(TSP_DIV_BY_ZERO " IntDiv()");
     }
     if (dividend == LLONG_MIN && divisor == -1) {
         /* Avoid integer overflow on (Long.MIN_VALUE / -1) */
@@ -55,7 +55,7 @@ _TSP_func_int_mod(int* rc, char** exprErrMsg, Tcl_WideInt dividend, Tcl_WideInt 
     int neg_divisor = 0;
 
     if (divisor == 0) {
-        RAISE_ERROR(TSP_DIV_BY_ZERO);
+        RAISE_ERROR(TSP_DIV_BY_ZERO " IntMod()");
     }
 
     if (dividend == LLONG_MIN && divisor == -1) {
@@ -86,7 +86,7 @@ _TSP_func_double_div(int* rc, char** exprErrMsg, double x, double y) {
     CHECK_NAN(x);
     CHECK_NAN(y);
     if (y == 0.0) {
-        RAISE_ERROR(TSP_DIV_BY_ZERO);
+        RAISE_ERROR(TSP_DIV_BY_ZERO " DoubleDiv()");
     } else {
         return x / y;
     }
@@ -167,7 +167,7 @@ _TSP_func_acos(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = acos(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " acos()");
     }
     return z;
 }
@@ -179,7 +179,7 @@ _TSP_func_asin(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = asin(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " asin()");
     }
     return z;
 }
@@ -191,7 +191,7 @@ _TSP_func_atan(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = atan(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " atan()");
     }
     return z;
 }
@@ -204,7 +204,7 @@ _TSP_func_atan2(int* rc, char** exprErrMsg, double x, double y) {
     CHECK_NAN(y);
     z = atan2(x, y);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " atan2()");
     }
     return z;
 }
@@ -216,7 +216,7 @@ _TSP_func_ceil(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = ceil(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " ceil()");
     }
     return z;
 }
@@ -228,7 +228,7 @@ _TSP_func_cos(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = cos(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " cos()");
     }
     return z;
 }
@@ -240,7 +240,7 @@ _TSP_func_cosh(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = cosh(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " cosh()");
     }
     return z;
 }
@@ -252,7 +252,7 @@ _TSP_func_exp(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = exp(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " exp()");
     }
     return z;
 }
@@ -264,7 +264,7 @@ _TSP_func_floor(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = floor(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " floor()");
     }
     return z;
 }
@@ -277,7 +277,7 @@ _TSP_func_fmod(int* rc, char** exprErrMsg, double x, double y) {
     CHECK_NAN(y);
     z = fmod(x, y);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " fmod()");
     }
     return z;
 }
@@ -290,7 +290,7 @@ _TSP_func_hypot(int* rc, char** exprErrMsg, double x, double y) {
     CHECK_NAN(y);
     z = hypot(x, y);
     if (isnan(z) || z == HUGE_VAL) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " hypot()");
     }
     return z;
 }
@@ -302,7 +302,7 @@ _TSP_func_log(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = log(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " log()");
     }
     return z;
 }
@@ -314,7 +314,7 @@ _TSP_func_log10(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = log(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " log10()");
     }
     return z;
 }
@@ -327,7 +327,7 @@ _TSP_func_double_pow(int* rc, char** exprErrMsg, double x, double y) {
     CHECK_NAN(y);
     z = pow(x, y);
     if (isnan(z) || z == HUGE_VAL) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " pow()");
     }
     return z;
 }
@@ -339,7 +339,7 @@ _TSP_func_double_int_pow(int* rc, char** exprErrMsg, double x, Tcl_WideInt y) {
     CHECK_NAN(x);
     z = pow(x, (double) y);
     if (isnan(z) || z == HUGE_VAL) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " pow()");
     }
     return z;
 }
@@ -362,7 +362,7 @@ _TSP_func_sin(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = sin(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " sin()");
     }
     return z;
 }
@@ -374,7 +374,7 @@ _TSP_func_sinh(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = sinh(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " sinh()");
     }
     return z;
 }
@@ -386,7 +386,7 @@ _TSP_func_sqrt(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = sqrt(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " sqrt()");
     }
     return z;
 }
@@ -404,7 +404,7 @@ _TSP_func_tan(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = tan(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " tan()");
     }
     return z;
 }
@@ -416,7 +416,7 @@ _TSP_func_tanh(int* rc, char** exprErrMsg, double x) {
     CHECK_NAN(x);
     z = tanh(x);
     if (isnan(z)) {
-        RAISE_ERROR(TSP_DOMAIN_ERROR);
+        RAISE_ERROR(TSP_DOMAIN_ERROR " tanh()");
     }
     return z;
 }

@@ -31,7 +31,7 @@ proc ::tsp::gen_command_expr {compUnitDict tree} {
     
     lassign $exprTypeCode type exprCode
     set tmpVar [::tsp::get_tmpvar compUnit $type]
-    set code [::tsp::lang_expr "$tmpVar = $exprCode;"]
+    set code [::tsp::lang_expr compUnit "$tmpVar = $exprCode;"]
     return [list $type $tmpVar $code]
 }
 

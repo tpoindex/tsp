@@ -140,8 +140,7 @@ proc ::tsp::parse_pragma {compUnitDict comments} {
             
         }
 
-        set lineNum [dict get $compUnit lineNum]
-        dict set compUnit lineNum [incr lineNum]
+        dict incr compUnit lineNum 
     } 
 }
 

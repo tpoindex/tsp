@@ -9,32 +9,17 @@ public class TspFunc {
     // since we don't have access to interp, we have to throw a
     // TclException without an interp. use a specific string
     // to signify divide by zero and domain error
-    public static final String DIVIDE_BY_ZERO = "tsp: divide by zero";
-    public static final String DOMAIN_ERROR = "tsp: domain error";
+    public static final String DIVIDE_BY_ZERO = "divide by zero";
+    public static final String DOMAIN_ERROR = "domain error";
 
     // we need our own private Random so we can seed it with srand()
     private static final Random randomInstance = new Random();
-
-    // set a Tcl error code and throw exception, called from try/catch block that
-    // actually evaluates the expression.
-    public static void ExprError(Interp interp, String msg) throws TclException {
-	if (msg != null && msg.equals(TspFunc.DIVIDE_BY_ZERO)) {
-	    interp.setErrorCode(TclString.newInstance("ARITH DIVZERO {divide by zero}"));
-	    throw new TclException(interp, "divide by zero");
-	} else if (msg != null && msg.equals(TspFunc.DOMAIN_ERROR)) {
-	    interp.setErrorCode(TclString.newInstance("ARITH DOMAIN {domain error: argument not in valid range}"));
-	    throw new TclException(interp, "domain error: argument not in valid range");
-	} else { 
-	    interp.setErrorCode(TclString.newInstance("ARITH ERROR {unknown error message}"));
-	    throw new TclException(interp,"unknown error message: " + msg);
-	}
-    }
 
     public static long    IntDiv(long dividend, long divisor) throws TclException {
         // Note - this basically comes directly from tcl.lang.Expression
 
         if (divisor == 0) {
-            throw new TclException(null, DIVIDE_BY_ZERO);
+            throw new TclException(null, DIVIDE_BY_ZERO + " IntDiv()");
         }
 
         long quotient = 0;
@@ -59,7 +44,7 @@ public class TspFunc {
         // Note - this basically comes directly from tcl.lang.Expression
 
         if (divisor == 0) {
-            throw new TclException(null, DIVIDE_BY_ZERO);
+            throw new TclException(null, DIVIDE_BY_ZERO + " IntMod()");
         }
 
         long remainder = 0;
@@ -88,7 +73,7 @@ public class TspFunc {
 
     public static double  DoubleDiv(double x, double y) throws TclException {
         if (y == 0.0) {
-            throw new TclException(null, DIVIDE_BY_ZERO);
+            throw new TclException(null, DIVIDE_BY_ZERO  + " DoubleDiv()");
         } else {
             return x / y;
         }
@@ -140,7 +125,7 @@ public class TspFunc {
 
     public static double  Atan2(double x, double y) throws TclException {
         if ((y == 0.0) && (x == 0.0)) {
-            throw new TclException(null, DOMAIN_ERROR);
+            throw new TclException(null, DOMAIN_ERROR + " atan2()");
         }
         return Math.atan2(x, y);
     }
@@ -167,7 +152,7 @@ public class TspFunc {
 
     public static double  Fmod(double x, double y) throws TclException {
         if (y == 0.0) {
-            throw new TclException(null, DIVIDE_BY_ZERO);
+            throw new TclException(null, DIVIDE_BY_ZERO + " fmod()");
         }
         return x % y;
     }
@@ -178,21 +163,21 @@ public class TspFunc {
 
     public static double  Log(double x) throws TclException {
         if (x < 0.0) {
-            throw new TclException(null, DOMAIN_ERROR);
+            throw new TclException(null, DOMAIN_ERROR + " log()");
         }
         return Math.log(x);
     }
 
     public static double  Log10(double x) throws TclException {
         if (x < 0.0) {
-            throw new TclException(null, DOMAIN_ERROR);
+            throw new TclException(null, DOMAIN_ERROR + " log10()");
         }
         return Math.log10(x);
     }
 
     public static double  DoublePow(double x, double y) throws TclException {
         if (x < 0.0) {
-            throw new TclException(null, DOMAIN_ERROR);
+            throw new TclException(null, DOMAIN_ERROR + " pow()");
         }
         return Math.pow(x, y);
     }

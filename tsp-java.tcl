@@ -1217,14 +1217,26 @@ proc ::tsp::lang_builtin_cmd_obj {cmd} {
 # simple expression produced as is,
 # if using any TspFunc methods, wrap in try/catch because those can throw exceptions
 #
-proc ::tsp::lang_expr {exprAssignment} {
+proc ::tsp::lang_expr {compUnitDict exprAssignment} {
+    upvar $compUnitDict compUnit
+    append loc ", in proc: " [dict get $compUnit name] " line: " [dict get $compUnit lineNum]
     if {[string first TspFunc. $exprAssignment] == -1} {
         return $exprAssignment
     } else {
         append result "try {\n"
         append result "    $exprAssignment"
         append result "\n} catch (Exception e) {\n"
-        append result "    TspFunc.ExprError(interp, e.getMessage()); // sets interp error code and throws a new TclException\n"
+        append result "    String msg = e.getMessage() + \"$loc\"; \n"
+        append result "    if (msg.indexOf(\"divide\") >= 0) \{ \n"
+        append result "        interp.setErrorCode(TclString.newInstance(\"ARITH DIVZERO {\" + msg + \"}\"));\n"
+        append result "        throw new TclException(interp, msg);\n"
+        append result "    \} else if (msg.indexOf(\"domain\") >= 0) \{ \n"
+        append result "        interp.setErrorCode(TclString.newInstance(\"ARITH DOMAIN {\" + msg + \"}\"));\n"
+        append result "        throw new TclException(interp, msg);\n"
+        append result "    \} else \{ \n"
+        append result "        interp.setErrorCode(TclString.newInstance(\"ARITH ERROR {\" + msg + \"}\"));\n"
+        append result "        throw new TclException(interp, msg);\n"
+        append result "    \}\n"
         append result "}\n"
         append result "\n"
         return $result
@@ -1572,11 +1584,11 @@ proc ::tsp::lang_while {compUnitDict loopVar expr body} {
     append code "// ::tsp::lang_while\n"
 
     append code "\n// evaluate condition \n"
-    append code [::tsp::lang_expr "$loopVar = $expr;"] \n\n
+    append code [::tsp::lang_expr compUnit "$loopVar = $expr;"] \n\n
     append code "while ( " $loopVar " ) {\n"
     append code $body
     append code "\n    // evaluate condition \n"
-    append code [::tsp::indent compUnit [::tsp::lang_expr "$loopVar = $expr;"]]
+    append code [::tsp::indent compUnit [::tsp::lang_expr compUnit "$loopVar = $expr;"]]
     append code "\n}\n"
 
     return $code
