@@ -5,8 +5,9 @@
 package require critcl
 
 
+# FIXME
 # for testing, set cache dir and clear cache once
-# this is also in ::tsp::lang_compile
+# this is ordinarily in ::tsp::lang_compile
 ::critcl::cache ./.critcl
 ::critcl::clean_cache
 
@@ -940,8 +941,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append procVarsDecls [::tsp::lang_decl_native_string $arg]
             append procStringsInit "Tcl_DStringInit($arg);\n"
             append declStringsInit "Tcl_DStringInit(&$arg);\n"
-            append procStringsCleanup "Tcl_DStringCleanup($arg);\n"
-            append declStringsCleanup "Tcl_DStringCleanup($arg);\n"
+            append procStringsCleanup "Tcl_DStringFree($arg);\n"
+            append declStringsCleanup "Tcl_DStringFree($arg);\n"
             # and copy from argument
             append copyStringArgs "Tcl_DStringAppend($arg, Tcl_DStringValue(Caller_$arg), Tcl_DStringLength(Caller_$arg));\n"
         } else {
@@ -1046,7 +1047,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append procStringsAlloc "Tcl_DString Proc_$pre$var;\n"
             append procStringsInit "Tcl_DStringInit(&Proc_$pre$var);\n"
             append procStringsInit "$pre$var = &Proc_$pre$var;\n"
-            append procStringsCleanup "Tcl_DStringCleanup($pre$var);\n"
+            append procStringsCleanup "Tcl_DStringFree($pre$var);\n"
         } elseif {$type ne "array"} {
             append procVarsDecls [::tsp::lang_decl_native_$type $pre$var]
         }
@@ -1149,11 +1150,15 @@ $return_var_def
 $nativeReturnType
 TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     static int directInit = 0;
-    int len;
-    $returnVarDecl
+    int len;        /* len, idx1, idx2, str, str2 -for use by lang_string, et.al. */
+    int idx1;
+    int idx2;
+    char* str1;     
+    char* str2;     
     char* exprErrMsg = NULL;
     Tcl_Obj* _tmpVar_cmdResultObj = NULL;
     Tcl_CallFrame* frame = NULL;
+    $returnVarDecl
     [::tsp::indent compUnit $argObjvArrays 1 \n]
     [::tsp::indent compUnit $direct_tsp_decls 1 \n]
 
@@ -1651,15 +1656,19 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
 # returnVar and argVar are string vars
 #
 proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
-    append code "// lang_string_index\n"
+    append code "/* lang_string_index */\n"
     append code "len = Tcl_NumUtfChars(Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"
     append code "Tcl_DStringSetLength($returnVar, 0);\n"
     if {$isFromEnd} {
         append code "if ((len - 1 - (int) $idx >= 0) && (len - 1 - (int) $idx < len)) \{\n"
-        append code "    Tcl_DStringAppend($returnVar, Tcl_UtfAtIndex($argVar, len - 1 - (int) $idx), -1);\n"
+        append code "    str1 = Tcl_UtfAtIndex(Tcl_DStringValue($argVar), len - 1 - (int) $idx);\n"
+        append code "    str2 = Tcl_UtfNext(str1);\n"
+        append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"
     } else {
         append code "if (($idx >= 0) && ((int) $idx < len)) \{\n"
-        append code "    Tcl_DStringAppend($returnVar, Tcl_UtfAtIndex($argVar, (int) $idx), -1;\n"
+        append code "    str1 = Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) $idx);\n"
+        append code "    str2 = Tcl_UtfNext(str1);\n"
+        append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"
     }
     append code "\} else \{\n"
     append code "    /* index out of range, leave result as empty string */;\n"
@@ -1674,7 +1683,7 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
 # returnVar is int and argVar is string
 #
 proc ::tsp::lang_string_length {returnVar argVar} {
-    append code "// lang_string_length\n"
+    append code "/* lang_string_length */\n"
     append code "$returnVar = Tcl_NumUtfChars(Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"
     return $code
 }
@@ -1686,28 +1695,27 @@ proc ::tsp::lang_string_length {returnVar argVar} {
 # returnVar and argVar are string vars
 #
 proc ::tsp::lang_string_range {returnVar firstIdx firstIsFromEnd lastIdx lastIsFromEnd argVar} {
-    append code "// lang_string_range\n"
-    # using local temp vars, so enclose in a block
-    append code "\{\n"
-    append code "    int strLen = $argVar.length();\n"
+    append code "/* lang_string_range */\n"
+    append code "len = Tcl_NumUtfChars(Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"
+    append code "Tcl_DStringSetLength($returnVar, 0);\n"
     if {$firstIsFromEnd} {
-        append code "    long firstIdx = (strLen - 1 - ($firstIdx)) < 0 ? 0 : (strLen - 1 - ($firstIdx));\n"
+        append code "idx1 = (len - 1 - ((int) $firstIdx)) < 0 ? 0 : (len - 1 - ((int) $firstIdx));\n"
     } else {
-        append code "    long firstIdx = ($firstIdx) < 0 ? 0 : $firstIdx;\n"
+        append code "idx1 = ((int) $firstIdx) < 0 ? 0 : (int) $firstIdx;\n"
     }
     if {$lastIsFromEnd} {
-        append code "    long lastIdx = (strLen - 1 - ($lastIdx));\n"
+        append code "idx2 = (len - 1 - ((int) $lastIdx));\n"
     } else {
-        append code "    long lastIdx = $lastIdx;\n"
+        append code "idx2 = ((int) $lastIdx >= len) ? len - 1 : (int) $lastIdx;\n"
     }
-    append code "    if (firstIdx >= strLen || firstIdx > lastIdx || lastIdx < 0 || strLen == 0) \{\n"
-    append code "        $returnVar = \"\";\n"
-    append code "    \} else \{\n"
-    append code "        if (lastIdx >= strLen) \{\n"
-    append code "            lastIdx = strLen - 1;\n"
-    append code "        \}\n"
-    append code "        $returnVar = $argVar.substring((int) firstIdx, (int) lastIdx + 1);\n"
+    append code "if ((idx1 < len) && (idx1 <= idx2) && (len > 0)) \{\n"
+    append code "    str1 = Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) idx1);\n"
+    append code "    str2 = str1;\n"
+    append code "    while (idx1 <= idx2) \{\n"
+    append code "        str2 = Tcl_UtfNext(str2);\n"
+    append code "        idx1++;\n"
     append code "    \}\n"
+    append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"
     append code "\}\n"
     return $code
 }
