@@ -54,7 +54,7 @@ for variable name usage to ensure that the variables are spilled and loaded.
  > ^2 - indicates lightly compiled, automatic volatile variable handling
 
 
-## Limitations
+## Limitations & Semantic Differences
 
   * set - causes immediate conversion if target and source are different types.
   * if - see expr limitations; then/elsecode bodies must be enclosed in braces;
