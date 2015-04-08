@@ -1,3 +1,14 @@
+source tsp.tcl; tsp::proc foo {} {
+  #tsp::procdef void
+  set c 1
+  set a "two"
+  set c $a
+  puts $c
+} ; tsp::printLog
+
+
+
+
 PERFORMANCE: 
   DONE - allocate argument arrays once to a max size, or maybe one array per call
   - check that assignment to var is doing copy only when needed

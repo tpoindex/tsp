@@ -23,6 +23,7 @@
 # direct - list of other compiled procs called directly 
 # cmdLevel - count of nested commands (per outer word boundary)
 # maxLevel - max level of nested commands
+# catchLevel - count of nested catch statements
 # argsPerLevel - sub dict of level number and argv lengths
 # lineNum - current line number
 # errors - list of errors
@@ -54,6 +55,7 @@ proc ::tsp::init_compunit {file name procargs body} {
         direct "" \
         cmdLevel 0 \
         maxLevel 0 \
+        catchLevel 0 \
         argsPerLevel [dict create] \
         lineNum 1 \
         errors "" \
