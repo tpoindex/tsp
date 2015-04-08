@@ -1699,7 +1699,9 @@ proc ::tsp::lang_string {compUnitDict tree} {
 # generate a return command
 #
 proc ::tsp::lang_return {compUnit argVar} {
-    return "return $argVar;\n"
+    append code "// ::tsp::lang_return\n"
+    append code "return $argVar;\n"
+    return $code
 }
 
 
