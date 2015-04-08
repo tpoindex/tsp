@@ -1457,9 +1457,7 @@ proc ::tsp::lang_expr {compUnitDict exprAssignment} {
         append result "    Tcl_ResetResult(interp);\n"
         append result "    Tcl_AppendResult(interp, exprErrMsg, \"$loc\", (char*)NULL);\n"
         append result "    *rc = TCL_ERROR;\n"
-        append result "    CLEANUP;\n"
-        append result "    RETURN_VALUE_CLEANUP;\n"
-        append result "    return RETURN_VALUE;\n"
+        append result "    ERROR_EXIT;\n"
         append result "\}\n"
         append result "\n"
         return $result
@@ -1513,9 +1511,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             append buf "\}\n"
             append buf "if (Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0)  == NULL) \{\n"
             append buf "    *rc = TCL_ERROR;\n"
-            append buf "    CLEANUP;\n"
-            append buf "    RETURN_VALUE_CLEANUP;\n"
-            append buf "    return RETURN_VALUE;\n"
+            append buf "    ERROR_EXIT;\n"
             append buf "\}\n"
         } else {
             switch $type {
@@ -1526,9 +1522,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
             }
             append buf "if (Tcl_SetVar2Ex(interp,[::tsp::lang_quote_string  $var], NULL, $newobj, TCL_LEAVE_ERR_MSG) == NULL) \{\n"
             append buf "    *rc = TCL_ERROR;\n"
-            append buf "    CLEANUP;\n"
-            append buf "    RETURN_VALUE_CLEANUP;\n"
-            append buf "    return RETURN_VALUE;\n"
+            append buf "    ERROR_EXIT;\n"
             append buf "\}\n"
         }
     }
@@ -1605,9 +1599,7 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
             append buf "if ($interpVar == NULL) \{\n"
             append buf "    Tcl_AppendResult(interp, [::tsp::lang_quote_string "cannot load $var from interp"], (char*)NULL);\n"
             append buf "    *rc = TCL_ERROR;\n"
-            append buf "    CLEANUP;\n"
-            append buf "    RETURN_VALUE_CLEANUP;\n"
-            append buf "    return RETURN_VALUE;\n"
+            append buf "    ERROR_EXIT;\n"
             append buf "\}\n"
             append buf "[::tsp::lang_preserve $interpVar]"
             if {! $isvar} {
@@ -1636,9 +1628,7 @@ proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
     append code "\} else \{\n"
     append code "    Tcl_AppendResult(interp, errMsg, (char*)NULL);\n"
     append code "    *rc = TCL_ERROR;\n"
-    append code "    CLEANUP;\n"
-    append code "    RETURN_VALUE_CLEANUP;\n"
-    append code "    return RETURN_VALUE;\n"
+    append code "    ERROR_EXIT;\n"
     append code "\}\n"
     return $code
 }
@@ -1657,9 +1647,7 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
         append code "\} else \{\n"
         append code "    Tcl_AppendResult(interp, errMsg, (char*)NULL);\n"
         append code "    *rc = TCL_ERROR;\n"
-        append code "    CLEANUP;\n"
-        append code "    RETURN_VALUE_CLEANUP;\n"
-        append code "    return RETURN_VALUE;\n"
+        append code "    ERROR_EXIT;\n"
         append code "\}\n"
     } else {
         append code "Tcl_ListObjIndex(interp, $argVar, (int) $idx, &$returnVar);\n"
@@ -1750,8 +1738,9 @@ proc ::tsp::lang_string_range {returnVar firstIdx firstIsFromEnd lastIdx lastIsF
 #
 proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
     upvar $compUnitDict compUnit
-    set goto [dict incr compUnit catchLevel]
-    regsub -all ERROR_EXIT $bodyCode "goto catch_$goto"
+    dict incr compUnit catchLevel
+    set goto [dict get $compUnit catchLevel]
+    regsub -all ERROR_EXIT $bodyCode "goto catch_$goto" bodyCode
     append code "/* ::tsp::lang_catch catch_$goto:*/\n"
     append code "[::tsp::indent compUnit $bodyCode]\n\n"
     append code "    /* ::tsp::lang_catch: rc = 0, success */\n"
@@ -1763,9 +1752,9 @@ proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
     append code "  success_$goto:\n"
     if {$var ne ""} {
         if {$varType eq "var"} {
-            append code [::tsp::lang_assign_${varType}_var $var interp.getResult()]
+            append code [::tsp::lang_assign_${varType}_var $var Tcl_GetObjResult(interp)]
         } else {
-            append code [::tsp::lang_convert_${varType}_var $var interp.getResult() "unable to convert var to $varType"]
+            append code [::tsp::lang_convert_${varType}_var $var Tcl_GetObjResult(interp) "unable to convert var to $varType"]
         }
     }
     return $code
@@ -1960,7 +1949,7 @@ proc ::tsp::lang_return {compUnitDict argVar} {
     append code "/* ::tsp::lang_return */\n"
     switch $returnType {
         string {append code "Tcl_DStringAppend(returnValue, Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"}
-        var    {append code "*returnValue = Tcl_DuplicateObj($argVar);\n"}
+        var    {append code "returnValue = Tcl_DuplicateObj($argVar);\n"}
         default {append code "returnValue = $argVar;\n"}
     }
     append code "*rc = TCL_OK;\n"

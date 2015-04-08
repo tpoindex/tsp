@@ -525,6 +525,7 @@ proc ::tsp::gen_command_catch {compUnitDict tree} {
                 return [list void "" ""]
             }
         }
+        set var __$var
     } else {
         set var ""
         set varType ""
