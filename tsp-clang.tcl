@@ -4,6 +4,9 @@
 #package require tcc4tcl
 package require critcl
 
+# FIXME - strings and string command impls should use Tcl_UniChar arrays, not
+#         UTF-8 strings.  
+
 
 # FIXME
 # for testing, set cache dir and clear cache once
@@ -1769,27 +1772,31 @@ proc ::tsp::lang_catch {compUnitDict returnVar bodyCode var varType} {
 proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
     upvar $compUnitDict compUnit
 
+    set tmpvar ""
+    append code "/* ::tsp::lang_switch */\n"
     set pre [::tsp::var_prefix $switchVar]
     if {$switchVarType eq "var"} {
-        set switchVar $pre$switchVar.toString()
+        set tmpvar [::tsp::get_tmpvar compUnit string]
+        ::tsp::lock_tmpvar compUnit $tmpvar
+	append code "TSP_Util_lang_convert_string_var(& $tmpvar, $pre$switchVar);\n"
+        set switchVarType string
     } else {
         set switchVar $pre$switchVar
     }
-    append code "// ::tsp::lang_switch\n"
     set match ""
     set or ""
     set else ""
     foreach {patt script} $pattCodeList {
         if {$patt eq "default"} {
-            append match " $or true /*default*/ "
+            append match " $or (1) /*default*/ "
         } else {
-            if {$switchVarType eq "string" || $switchVarType eq "var"} {
-                append match "$or ([::tsp::lang_quote_string $patt].equals($switchVar)) "
+            if {$switchVarType eq "string"} {
+                append match "$or (TSP_Util_string_compare_const($switchVar, [::tsp::lang_quote_string $patt], -1) == 0) "
             } elseif {$switchVarType eq "boolean"} {
                 if {$patt} {
-                    append match "$or (true == $switchVar) "
+                    append match "$or ($switchVar) "
                 } else {
-                    append match "$or (false == $switchVar) "
+                    append match "$or (! $switchVar) "
                 }
             } else {
                 # int or double
@@ -1809,6 +1816,9 @@ proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
         }
 
     }
+    if {[string length $tmpvar]} {
+        ::tsp::unlock_tmpvar compUnit $tmpvar
+    }
     append code "\n"
     return $code
 }
@@ -1826,13 +1836,13 @@ proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
 proc ::tsp::lang_while {compUnitDict loopVar expr body} {
     upvar $compUnitDict compUnit
 
-    append code "// ::tsp::lang_while\n"
+    append code "/* ::tsp::lang_while */\n"
 
-    append code "\n// evaluate condition \n"
+    append code "\n/* evaluate condition */\n"
     append code [::tsp::lang_expr compUnit "$loopVar = $expr;"] \n\n
     append code "while ( " $loopVar " ) {\n"
     append code $body
-    append code "\n    // evaluate condition \n"
+    append code "\n    /* evaluate condition */\n"
     append code [::tsp::indent compUnit [::tsp::lang_expr compUnit "$loopVar = $expr;"]]
     append code "\n}\n"
 
