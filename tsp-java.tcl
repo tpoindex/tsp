@@ -1600,13 +1600,15 @@ proc ::tsp::lang_while {compUnitDict loopVar expr body} {
 # implement the tcl 'foreach' command
 # idxVar - int tmpvar to use as an index, should be locked
 # lenVar - int tmpvar to use as list length, should be locked
+# convertVar - not used by java code
 # dataVar - var tmpvar to use as list var for literal list
 # varList is list of vars to be assigned from list elements
-# dataList is scalar var of data or dataString is literal data string
+# dataList is scalar var of data, null if dataString is populated
+# dataString is a string of elements, null if dataList is populated
 # body is already indented compiled code of the body
 # Note: use block scoped idx and len variables (can't use tmp variables)
 #
-proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList dataString body} {
+proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList dataList dataString body} {
     upvar $compUnitDict compUnit
 
     append code "// ::tsp::lang_foreach\n"
@@ -1640,7 +1642,7 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList da
         } else {
             set dataListPre [::tsp::var_prefix $dataList]
             if {$dataListType eq "string"} {
-                append code "[::tsp::lang_safe_release $dataList]\n"
+                append code "[::tsp::lang_safe_release $dataListPre$dataList]\n"
                 append code "[::tsp::lang_new_var_string $dataVar $dataListPre$dataList]\n"
                 append code "[::tsp::lang_preserve $dataVar]\n"
             } else {
@@ -1649,7 +1651,7 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar dataVar varList dataList da
             }
         }
     } else {
-        # assumed to be a braced list string literal
+        # assumed to be a braced list string literal in dataString
         append code "[::tsp::lang_safe_release $dataVar]\n"
         append code "[::tsp::lang_new_var_string $dataVar [::tsp::lang_quote_string $dataString]]\n"
         append code "[::tsp::lang_preserve $dataVar]\n"

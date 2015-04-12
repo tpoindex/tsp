@@ -458,14 +458,16 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
         return [list void "" ""]
     }
 
-    # get tmp idx, len, and datalist vars; lock them to prevent 
+    # get tmp idx, len, convert, and datalist vars; lock them to prevent 
     # body code from re-using them 
     set idxVar [::tsp::get_tmpvar compUnit int]
     set lenVar [::tsp::get_tmpvar compUnit int]
     set dataVar [::tsp::get_tmpvar compUnit var]
+    set convertVar [::tsp::get_tmpvar compUnit var]
     ::tsp::lock_tmpvar compUnit $idxVar
     ::tsp::lock_tmpvar compUnit $lenVar
     ::tsp::lock_tmpvar compUnit $dataVar
+    ::tsp::lock_tmpvar compUnit $convertVar
 
     set bodyRange [lindex [lindex $tree 3] 1]
     lassign $bodyRange start end
@@ -478,13 +480,14 @@ proc ::tsp::gen_command_foreach {compUnitDict tree} {
     set bodyCode [lindex [::tsp::parse_body compUnit $bodyRange] 2]
 
     append code "\n/***** ::tsp::gen_command_foreach */\n"
-    append code [::tsp::lang_foreach compUnit $idxVar $lenVar $dataVar $varList $dataList $dataString $bodyCode]
+    append code [::tsp::lang_foreach compUnit $idxVar $lenVar $convertVar $dataVar $varList $dataList $dataString $bodyCode]
 
     # decr nesting depth and unlock tmp vars
     ::tsp::incrDepth compUnit -1
     ::tsp::unlock_tmpvar compUnit $idxVar
     ::tsp::unlock_tmpvar compUnit $lenVar
     ::tsp::unlock_tmpvar compUnit $dataVar
+    ::tsp::unlock_tmpvar compUnit $convertVar
     
     return [list void "" $code]
 }
