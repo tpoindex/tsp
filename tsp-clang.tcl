@@ -376,7 +376,11 @@ proc ::tsp::lang_convert_string_double {targetVarName sourceVarName {errMsg ""}}
 proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_string */\n"
     append result "Tcl_DStringSetLength($targetVarName,0);\n"
-    append result "Tcl_DStringAppend($targetVarName, Tcl_DStringValue($sourceVarName), Tcl_DStringLength($sourceVarName));\n"
+    if {[string index $sourceVarName 0] eq {"}} {
+        append result "Tcl_DStringAppend($targetVarName, $sourceVarName, -1);\n"
+    } else {
+        append result "Tcl_DStringAppend($targetVarName, Tcl_DStringValue($sourceVarName), Tcl_DStringLength($sourceVarName));\n"
+    }
     return $result
 }
 
@@ -385,7 +389,7 @@ proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}}
 #
 proc ::tsp::lang_convert_string_var {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_var */\n"
-    append result "Tcl_DStringSetLength($targetVarName,0);\n"
+    append result "Tcl_DStringSetLength($targetVarName, 0);\n"
     append result "TSP_Util_lang_convert_string_var(&$targetVarName, $sourceVarName);\n"
 #FIXME: Tcl_GetStringFromObj, set DString as a result
     return $result
@@ -1923,10 +1927,12 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
         append code "    /* foreach set var $var */\n"
         append code "    if ($idxVar < $lenVar) \{\n"
         if {$type eq "var"} {
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $varPre$var var] 1]" \n
             append code "[::tsp::indent compUnit "if ((*rc = Tcl_ListObjIndex(interp, $dataVar, (int) ${idxVar}++, &$varPre$var)) != TCL_OK) \{" 1]" \n
             append code "[::tsp::indent compUnit "    ERROR_EXIT;" 1]" \n
             append code "[::tsp::indent compUnit "\}" 1]" \n
         } else {
+            append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $convertVar var] 1]" \n
             append code "[::tsp::indent compUnit "if ((*rc = Tcl_ListObjIndex(interp, $dataVar, (int) ${idxVar}++, &$convertVar)) != TCL_OK) \{" 1]"  \n
             append code "[::tsp::indent compUnit "    ERROR_EXIT;" 1]" \n
             append code "[::tsp::indent compUnit "\}" 1]" \n

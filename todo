@@ -1,6 +1,10 @@
 
 FIX: foreach with list is a string var
 
+CHECK: when assiging or converting from string, how do we
+  handle usages of "string" {string} \str\ing \x73tring
+  ??
+
 CHECK: tsp-generate-set.tcl and tsp-clang, tsp-java
   use of ::tsp::lang_get_string_$
   should string just be passed to the ::tsp::lang_get_string_$ proc 
