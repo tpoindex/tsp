@@ -852,9 +852,7 @@ proc ::tsp::lang_release_vars {compUnitDict} {
         set type [dict get $compUnit var $var ]
         switch $type {
             var {
-                append buf "if ($var != NULL) \{\n"
-                append buf "    Tcl_DecrRefCount($var);\n"
-                append buf "\}\n"
+                append buf [::tsp::lang_safe_release $var]
             }
             string { 
                 append buf "Tcl_DStringFree($var);\n"
@@ -902,10 +900,10 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
 
 
     set nativeTypedArgs ""
-    set declProcArgs ""
-    set declProcInit ""
-    set argVarAssignments ""
-    set innerVarPreserves ""
+    set intfProcArgs ""
+    set intfProcInit ""
+    set intfVarAssignments ""
+    set procVarPreserves ""
     set procArgsCleanup ""
     set comma ""
     set i 0
@@ -920,7 +918,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     # create: assignments from proc args to scoped variables; 
     #         declarations of scoped variables
     #         cleanup code for arguments (var types)
-    #         code to preserve var types in inner method
+    #         code to preserve var types in proc method
     foreach arg $procArgs {
         set type [lindex $procArgTypes $i]
         # rest of foreach needs i+1
@@ -929,10 +927,10 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         if {$type eq "string"} { 
             # strings are passed as pointers
             append nativeTypedArgs $comma $nativeType " " Caller_$arg 
-            append declProcArgs "Tcl_DString Cmd_$arg;\n"
-            append declProcArgs [::tsp::lang_decl_native_$type $arg]
-            append declProcInit "Tcl_DStringInit(&Cmd_$arg);\n"
-            append declProcInit "$arg = &Cmd_$arg;\n"
+            append intfProcArgs "Tcl_DString Cmd_$arg;\n"
+            append intfProcArgs [::tsp::lang_decl_native_$type $arg]
+            append intfProcInit "Tcl_DStringInit(&Cmd_$arg);\n"
+            append intfProcInit "$arg = &Cmd_$arg;\n"
             # and define as proc variables
             append procVarsDecls [::tsp::lang_decl_native_string $arg]
             append procStringsAlloc "Tcl_DString Proc_$arg;\n"
@@ -944,25 +942,22 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             append copyStringArgs "Tcl_DStringAppend($arg, Tcl_DStringValue(Caller_$arg), Tcl_DStringLength(Caller_$arg));\n"
         } else {
             append nativeTypedArgs $comma $nativeType " " $arg 
-            append declProcArgs [::tsp::lang_decl_native_$type $arg]
+            append intfProcArgs [::tsp::lang_decl_native_$type $arg]
         }
         if {$type eq "var"} {
-            append argVarAssignments [::tsp::lang_assign_var_var $arg  objv\[$i\]]
-            append innerVarPreserves [::tsp::lang_preserve $arg]
+            append intfVarAssignments [::tsp::lang_assign_var_var $arg  objv\[$i\]]
+            append procVarPreserves [::tsp::lang_preserve $arg]
         } else {
-            append argVarAssignments [::tsp::lang_convert_${type}_var $arg objv\[$i\] "can't convert arg $i to $type"]
+            append intfVarAssignments [::tsp::lang_convert_${type}_var $arg objv\[$i\] "can't convert arg $i to $type"]
         }
         set comma ", "
     }
-
-    # argVarAssignments need to use local 'rc' variable, not a pointer
-    regsub -all {\*rc} $argVarAssignments {rc} argVarAssignments
 
     if {[string length $nativeTypedArgs]} {
         set nativeTypedArgs ", $nativeTypedArgs"
     }
 
-    # create the inner method return assignment operation and declaration 
+    # create the proc method return assignment operation and declaration 
     set numProcArgs [llength $procArgs]
     set returnType [dict get $compUnit returns]
     set nativeReturnType [::tsp::lang_xlate_native_type $returnType]
@@ -973,7 +968,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
-            set returnSetResult "Tcl_SetObjResult(interp, returnValue);"
+            set intfReturnSetResult "Tcl_SetObjResult(interp, returnValue);"
             set returnAlloc ""
             set returnInit ""
             set returnCleanup $missing_return
@@ -984,7 +979,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
-            set returnSetResult "Tcl_DStringResult(interp, returnValue); ckfree((char*) returnValue);"
+            set intfReturnSetResult "Tcl_DStringResult(interp, returnValue); ckfree((char*) returnValue);"
             set returnAlloc "returnValue = (Tcl_DString*) ckalloc(sizeof(Tcl_DString));"
             set returnInit "Tcl_DStringInit(returnValue);"
             set returnCleanup $missing_return
@@ -994,7 +989,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
-            set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewBooleanObj((int) returnValue));"
+            set intfReturnSetResult "Tcl_SetObjResult(interp, Tcl_NewBooleanObj((int) returnValue));"
             set returnAlloc ""
             set returnInit ""
             set returnCleanup $missing_return
@@ -1004,7 +999,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
-            set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewDoubleObj((double) returnValue));"
+            set intfReturnSetResult "Tcl_SetObjResult(interp, Tcl_NewDoubleObj((double) returnValue));"
             set returnAlloc ""
             set returnInit ""
             set returnCleanup $missing_return
@@ -1014,7 +1009,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             set returnValueCmd "returnValue = "
             set returnVarDecl [::tsp::lang_decl_native_$returnType returnValue]
             set returnVarAssignment "returnValue = "
-            set returnSetResult "Tcl_SetObjResult(interp, Tcl_NewWideIntObj((Tcl_WideInt) returnValue));"
+            set intfReturnSetResult "Tcl_SetObjResult(interp, Tcl_NewWideIntObj((Tcl_WideInt) returnValue));"
             set returnAlloc ""
             set returnInit ""
             set returnCleanup $missing_return
@@ -1025,14 +1020,14 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             set returnValueCmd ""
             set returnVarDecl ""
             set returnVarAssignment ""
-            set returnSetResult "Tcl_ResetResult(interp);"
+            set intfReturnSetResult "Tcl_ResetResult(interp);"
             set returnAlloc ""
             set returnInit ""
             set returnCleanup "*rc = TCL_OK; goto normal_exit;"
         }
     }
 
-    # create inner method proc vars and cleanup code (for vars and string)
+    # create proc function vars and cleanup code (for vars and string)
     foreach {var} [lsort [dict keys [dict get $compUnit vars]]] {
         set type [::tsp::getVarType compUnit $var]
         if {[lsearch $procArgs __$var] >= 0} {
@@ -1153,7 +1148,7 @@ $return_cleanup_def
 $return_var_def
 
 /* 
- * proc implementation (inner)
+ * compiled proc implementation 
  *
  */
 $nativeReturnType
@@ -1185,7 +1180,7 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     [::tsp::indent compUnit $procStringsInit 1 \n]
 
     /* var arguments need to be preserved, since they are released in CLEANUP */
-    [::tsp::indent compUnit $innerVarPreserves 1 \n]
+    [::tsp::indent compUnit $procVarPreserves 1 \n]
 
     /* string arguments need to be copied (FIXME: investigate using COW for strings) */
     [::tsp::indent compUnit $copyStringArgs 1 \n]
@@ -1265,11 +1260,11 @@ $arg_cleanup_defs
 
     $returnVarDecl
     /* variables used by this command, assigned from objv array */
-    [::tsp::indent compUnit $declProcArgs 1 \n]
+    [::tsp::indent compUnit $intfProcArgs 1 \n]
 
-    [::tsp::indent compUnit $declProcInit 1 \n]
+    [::tsp::indent compUnit $intfProcInit 1 \n]
 
-    /* allow other compiled procs to find the inner function at runtime, see TSP_cmd.TSP_User_getCmd() */
+    /* allow other compiled procs to find the this proc function at runtime, see TSP_cmd.TSP_User_getCmd() */
     if (clientData != NULL && objc == 0) {
         void** cd = clientData;
         *cd = (void*) TSP_UserDirect_${name};
@@ -1283,14 +1278,14 @@ $arg_cleanup_defs
     }
 
     /* assign arg variable from objv array */
-    [::tsp::indent compUnit $argVarAssignments 1 \n]
+    [::tsp::indent compUnit $intfVarAssignments 1 \n]
 
-    /* invoke inner compiled proc method */
+    /* invoke compiled proc method */
     _rc = TCL_OK;
 
     ${returnValueCmd}TSP_UserDirect_${name}(interp, &_rc ${nativeArgs});
     if (_rc == TCL_OK) {
-        $returnSetResult
+        $intfReturnSetResult
         /* ok to fall through */
     }
 
@@ -1353,7 +1348,7 @@ proc ::tsp::lang_compile {compUnitDict code} {
             ::critcl::cflags -Werror=return-type
         }
 
-        # create the code, first is the inner proc (ccode), second is the tcl interface (ccommand)
+        # create the code, first is the proc (ccode), second is the tcl interface (ccommand)
         ::critcl::ccode [lindex $code 0]
         ::critcl::ccommand ::$name {clientData interp objc objv} [lindex $code 1]
 
@@ -1517,7 +1512,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
         if {$type eq "var"} {
             append buf "if ($pre$var == NULL) \{\n"
             append buf "    $pre$var = Tcl_NewStringObj(\"\");\n"
-            append buf "    Tcl_IncrRefCount($pre$var);\n"
+            append buf "    [::tsp::lang_preserve $pre$var]"
             append buf "\}\n"
             append buf "if (Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0)  == NULL) \{\n"
             append buf "    *rc = TCL_ERROR;\n"
@@ -1665,7 +1660,7 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
     append code "if ($returnVar == NULL) \{\n"
     append code "    [::tsp::lang_new_var_string $returnVar {""}]"
     append code "\}\n"
-    append code "    Tcl_IncrRefCount($returnVar);\n"
+    append code "    [::tsp::lang_preserve $returnVar]"
     append code "\}\n"
     return $code
 }
