@@ -112,6 +112,7 @@ TSP_Util_lang_assign_var_boolean(Tcl_Obj* targetVarName, int sourceVarName) {
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_NewBooleanObj(sourceVarName);
+    Tcl_IncrRefCount(targetVarName);
     return targetVarName;
 }
 
@@ -124,6 +125,7 @@ TSP_Util_lang_assign_var_int(Tcl_Obj* targetVarName, Tcl_WideInt sourceVarName) 
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_NewWideIntObj(sourceVarName);
+    Tcl_IncrRefCount(targetVarName);
     return targetVarName;
 }
 
@@ -136,6 +138,7 @@ TSP_Util_lang_assign_var_double(Tcl_Obj* targetVarName, double sourceVarName) {
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_NewDoubleObj(sourceVarName);
+    Tcl_IncrRefCount(targetVarName);
     return targetVarName;
 }
 
@@ -148,6 +151,7 @@ TSP_Util_lang_assign_var_string(Tcl_Obj* targetVarName, Tcl_DString* sourceVarNa
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_NewStringObj(Tcl_DStringValue(sourceVarName), Tcl_DStringLength(sourceVarName));
+    Tcl_IncrRefCount(targetVarName);
     return targetVarName;
 }
 
@@ -160,6 +164,7 @@ TSP_Util_lang_assign_var_string_const(Tcl_Obj* targetVarName, char* sourceVarNam
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_NewStringObj(sourceVarName, -1);
+    Tcl_IncrRefCount(targetVarName);
     return targetVarName;
 }
 
@@ -172,6 +177,7 @@ TSP_Util_lang_assign_var_var(Tcl_Obj* targetVarName, Tcl_Obj* sourceVarName) {
         Tcl_DecrRefCount(targetVarName);
     }
     targetVarName = Tcl_DuplicateObj(sourceVarName);
+    Tcl_IncrRefCount(targetVarName);
     return targetVarName;
 }
 
