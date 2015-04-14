@@ -1046,6 +1046,9 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         }
         if {$type eq "var"} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
+            if {$::tsp::DEBUG_DIR ne ""} {
+                append procVarsCleanup "if ($pre$var != null && $pre$var.getRefCount != 1) {System.err.println(\"proc: $name var: $pre$var refCount: \" + $pre$var.getRefCount);}\n"
+            }
             append procVarsCleanup [::tsp::lang_safe_release $pre$var]
         } elseif {$type ne "array"} {
             append procVarsDecls [::tsp::lang_decl_native_$type $pre$var]
