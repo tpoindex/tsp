@@ -213,7 +213,7 @@ proc ::tsp::lang_new_var_string {varName str} {
     if {[string range $str 0 0] eq "\""} {
         return "$varName = Tcl_NewStringObj($str,-1);\n"
     } else {
-        return "$varName = Tcl_NewStringObj(Tcl_DStrigValue($str), Tcl_DStringLength($str));\n"
+        return "$varName = Tcl_NewStringObj(Tcl_DStringValue($str), Tcl_DStringLength($str));\n"
     }
 }
 
@@ -533,12 +533,12 @@ proc ::tsp::lang_false_const {} {
 # assign empty/zero
 # 
 proc ::tsp::lang_assign_empty_zero {var type} {
-    set code "/*::tsp::lang_assign_empty_zero */\n"
+    set code "/* ::tsp::lang_assign_empty_zero */\n"
     switch $type {
         boolean {append code "$var = 0;\n"}
         int -
         double {append code "$var = 0;\n"}
-        string {append code [::tsp::lang_convert_string_string $var {""}]}
+        string {append code "Tcl_DStringSetLength($var, 0);\n"}
         var {append code [::tsp::lang_safe_release $var]
             append code [::tsp::lang_new_var_string $var {""}]
         }
@@ -1045,6 +1045,9 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         }
         if {$type eq "var"} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
+            if {$::tsp::DEBUG_DIR ne ""} {
+                append procVarsCleanup "if ($pre$var != NULL && $pre$var->refCount != 1) {fprintf(stderr,\"proc: $name var: $pre$var refCount: %d\\n\",$pre$var->refCount);}\n"
+            }
             append procVarsCleanup [::tsp::lang_safe_release $pre$var]
         } elseif {$type eq "string"} {
             append procVarsDecls [::tsp::lang_decl_native_string $pre$var]
@@ -1894,6 +1897,9 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
                 set type [::tsp::getVarType compUnit $v]
                 set vPre [::tsp::var_prefix $v]
                 append code "[::tsp::lang_assign_empty_zero $vPre$v $type]"
+                if {$type eq "var"} {
+                    append code "[::tsp::lang_preserve $vPre$v]\]"
+                }
             }
             append code $body
             return $body
@@ -1901,7 +1907,7 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
         } else {
             set dataListPre [::tsp::var_prefix $dataList]
             if {$dataListType eq "string"} {
-                append code "[::tsp::lang_safe_release $dataListPre$dataList]\n"
+                append code "[::tsp::lang_safe_release $dataVar]\n"
                 append code "[::tsp::lang_new_var_string $dataVar $dataListPre$dataList]\n"
                 append code "[::tsp::lang_preserve $dataVar]\n"
             } else {
@@ -1916,10 +1922,11 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
         append code "[::tsp::lang_preserve $dataVar]\n"
     }
 
-    append code "$idxVar = 0; // idx\n"
-    append code "if ((*rc = Tcl_ListObjLength(interp, $dataVar, &$lenVar)) != TCL_OK) \{ \n"
+    append code "$idxVar = 0; /* idx */\n"
+    append code "if ((*rc = Tcl_ListObjLength(interp, $dataVar, &len)) != TCL_OK) \{ \n"
     append code "    ERROR_EXIT;\n"
     append code "\}\n"
+    append code "$lenVar = len; /* list length */\n"
     append code "while ($idxVar < $lenVar) \{\n"
     foreach var $varList {
         set varPre [::tsp::var_prefix $var]
@@ -1927,19 +1934,24 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
         append code "    /* foreach set var $var */\n"
         append code "    if ($idxVar < $lenVar) \{\n"
         if {$type eq "var"} {
-            append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $varPre$var var] 1]" \n
+            append code "[::tsp::indent compUnit [::tsp::lang_safe_release $varPre$var] 1]" \n
             append code "[::tsp::indent compUnit "if ((*rc = Tcl_ListObjIndex(interp, $dataVar, (int) ${idxVar}++, &$varPre$var)) != TCL_OK) \{" 1]" \n
             append code "[::tsp::indent compUnit "    ERROR_EXIT;" 1]" \n
             append code "[::tsp::indent compUnit "\}" 1]" \n
+            append code "[::tsp::indent compUnit [::tsp::lang_preserve $varPre$var] 1]" \n
         } else {
-            append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $convertVar var] 1]" \n
+            append code "[::tsp::indent compUnit [::tsp::lang_safe_release $convertVar] 1]" \n
             append code "[::tsp::indent compUnit "if ((*rc = Tcl_ListObjIndex(interp, $dataVar, (int) ${idxVar}++, &$convertVar)) != TCL_OK) \{" 1]"  \n
             append code "[::tsp::indent compUnit "    ERROR_EXIT;" 1]" \n
             append code "[::tsp::indent compUnit "\}" 1]" \n
+            append code "[::tsp::indent compUnit [::tsp::lang_preserve $convertVar] 1]" \n
             append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var $varPre$var $convertVar "unable to convert var to $type"] 1]" \n
         }
         append code "    \} else \{\n"
         append code "[::tsp::indent compUnit [::tsp::lang_assign_empty_zero $varPre$var $type] 1]\n"
+        if {$type eq "var"} {
+            append code "[::tsp::indent compUnit [::tsp::lang_preserve $varPre$var] 1]" \n
+        }
         append code "    \}\n"
     }
     append code "    /* foreach body */\n"
