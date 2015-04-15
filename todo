@@ -1,3 +1,6 @@
+FIX: re-generate TSP_cmd.c  - dict is missing, possibly others.
+
+
 
 
 CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check
@@ -33,7 +36,7 @@ critcl::load bug??  see github issue
 --------------------------------------
 
 
-
+PERFORMANCE:  add INLINE for some C lang_xxxx functions ???
 
 
 
