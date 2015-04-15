@@ -4,9 +4,20 @@ package require java
 package require hyde
 
 # set hyde options:
-hyde::configure -compiler janinocp
+# note that janino version in jtcl doesn't recognize some valid 
+# constructs, needs updating, use javac instead for now.
+hyde::configure -compiler javac
 hyde::configure -writecache 0
 hyde::configure -runtime forcecompile
+
+# add in class path for ./native/java classes
+global ::env
+set ::tsp::__old_tcl_classpath ""
+catch {set ::tsp::__old_tcl_classpath $::env(TCL_CLASSPATH)}
+set ::tsp::__old_classpath ""
+catch {set ::tsp::__old_classpath $::env(CLASSPATH)}
+set ::env(TCL_CLASSPATH) [linsert $::tsp::__old_tcl_classpath 0 [file join $::tsp::HOME_DIR native java]]
+#set ::env(CLASSPATH) [file join $::tsp::HOME_DIR native java]$::env(path.separator)$::tsp::__old_classpath
 
 
 # BUILTIN_TCL_COMMANDS
@@ -1047,7 +1058,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         if {$type eq "var"} {
             append procVarsDecls [::tsp::lang_decl_var $pre$var]
             if {$::tsp::DEBUG_DIR ne ""} {
-                append procVarsCleanup "if ($pre$var != null && $pre$var.getRefCount != 1) {System.err.println(\"proc: $name var: $pre$var refCount: \" + $pre$var.getRefCount);}\n"
+                append procVarsCleanup "if ($pre$var != null && $pre$var.getRefCount() != 1) {System.err.println(\"proc: $name var: $pre$var refCount: \" + $pre$var.getRefCount());}\n"
             }
             append procVarsCleanup [::tsp::lang_safe_release $pre$var]
         } elseif {$type ne "array"} {

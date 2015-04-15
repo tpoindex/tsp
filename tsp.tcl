@@ -35,6 +35,8 @@ namespace eval ::tsp {
     # e.g., tsp-java.tcl, tsp-clang.tcl
 } 
 
+set ::tsp::HOME_DIR [file normalize [file dirname [info script]]]
+
 source [file join [file dirname [info script]] tsp-logging.tcl]
 source [file join [file dirname [info script]] tsp-compile.tcl]
 source [file join [file dirname [info script]] tsp-trace.tcl]
@@ -56,6 +58,5 @@ if {$::tcl_platform(platform) eq "java"} {
     source [file join [file dirname [info script]] tsp-clang.tcl]
 }
 
-set ::tsp::HOME_DIR [file normalize [file dirname [info script]]]
 format ""
 

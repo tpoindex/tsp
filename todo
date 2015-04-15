@@ -1,3 +1,7 @@
+FIX: SPILL_LOAD_COMMANDS: when command is "dict create"  - code wants to
+   spill arg 2 (the first key).  
+
+
 CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check
   that all string dup's and new strings have a preserve()
 
@@ -19,14 +23,8 @@ FIX:  lang_switch should pass a string tempvar, locked, to
 
 
 PERFORMANCE: 
-  DONE - allocate argument arrays once to a max size, or maybe one array per call
   - check that assignment to var is doing copy only when needed
-  DONE - check that 'gets' is load not spill/load, and other cmds
-  DONE - check that 'load' does not always cause 'spill'
-  DONE - why is spill vars emitting double the code?  (see cat.java)
   - check assign_var_var is just copying ref and preserve
-  DONE - check why code outside a loop uses argv_1, and inside it used argv_0
-  DONE - array variable cause "TclObject has been deallocated" exception (see langbench hash2.tcl)
   - check if we need to preserve()/release on involing tcl builtin command
 
   
