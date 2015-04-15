@@ -1,5 +1,3 @@
-FIX: SPILL_LOAD_COMMANDS: when command is "dict create"  - code wants to
-   spill arg 2 (the first key).  
 
 
 CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check

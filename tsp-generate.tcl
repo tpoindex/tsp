@@ -626,13 +626,21 @@ proc ::tsp::check_varname_args {compUnitDict tree} {
     }
     set cmd [lindex $cmdNodeComponents 0 1]
 
+    set subcmdNode [lindex $tree 1]
+    set subcmdNodeComponents [::tsp::parse_word compUnit $subcmdNode]
+    if {[llength $subcmdNodeComponents] > 1 || [lindex $subcmdNodeComponents 0 0] ne "text"} { 
+        set subcmd ""
+    } else {
+        set subcmd [lindex $subcmdNodeComponents 0 1]
+    }
+
     foreach spillElement $::tsp::SPILL_LOAD_COMMANDS {
         lassign $spillElement spillCmd subcmdOption start end vartype spilltype
         set spillNames  [list $spilltype $vartype]
 
         if {$spillCmd eq $cmd} {
             # subcommand, pickout the varnames by absolute index
-            if {$subcmdOption eq ""} {
+            if {$subcmdOption eq "" || (($subcmdOption eq $subcmd) && ($subcmdOption ne "--"))} {
                 foreach node [lrange $tree $start $end] {
                     set varname [::tsp::nodeText compUnit $node]
                     if {$varname ne ""} {
@@ -704,18 +712,7 @@ proc ::tsp::check_varname_args {compUnitDict tree} {
                     }
                 }   
             } else {
-                # whole command, pick out the varnames by absolute index
-                foreach node [lrange $tree $start $end] {
-                    set varname [::tsp::nodeText compUnit $node]
-                    if {$varname ne "" && [::tsp::getVarType compUnit $varname] eq "undefined"} {
-                        ::tsp::addWarning compUnit "\"$varname\" implicitly defined as type \"$vartype\" by command \"$cmd\""
-                        ::tsp::setVarType compUnit $varname $vartype
-                    }
-                    if {$varname ne ""} {
-                        lappend spillNames $varname
-                    }
-                }
-                return $spillNames
+                # no matching subcommand or -- 
             }
         }
     }
