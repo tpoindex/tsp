@@ -1,7 +1,13 @@
-package require md5 1.4.4
+# for comparison, use tcllib
+#      package require md5 1.4.4
 package require tsp
-tsp::debug /tmp/tspdir
-hyde::configure -compiler javac
+
+# uncomment to save 
+# puts "tsp debug dir: [tsp::debug]"
+
+
+# roughly .25mb
+set bigstring [string repeat [string repeat  ABCDEFGHIJKLMNOPQRSTUVWXYZ 100] 100]
 
 tsp::proc tsp_md5_byte0 {i} {
     #tsp::procdef int -args int
