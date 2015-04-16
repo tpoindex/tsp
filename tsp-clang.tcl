@@ -24,6 +24,10 @@ variable ::tsp::critcl_pkginit [info body ::critcl::PkgInit]
 # interpreter builtin commands that we can call directly
 # note: this is all compiled commands, since some tsp_compiled
 # command may defer to the builtin ones.
+#
+# create native/clang/TSP_cmd.c as:
+# tclsh8.6
+# source tsp.tcl; set fd [open native/clang/TSP_cmd.c w] ; puts $fd [::tsp::lang_builtin_refs] ; close $fd
 
 # SPILL_LOAD_COMMANDS
 # commands that specify variables by name, requiring spill/load
@@ -46,14 +50,16 @@ namespace eval ::tsp {
         format      gets        glob        global      if         \
         incr        info        interp      join        lappend    \
         lassign     lindex      linsert     list        llength    \
-        load        lrange      lrepeat     lreplace    lreverse   \
-        lsearch     lset        lsort       namespace   open       \
-        package     pid         proc        puts        pwd        \
-        read        regexp      regsub      rename      return     \
-        scan        seek        set         socket      source     \
-        split       string      subst       switch      tell       \
-        time        trace       unload      unset       update     \
-        uplevel     upvar       variable    vwait       while      \
+        lmap        load        lrange      lrepeat     lreplace   \
+        lreverse    lsearch     lset        lsort       namespace  \
+        open        package     pid         proc        puts       \
+        pwd         read        regexp      regsub      rename     \
+        return      scan        seek        set         socket     \
+        source      split       string      subst       switch     \
+        tailcall    tell        time        trace       try        \
+        unload      unset       update      uplevel     upvar      \
+        variable    vwait       while       yield       yieldto    \
+        zlib                                                       \
     ]
 
     variable SPILL_LOAD_COMMANDS [list                               \
@@ -119,7 +125,7 @@ proc ::tsp::lang_type_double {} {
 # return native string type: String/DString
 #
 proc ::tsp::lang_type_string {} {
-    return Tcl_DString
+    return Tcl_DString*
 }
 
 ##############################################
@@ -484,7 +490,7 @@ proc ::tsp::lang_quote_string {str} {
                 "\f" {append result \\f}
                 "\r" {append result \\r}
                 default {
-                     append result \\u
+                     append result \\x
                      append result [format %04x $val]
                 }
             } 
@@ -819,8 +825,10 @@ proc ::tsp::lang_invoke_tcl {compUnitDict max} {
 proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserveArgList} {
     if {$procType eq "void"} {
         set returnVar ""
+        set returnVarAssign ""
     } else {
-        set returnVar "$returnVar = "
+        set returnVar $returnVar
+        set returnVarAssign "$returnVar = ([::tsp::lang_type_$procType]) "
     }
     set invokeArgs "interp, rc"
     if {[string length $argList]} {
@@ -832,7 +840,7 @@ proc ::tsp::lang_invoke_tsp_compiled {cmdName procType returnVar argList preserv
     } elseif {$procType eq "string"} {
         append code "Tcl_DStringSetLength($returnVar, 0);\n"
     }
-    append code "${returnVar}TSP_UserDirect_${cmdName}($invokeArgs);\n"
+    append code "${returnVarAssign}TSP_UserDirect_${cmdName}($invokeArgs);\n"
     append code "if (*rc != TCL_OK) \{\n"
     append code "    ERROR_EXIT;\n"
     append code "\}\n"
@@ -1396,6 +1404,8 @@ proc ::tsp::lang_builtin_refs {} {
     append result "#include <tcl.h>\n"
     append result "#endif\n\n"
 
+    append result "/* return a pointer to a user direct command function, assumes\n"
+    append result "   that user command puts the inner direct command into clientdata */\n"
     append result "void*\n"
     append result "TSP_User_getCmd(Tcl_Interp* interp, char* cmd) \{\n"
     append result "    Tcl_CmdInfo cmdInfo;\n"
@@ -1406,12 +1416,13 @@ proc ::tsp::lang_builtin_refs {} {
     append result "    if (rc == 0) \{\n"
     append result "        Tcl_Panic(\"TSP_User_getCmd: can't get command proc for %s\", cmd);\n"
     append result "    \} else \{\n"
-    append result "       objCmd = cmdInfo.objProc;\n"
-    append result "       rc = objCmd(&userCmd, interp, 0, NULL);\n"
-    append result "       return userCmd;\n"
+    append result "        objCmd = cmdInfo.objProc;\n"
+    append result "        rc = objCmd(&userCmd, interp, 0, NULL);\n"
     append result "    \}\n"
+    append result "     return userCmd;\n"
     append result "\}\n\n"
 
+    append result "/* return a pointer to a Tcl command function */\n"
     append result "Tcl_ObjCmdProc*\n"
     append result "TSP_Cmd_getCmd(Tcl_Interp* interp, char* cmd) \{\n"
     append result "    Tcl_CmdInfo cmdInfo;\n"
@@ -1419,9 +1430,8 @@ proc ::tsp::lang_builtin_refs {} {
     append result "    rc = Tcl_GetCommandInfo(interp, cmd, &cmdInfo);\n"
     append result "    if (rc == 0) \{\n"
     append result "        Tcl_Panic(\"TSP_Cmd_getCmd: can't get command proc for %s\", cmd);\n"
-    append result "    \} else \{\n"
-    append result "        return cmdInfo.objProc;\n"
     append result "    \}\n"
+    append result "     return cmdInfo.objProc;\n"
     append result "\}\n\n\n"
 
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
@@ -1511,7 +1521,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
         append buf "/* interp.setVar $var */\n"
         if {$type eq "var"} {
             append buf "if ($pre$var == NULL) \{\n"
-            append buf "    $pre$var = Tcl_NewStringObj(\"\");\n"
+            append buf "    $pre$var = Tcl_NewStringObj(\"\",-1);\n"
             append buf "    [::tsp::lang_preserve $pre$var]"
             append buf "\}\n"
             append buf "if (Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0)  == NULL) \{\n"
