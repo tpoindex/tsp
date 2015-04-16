@@ -10,14 +10,11 @@ hyde::configure -compiler javac
 hyde::configure -writecache 0
 hyde::configure -runtime forcecompile
 
-# add in class path for ./native/java classes
+# add in class path for ./native/java classes in TCL_CLASSPATH
 global ::env
 set ::tsp::__old_tcl_classpath ""
 catch {set ::tsp::__old_tcl_classpath $::env(TCL_CLASSPATH)}
-set ::tsp::__old_classpath ""
-catch {set ::tsp::__old_classpath $::env(CLASSPATH)}
 set ::env(TCL_CLASSPATH) [linsert $::tsp::__old_tcl_classpath 0 [file join $::tsp::HOME_DIR native java]]
-#set ::env(CLASSPATH) [file join $::tsp::HOME_DIR native java]$::env(path.separator)$::tsp::__old_classpath
 
 
 # BUILTIN_TCL_COMMANDS
