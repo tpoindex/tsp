@@ -2,7 +2,7 @@
 #include <tcl.h>
 #endif
 
-/* return a pointer to a user direct command function, assumes 
+/* return a pointer to a user direct command function, assumes
    that user command puts the inner direct command into clientdata */
 void*
 TSP_User_getCmd(Tcl_Interp* interp, char* cmd) {
@@ -14,8 +14,8 @@ TSP_User_getCmd(Tcl_Interp* interp, char* cmd) {
     if (rc == 0) {
         Tcl_Panic("TSP_User_getCmd: can't get command proc for %s", cmd);
     } else {
-       objCmd = cmdInfo.objProc;
-       rc = objCmd(&userCmd, interp, 0, NULL);
+        objCmd = cmdInfo.objProc;
+        rc = objCmd(&userCmd, interp, 0, NULL);
     }
     return userCmd;
 }
@@ -55,6 +55,20 @@ TSP_Cmd_builtin_apply (ClientData clientData, Tcl_Interp* interp, int objc, stru
 }
 
 int
+TSP_Cmd_builtin_array (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::array");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_binary (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::binary");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
 TSP_Cmd_builtin_break (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::break");}
@@ -83,6 +97,20 @@ TSP_Cmd_builtin_cd (ClientData clientData, Tcl_Interp* interp, int objc, struct 
 }
 
 int
+TSP_Cmd_builtin_chan (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::chan");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_clock (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::clock");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
 TSP_Cmd_builtin_close (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::close");}
@@ -100,6 +128,13 @@ int
 TSP_Cmd_builtin_continue (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::continue");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_dict (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::dict");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -174,6 +209,13 @@ TSP_Cmd_builtin_fcopy (ClientData clientData, Tcl_Interp* interp, int objc, stru
 }
 
 int
+TSP_Cmd_builtin_file (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::file");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
 TSP_Cmd_builtin_fileevent (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::fileevent");}
@@ -184,6 +226,13 @@ int
 TSP_Cmd_builtin_flush (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::flush");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_for (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::for");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -233,6 +282,13 @@ int
 TSP_Cmd_builtin_incr (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::incr");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_info (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::info");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -293,16 +349,23 @@ TSP_Cmd_builtin_llength (ClientData clientData, Tcl_Interp* interp, int objc, st
 }
 
 int
-TSP_Cmd_builtin_lrange (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+TSP_Cmd_builtin_lmap (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
-    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::lrange");}
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::lmap");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
 int
-TSP_Cmd_builtin_lmap (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+TSP_Cmd_builtin_load (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
-    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::lmap");}
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::load");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_lrange (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::lrange");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -349,6 +412,13 @@ TSP_Cmd_builtin_lsort (ClientData clientData, Tcl_Interp* interp, int objc, stru
 }
 
 int
+TSP_Cmd_builtin_namespace (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::namespace");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
 TSP_Cmd_builtin_open (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::open");}
@@ -359,6 +429,13 @@ int
 TSP_Cmd_builtin_package (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::package");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_pid (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::pid");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -461,6 +538,13 @@ TSP_Cmd_builtin_split (ClientData clientData, Tcl_Interp* interp, int objc, stru
 }
 
 int
+TSP_Cmd_builtin_string (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::string");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
 TSP_Cmd_builtin_subst (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::subst");}
@@ -471,6 +555,13 @@ int
 TSP_Cmd_builtin_switch (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::switch");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_tailcall (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::tailcall");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -499,6 +590,13 @@ int
 TSP_Cmd_builtin_try (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::try");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_unload (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::unload");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
@@ -548,6 +646,27 @@ int
 TSP_Cmd_builtin_while (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
     static Tcl_ObjCmdProc* cmdProc = NULL;
     if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::while");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_yield (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::yield");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_yieldto (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::yieldto");}
+    return (cmdProc)(clientData, interp, objc, objv);
+}
+
+int
+TSP_Cmd_builtin_zlib (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) {
+    static Tcl_ObjCmdProc* cmdProc = NULL;
+    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, "::zlib");}
     return (cmdProc)(clientData, interp, objc, objv);
 }
 
