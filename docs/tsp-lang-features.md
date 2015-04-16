@@ -28,12 +28,13 @@ the exception that **in** and **ni** operators are not supported.
 Expression must be enclosed by braces, quoted or bare expressions cannot be compiled.
 
 ```
-    #tsp::var v
+
 
     # illegal expressions
-    set n [ expr "$a $s $c" ]        ;# invalid: not enclosed by braces
+    set n [ expr "$a $s $c" ]        ;# invalid: expression not enclosed by braces
 
-    if {$v + $x($c)} {               ;# invalid: var type and array reference not allowed
+    #tsp::var v
+    if {$v + $x($c)} {               ;# invalid: var type and array references not allowed
     }
 
     while {[string length $s]} {     ;# invalid: nested command not allowed
@@ -68,9 +69,9 @@ are compiled into native code without using a translation table, so names must b
 target language.
 
 ```
-    tsp::proc foo.bar {} {           ;# invalid: '.' character in proc name
+    tsp::proc foo.bar {} {           ;# invalid: characters other than _ in proc name
         #tsp::procdef void
-        set {bing baz} "hello"       ;# invalid: variable name
+        set {bing baz} "hello"       ;# invalid: whitespace in variable name
     }
 ```
 
@@ -93,7 +94,7 @@ to an integer, or the literal **end-** with an integer constant or variable.
 
 ```
     set idx "end-$i"
-    puts [string index $str $idx]    ;# invalid: end- specifier only allowed as literal
+    puts [string index $str $idx]    ;# invalid: "end-n" specifier only allowed as literal
 
     puts [string index $str end-$i]  ;# OK
 ```

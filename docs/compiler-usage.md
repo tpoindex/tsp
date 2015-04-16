@@ -4,7 +4,7 @@ In order to use the TSP compiler, you must include the package.  This loads the 
 into the `::tsp` namespace, and also loads supporting packages `parser`, `hyde` (jtcl), and
 `critcl` (tclsh).
 
-     package reuquire tsp
+     package require tsp
 
 ## Commands 
 
@@ -23,7 +23,7 @@ directory argument is not specified, a directory will be created and the full pa
 will be returned.
 
 
-### `::tsp::getCompiledProcs`
+### `tsp::getCompiledProcs`
 
 `tsp::getCompiledProcs` returns a list of previously compiled procs.
 
@@ -86,7 +86,7 @@ vwait, etc.)
 
 ### `#tsp::compile` *normal | none| assert | debug*
 
-    `#tsp::compile` annotation specifies how a tsp::proc should behave when compiler errors occur.
+`#tsp::compile` annotation specifies how a tsp::proc should behave when compiler errors occur.
 
   * normal - the proc will be compiled, but if any compiler error occurs, the proc will
              be defined as an ordinary Tcl interpreter proc.  This is the default.

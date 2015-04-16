@@ -78,10 +78,12 @@ version may compile a whole sourced file at a time.)
 ### TJC - Tcl to Java compiler (DeJong, 2006)
 
 Similarities:
+
   * Both are primarly written in Tcl
   * Both use the `parser` extension for Tcl parsing
   
 Differences:
+
   * TSP produces C or Java; TJC produces only Java.
   * TSP uses native types; TJC uses Tcl Objects.
   * TSP compiles a subset of Tcl, and restricts Tcl semantics;  TJC implements Tcl semantics.
@@ -95,6 +97,7 @@ Similarities:
   * Both produce native code where possible.
 
 Differences:
+
   * TSP is written primarily in Tcl; Koski is written in C.
   * TSP produces C or Java; TJC produces only C.
   * TSP uses type annotations for variable typing; Koski performs type inference.
@@ -104,9 +107,11 @@ Differences:
 ### Parenthetcl (Strickland, 2004)
 
 Similarities:
+
   * Both use a type system for native variables
 
 Differences:
+
   * TSP is written primarily in Tcl; Parenthetcl is written in C.
   * TSP uses comment-based type annotations, and is upwardly compatible with ordinary Tcl; 
     Parenthetcl uses language-based type annotations, and is not compatible with Tcl.
@@ -117,6 +122,7 @@ Differences:
 ### Tclc (Baur, 2006)
 
 Differences:
+
   * TSP is written primarily in Tcl; Tclc is written in Haskell.
   * Tclc has been dormant since 2011 and is considered historical.
 
