@@ -300,6 +300,11 @@ proc ::tsp::gen_direct_tcl {compUnitDict tree} {
     set cmdComponent [lindex [::tsp::parse_word compUnit [lindex $tree 0]] 0]
     set cmdName [lindex $cmdComponent 1]
     set max [llength $tree]
+
+    if {[lsearch $::tsp::BUILTIN_TCL_COMMANDS $cmdName] == -1} {
+        # not a builtin command, invoke via the interp
+        return [::tsp::gen_invoke_tcl compUnit $tree]
+    }
     
     append result "\n/***** ::tsp::gen_direct_tcl $cmdName */\n"
     append result [::tsp::gen_objv_array compUnit $tree [::tsp::lang_builtin_cmd_obj $cmdName]]
