@@ -39,23 +39,27 @@ variable ::tsp::critcl_pkginit [info body ::critcl::PkgInit]
 # and not for introspection commands ("info").  See ::tsp::check_varname_args
 # for details
 
+# FIXME - Tcl ensemble commands are not handled, because the C interface
+#         is radically different. wtf.
+# cmds:   array binary chan dict file info namespace string
+
 namespace eval ::tsp {
     variable BUILTIN_TCL_COMMANDS [list		 	           \
-        after       append      apply       array       binary     \
-        break       case        catch       cd          chan       \
-        clock       close       concat      continue    dict       \
+        after       append      apply                              \
+        break       case        catch       cd                     \
+        clock       close       concat      continue               \
         encoding    eof         error       eval        exec       \
         exit        expr        fblocked    fconfigure  fcopy      \
-        file        fileevent   flush       for         foreach    \
+                    fileevent   flush       for         foreach    \
         format      gets        glob        global      if         \
-        incr        info        interp      join        lappend    \
+        incr                    interp      join        lappend    \
         lassign     lindex      linsert     list        llength    \
         lmap        load        lrange      lrepeat     lreplace   \
-        lreverse    lsearch     lset        lsort       namespace  \
+        lreverse    lsearch     lset        lsort                  \
         open        package     pid         proc        puts       \
         pwd         read        regexp      regsub      rename     \
         return      scan        seek        set         socket     \
-        source      split       string      subst       switch     \
+        source      split                   subst       switch     \
         tailcall    tell        time        trace       try        \
         unload      unset       update      uplevel     upvar      \
         variable    vwait       while       yield       yieldto    \
@@ -809,7 +813,9 @@ proc ::tsp::lang_invoke_tcl {compUnitDict max} {
     set cmdLevel [dict get $compUnit cmdLevel]
 
     append code "\n/*  ::tsp::lang_invoke_tcl */\n"
-    append code "Tcl_EvalObjv(interp, $max, argObjvArray_$cmdLevel, 0);\n"
+    append code "if ((*rc = Tcl_EvalObjv(interp, $max, argObjvArray_$cmdLevel, 0)) != TCL_OK) \{\n"
+    append code "    ERROR_EXIT;\n"
+    append code "\}\n"
     append code [::tsp::lang_safe_release _tmpVar_cmdResultObj]
     append code "_tmpVar_cmdResultObj = Tcl_GetObjResult(interp);\n"
     append code [::tsp::lang_preserve _tmpVar_cmdResultObj] \n
@@ -1162,6 +1168,7 @@ $return_var_def
 $nativeReturnType
 TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     static int directInit = 0;
+    int i;          /* for loop */
     int len;        /* len, idx1, idx2, str, str2 -for use by lang_string, et.al. */
     int idx1;
     int idx2;
@@ -1260,11 +1267,8 @@ $arg_cleanup_defs
     set cfileTemplate2 \
 {
 
-
     int _rc;
     int* rc = &_rc;;
-
-    /*::tsp::lang_builtin_refs */
 
     $returnVarDecl
     /* variables used by this command, assigned from objv array */
@@ -1436,10 +1440,16 @@ proc ::tsp::lang_builtin_refs {} {
 
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
         append result "int\n"
-        append result "TSP_Cmd_builtin_$cmd (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *const *objv) \{\n"
+        append result "TSP_Cmd_builtin_$cmd (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *objv\[\]) \{\n"
         append result "    static Tcl_ObjCmdProc* cmdProc = NULL;\n"
         append result "    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, \"::$cmd\");}\n" 
         append result "    return (cmdProc)(clientData, interp, objc, objv);\n"
+        append result "\}\n"
+        append result "Tcl_Obj*\n"
+        append result "TSP_Cmd_builtinName_$cmd () \{\n"
+        append result "    static Tcl_Obj* cmdName = NULL;\n"
+        append result "    if (cmdName == NULL) {cmdName = Tcl_NewStringObj(\"$cmd\", -1); Tcl_IncrRefCount(cmdName); Tcl_IncrRefCount(cmdName);}\n" 
+        append result "    return cmdName;\n"
         append result "\}\n\n"
     }
     return $result
@@ -1451,7 +1461,7 @@ proc ::tsp::lang_builtin_refs {} {
 # note - no checking if cmd is actually a builtin command
 #
 proc ::tsp::lang_builtin_cmd_obj {cmd} {
-    return "(Tcl_Obj*) TSP_Cmd_builtin_$cmd";
+    return "TSP_Cmd_builtinName_$cmd ()"
 }
 
 
