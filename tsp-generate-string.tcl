@@ -75,6 +75,8 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
 # varName must be a string or var type; int, boolean, double cause compile error
 # return list of: type rhsVarName code
 #
+# FIXME: this is probably obsoleted by spill/load checking
+
 proc ::tsp::gen_command_scan {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
@@ -121,6 +123,8 @@ proc ::tsp::gen_command_scan {compUnitDict tree} {
 # just look at vars to make sure they get loaded after the command
 # return list of: type rhsVarName code
 #
+# FIXME: this is probably obsoleted by spill/load checking
+
 proc ::tsp::gen_command_binary {compUnitDict tree} {
     upvar $compUnitDict compUnit
 
