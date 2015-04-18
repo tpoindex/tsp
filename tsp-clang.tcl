@@ -1,4 +1,4 @@
-##################################################################33
+##################################################################
 
 # language specific procs - c
 #package require tcc4tcl
@@ -1657,10 +1657,10 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
 proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
     append code "/* lang_llength */\n"
-    append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len) == TCL_OK) \{\n"
+    append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len)) == TCL_OK) \{\n"
     append code "    $returnVar = len;\n"
     append code "\} else \{\n"
-    append code "    Tcl_AppendResult(interp, errMsg, (char*)NULL);\n"
+    append code "    Tcl_AppendResult(interp, $errMsg, (char*)NULL);\n"
     append code "    *rc = TCL_ERROR;\n"
     append code "    ERROR_EXIT;\n"
     append code "\}\n"
@@ -1676,10 +1676,10 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
     append code "/* lang_lindex */\n"
     if {$isFromEnd} {
-        append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len) == TCL_OK) \{\n"
+        append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len)) == TCL_OK) \{\n"
         append code "    Tcl_ListObjIndex(interp, $argVar, (int) (len - 1 - $idx), &$returnVar);\n"
         append code "\} else \{\n"
-        append code "    Tcl_AppendResult(interp, errMsg, (char*)NULL);\n"
+        append code "    Tcl_AppendResult(interp, $errMsg, (char*)NULL);\n"
         append code "    *rc = TCL_ERROR;\n"
         append code "    ERROR_EXIT;\n"
         append code "\}\n"
@@ -1809,7 +1809,7 @@ proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
     if {$switchVarType eq "var"} {
         set tmpvar [::tsp::get_tmpvar compUnit string]
         ::tsp::lock_tmpvar compUnit $tmpvar
-	append code "TSP_Util_lang_convert_string_var(& $tmpvar, $pre$switchVar);\n"
+	append code "TSP_Util_lang_convert_string_var(&$tmpvar, $pre$switchVar);\n"
         set switchVarType string
     } else {
         set switchVar $pre$switchVar
