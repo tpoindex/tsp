@@ -39,27 +39,24 @@ variable ::tsp::critcl_pkginit [info body ::critcl::PkgInit]
 # and not for introspection commands ("info").  See ::tsp::check_varname_args
 # for details
 
-# FIXME - Tcl ensemble commands are not handled, because the C interface
-#         is radically different. wtf.
-# cmds:   array binary chan dict file info namespace string
 
 namespace eval ::tsp {
     variable BUILTIN_TCL_COMMANDS [list		 	           \
-        after       append      apply                              \
-        break       case        catch       cd                     \
-        clock       close       concat      continue               \
+        after       append      apply       array       binary     \
+        break       case        catch       cd          chan       \
+        clock       close       concat      continue    dict       \
         encoding    eof         error       eval        exec       \
         exit        expr        fblocked    fconfigure  fcopy      \
-                    fileevent   flush       for         foreach    \
+        file        fileevent   flush       for         foreach    \
         format      gets        glob        global      if         \
-        incr                    interp      join        lappend    \
+        incr        info        interp      join        lappend    \
         lassign     lindex      linsert     list        llength    \
         lmap        load        lrange      lrepeat     lreplace   \
-        lreverse    lsearch     lset        lsort                  \
+        lreverse    lsearch     lset        lsort       namespace  \
         open        package     pid         proc        puts       \
         pwd         read        regexp      regsub      rename     \
         return      scan        seek        set         socket     \
-        source      split                   subst       switch     \
+        source      split       string      subst       switch     \
         tailcall    tell        time        trace       try        \
         unload      unset       update      uplevel     upvar      \
         variable    vwait       while       yield       yieldto    \
@@ -1409,7 +1406,7 @@ proc ::tsp::lang_builtin_refs {} {
     append result "#endif\n\n"
 
     append result "/* return a pointer to a user direct command function, assumes\n"
-    append result "   that user command puts the inner direct command into clientdata */\n"
+    append result "   that user command puts the inner direct command into clientdata */\n\n"
     append result "void*\n"
     append result "TSP_User_getCmd(Tcl_Interp* interp, char* cmd) \{\n"
     append result "    Tcl_CmdInfo cmdInfo;\n"
@@ -1426,29 +1423,41 @@ proc ::tsp::lang_builtin_refs {} {
     append result "     return userCmd;\n"
     append result "\}\n\n"
 
-    append result "/* return a pointer to a Tcl command function */\n"
-    append result "Tcl_ObjCmdProc*\n"
-    append result "TSP_Cmd_getCmd(Tcl_Interp* interp, char* cmd) \{\n"
-    append result "    Tcl_CmdInfo cmdInfo;\n"
+    append result "/* return a pointer to a Tcl command info */\n"
+    append result "/* cmd info data is not preserved across multiple calls */\n\n"
+    append result "Tcl_CmdInfo*\n"
+    append result "TSP_Cmd_getCmdInfo(Tcl_Interp* interp, char* cmd) \{\n"
+    append result "    static Tcl_CmdInfo cmdInfo;\n"
     append result "    int rc;\n"
     append result "    rc = Tcl_GetCommandInfo(interp, cmd, &cmdInfo);\n"
     append result "    if (rc == 0) \{\n"
-    append result "        Tcl_Panic(\"TSP_Cmd_getCmd: can't get command proc for %s\", cmd);\n"
+    append result "        Tcl_Panic(\"TSP_Cmd_getCmdInfo: can't get command proc for %s\", cmd);\n"
     append result "    \}\n"
-    append result "     return cmdInfo.objProc;\n"
+    append result "     return &cmdInfo;\n"
     append result "\}\n\n\n"
+    append result "/* builtins command - a function that calls the builtin, and another for the command obj name */\n\n"
 
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
         append result "int\n"
-        append result "TSP_Cmd_builtin_$cmd (ClientData clientData, Tcl_Interp* interp, int objc, struct Tcl_Obj *objv\[\]) \{\n"
+        append result "TSP_Cmd_builtin_$cmd (ClientData dummy, Tcl_Interp* interp, int objc, struct Tcl_Obj *objv\[\]) \{\n"
         append result "    static Tcl_ObjCmdProc* cmdProc = NULL;\n"
-        append result "    if (cmdProc == NULL) {cmdProc = TSP_Cmd_getCmd(interp, \"::$cmd\");}\n" 
+        append result "    static ClientData clientData = NULL;\n"
+        append result "    if (cmdProc == NULL) \{\n"
+        append result "        Tcl_CmdInfo* cmdInfo;\n"
+        append result "        cmdInfo = TSP_Cmd_getCmdInfo(interp, \"::$cmd\");\n" 
+        append result "        cmdProc = cmdInfo->objProc;\n" 
+        append result "        clientData = cmdInfo->objClientData;\n" 
+        append result "    \}\n" 
         append result "    return (cmdProc)(clientData, interp, objc, objv);\n"
         append result "\}\n"
         append result "Tcl_Obj*\n"
         append result "TSP_Cmd_builtinName_$cmd () \{\n"
         append result "    static Tcl_Obj* cmdName = NULL;\n"
-        append result "    if (cmdName == NULL) {cmdName = Tcl_NewStringObj(\"$cmd\", -1); Tcl_IncrRefCount(cmdName); Tcl_IncrRefCount(cmdName);}\n" 
+        append result "    if (cmdName == NULL) \{\n" 
+        append result "        cmdName = Tcl_NewStringObj(\"$cmd\", -1);\n" 
+        append result "        Tcl_IncrRefCount(cmdName);  /* should be safe from modification, but    */\n" 
+        append result "        Tcl_IncrRefCount(cmdName);  /* make obj safe by setting refCount to two */\n" 
+        append result "    \}\n" 
         append result "    return cmdName;\n"
         append result "\}\n\n"
     }
