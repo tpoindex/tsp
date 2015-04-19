@@ -1491,7 +1491,6 @@ proc ::tsp::lang_expr {compUnitDict exprAssignment} {
     } else {
         append result "exprErrMsg = NULL;\n"
         append result "$exprAssignment" \n
-append result "fprintf(stderr,\"expr result: %lld\\n\",_tmpVar_int_1);\n"
         append result "if (exprErrMsg != NULL) \{\n"
         append result "    Tcl_ResetResult(interp);\n"
         append result "    Tcl_AppendResult(interp, exprErrMsg, \"$loc\", (char*)NULL);\n"

@@ -48,7 +48,7 @@ _TSP_func_int_div(int* rc, char** exprErrMsg, Tcl_WideInt dividend, Tcl_WideInt 
 }
 
 
-#define TSP_func_int_mod(a,b) _TSP_func_int_div(rc, &exprErrMsg, (a), (b))
+#define TSP_func_int_mod(a,b) _TSP_func_int_mod(rc, &exprErrMsg, (a), (b))
 Tcl_WideInt
 _TSP_func_int_mod(int* rc, char** exprErrMsg, Tcl_WideInt dividend, Tcl_WideInt divisor) {
     Tcl_WideInt remainder = 0;
@@ -367,7 +367,7 @@ _TSP_func_sin(int* rc, char** exprErrMsg, double x) {
     return z;
 }
 
-#define TSP_func_sinh(a) _TSP_func_sin(rc, &exprErrMsg, (a))
+#define TSP_func_sinh(a) _TSP_func_sinh(rc, &exprErrMsg, (a))
 double
 _TSP_func_sinh(int* rc, char** exprErrMsg, double x) {
     double z;

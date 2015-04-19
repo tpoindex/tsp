@@ -1,6 +1,6 @@
-FIX: clang IntMod or expr is ??
-     lang_llength and lang_lindex toss a segfault
->>>  lang_expr with mod() doesn't seem to workd
+FIX: lang_llength and lang_lindex toss a segfault
+
+FIX: compiled list, string, append should just use builtin when string var is var type ??
 
 
 
