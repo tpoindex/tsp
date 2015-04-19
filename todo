@@ -1,4 +1,6 @@
-FIX: re-generate TSP_cmd.c  - dict is missing, possibly others.
+FIX: clang IntMod or expr is ??
+     lang_llength and lang_lindex toss a segfault
+>>>  lang_expr with mod() doesn't seem to workd
 
 
 
