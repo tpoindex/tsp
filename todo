@@ -1,5 +1,3 @@
-FIX: lang_llength and lang_lindex toss a segfault
-
 FIX: compiled list, string, append should just use builtin when string var is var type ??
 
 
@@ -8,8 +6,6 @@ FIX: compiled list, string, append should just use builtin when string var is va
 CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check
   that all string dup's and new strings have a preserve()
 
-
-FIX: foreach with list is a string var
 
 CHECK: when assiging or converting from string, how do we
   handle usages of "string" {string} \str\ing \x73tring
@@ -39,6 +35,7 @@ critcl::load bug??  see github issue
 
 
 PERFORMANCE:  add INLINE for some C lang_xxxx functions ???
+             or just remove the INLINE from java code?
 
 
 
