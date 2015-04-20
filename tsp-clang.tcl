@@ -1679,6 +1679,7 @@ proc ::tsp::lang_llength {returnVar argVar {errMsg {""}}} {
 proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
     #FIXME: should we just let getLength() provide the error message?
     append code "/* lang_lindex */\n"
+    append code [::tsp::lang_safe_release $returnVar]
     if {$isFromEnd} {
         append code "if ((rc = Tcl_ListObjLength(interp, $argVar, &len)) == TCL_OK) \{\n"
         append code "    Tcl_ListObjIndex(interp, $argVar, (int) (len - 1 - $idx), &$returnVar);\n"
@@ -1692,7 +1693,7 @@ proc ::tsp::lang_lindex {returnVar argVar idx isFromEnd {errMsg {""}}} {
     }
     append code "if ($returnVar == NULL) \{\n"
     append code "    [::tsp::lang_new_var_string $returnVar {""}]"
-    append code "\}\n"
+    append code "\} else \{\n"
     append code "    [::tsp::lang_preserve $returnVar]"
     append code "\}\n"
     return $code
