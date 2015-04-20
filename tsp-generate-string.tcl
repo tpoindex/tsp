@@ -32,11 +32,20 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         ::tsp::addError compUnit "append varName must be type string or var, defined as : $type"
         return [list void "" ""]
     }
+ 
+    # if type is a var, then just let the builtin command handle it
+    if {$type eq "var"} {
+        # ensure target var is added to the spill/load list
+        ::tsp::append_volatile_list compUnit $varname
+        return [::tsp::gen_direct_tcl compUnit $tree]
+    }
 
     set pre [::tsp::var_prefix $varname]
     set code "\n/***** ::tsp::gen_command_append */\n"
 
     if {$type eq "var"} {
+        # note - this is dead code for now, since we invoke gen_direct_tcl for 
+        #        var types now (see a few lines above)
         # dup if shared obj, or assign empty var if null
         append code [::tsp::lang_dup_var_if_shared $pre$varname]
     }
