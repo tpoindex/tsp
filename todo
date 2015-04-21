@@ -1,6 +1,3 @@
-FIX: compiled list, string, append should just use builtin when string var is var type ??
-
-
 
 
 CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check

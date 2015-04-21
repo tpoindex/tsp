@@ -230,8 +230,8 @@ proc ::tsp::gen_command_string {compUnitDict tree} {
             wordstart  { }
         }
     } else {
-        ::tsp::addError compUnit "string subcommand is not simple text"
-        return [list void "" ""]
+        ::tsp::addWarning compUnit "string subcommand is not simple text"
+        return [::tsp::gen_direct_tcl compUnit $tree]
     }
 
     if {$rc != 0} {
@@ -258,6 +258,13 @@ proc ::tsp::gen_string_index {compUnitDict tree} {
     if {[llength $tree] != 4} {
         ::tsp::addError compUnit "#wrong # args: should be \"string index string charIndex\""
         return [list void "" ""]
+    }
+
+    # if string is a scalar var, return null, so that builtin proc will handle it
+    set node [lindex $tree 2]
+    lassign [lindex [::tsp::parse_word compUnit $node] 0] type textOrVar text
+    if {$type eq "scalar" && [::tsp::getVarType compUnit $textOrVar] eq "var"} {
+        return ""
     }
 
     set code "/***** ::tsp::gen_command_string_index */\n"
@@ -309,6 +316,13 @@ proc ::tsp::gen_string_length {compUnitDict tree} {
         return [list void "" ""]
     }
 
+    # if string is a scalar var, return null, so that builtin proc will handle it
+    set node [lindex $tree 2]
+    lassign [lindex [::tsp::parse_word compUnit $node] 0] type textOrVar text
+    if {$type eq "scalar" && [::tsp::getVarType compUnit $textOrVar] eq "var"} {
+        return ""
+    }
+
     set code "/***** ::tsp::gen_command_string_length */\n"
     
     # get the string
@@ -341,6 +355,13 @@ proc ::tsp::gen_string_range {compUnitDict tree} {
     if {[llength $tree] != 5} {
         ::tsp::addError compUnit "#wrong # args: should be \"string range string first last\""
         return [list void "" ""]
+    }
+
+    # if string is a scalar var, return null, so that builtin proc will handle it
+    set node [lindex $tree 2]
+    lassign [lindex [::tsp::parse_word compUnit $node] 0] type textOrVar text
+    if {$type eq "scalar" && [::tsp::getVarType compUnit $textOrVar] eq "var"} {
+        return ""
     }
 
     set code "/***** ::tsp::gen_command_string_range */\n"
