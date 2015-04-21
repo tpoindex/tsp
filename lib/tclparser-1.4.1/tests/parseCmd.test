@@ -1,0 +1,89 @@
+# This file contains for the parseCmd.c file.
+#
+# This file contains a collection of tests for one or more of the Tcl
+# built-in commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# Copyright (c) 1998-2000 Ajuba Solutions
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+# RCS: @(#) $Id: parseCmd.test,v 1.4 2007/07/08 19:53:05 kennykb Exp $
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+if {![regexp parse [info commands parse]]} {
+    puts "parseCmd.test:  can't run this test without parse command"
+    if {[info exists tk_version] && !$tcl_interactive} {
+	exit
+    }
+    return
+}
+
+testConstraint noExpand [catch {concat {*}{foo bar}}]
+
+test parseCmd-2.1 {ParseCommand} {
+    list [catch {parse command {set x {foo}z} {}} msg] $msg $errorCode
+} {1 {extra characters after close-brace} {PARSE braceExtra 11 {extra characters after close-brace}}}
+
+test parseCmd-3.1 {ParseSetErrorCode} {
+    list [catch {parse command {"foo"bar} {}} msg] $msg $errorCode
+} {1 {extra characters after close-quote} {PARSE quoteExtra 5 {extra characters after close-quote}}}
+test parseCmd-3.2 {ParseSetErrorCode} {
+    list [catch {parse command {{foo}bar} {}} msg] $msg $errorCode
+} {1 {extra characters after close-brace} {PARSE braceExtra 5 {extra characters after close-brace}}}
+test parseCmd-3.3 {ParseSetErrorCode} {
+    list [catch {parse command "{foo}" {0 3}} msg] $msg $errorCode
+} {1 {missing close-brace} {PARSE missingBrace 0 {missing close-brace}}}
+test parseCmd-3.4 {ParseSetErrorCode} {
+    list [catch {parse command {[foo} {0 3}} msg] $msg $errorCode
+} {1 {missing close-bracket} {PARSE missingBracket 0 {missing close-bracket}}}
+test parseCmd-3.5 {ParseSetErrorCode} {
+    list [catch {parse command {$x(foo)} {0 4}} msg] $msg $errorCode
+} {1 {missing )} {PARSE missingParen 2 {missing )}}}
+test parseCmd-3.6 {ParseSetErrorCode} {
+    list [catch {parse command {"foo"} {0 3}} msg] $msg $errorCode
+} {1 {missing "} {PARSE missingQuote 0 {missing "}}}
+test parseCmd-3.7 {ParseSetErrorCode} {
+    list [catch {parse command {${foo}} {0 4}} msg] $msg $errorCode
+} {1 {missing close-brace for variable name} {PARSE missingVarBrace 1 {missing close-brace for variable name}}}
+test parseCmd-3.8 {ParseSetErrorCode} {
+    list [catch {parse expr {3+err} {}} msg] [lrange $errorCode 0 1]
+} {1 {PARSE syntax}}
+test parseCmd-3.9 {ParseSetErrorCode} {
+    list [catch {parse expr {08} {}} msg] [lrange $errorCode 0 1]
+} {1 {PARSE badNumber}}
+test parseCmd-3.10 {ParseSetErrorCode} {
+    list [catch {parse expr {} {}} msg] [lrange $errorCode 0 2]
+} {1 {PARSE syntax 0}}
+
+test parseCmd-4.1 {ParseGetString} {
+    parse getstring "foo\u00c7bar" {5 1}
+} b
+
+test parseCmd-5.1 {ParseCharIndex} {
+    parse charindex "foo\u00c7bar" {5 1}
+} 4
+
+test parseCmd-6.1 {ParseCharLength} {
+    parse charlength "foo\u00c7bar" {0 7}
+} 6
+
+test parseCmd-7.1 {parsing {*}} !noExpand {
+    parse command {concat {*}[foo]} \
+	[list 0 [string length {concat {*}{foo bar}}]]
+} [list {0 0} {0 15} {15 0} \
+       [list [list simple {0 6} \
+		  [list [list text {0 6} {}]]] \
+	    [list expand {7 8} \
+		 [list [list command {10 5} {}]]]]]
+
+# cleanup
+cleanupTests
+if {[info exists tk_version] && !$tcl_interactive} {
+    exit
+}

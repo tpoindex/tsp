@@ -1,0 +1,70 @@
+[comment {-*- tcl -*- doctools manpage}]
+[include version.inc]
+[manpage_begin critcl_introduction n [vset VERSION]]
+[include include/module.inc]
+[titledesc {Introduction To CriTcl}]
+[description]
+[para]
+[include include/welcome.inc]
+[para]
+
+CriTcl started life as an experiment by Jean-Claude Wippler and was a
+self-contained Tcl package to build C code into a Tcl/Tk extension on
+the fly. It was somewhat inspired by Brian Ingerson's [term Inline]
+for [term Perl], but is considerably more lightweight.
+
+[para]
+
+It is for the last 5% to 10% when pure Tcl, which does go a long way,
+is not sufficient anymore. I.e. for
+
+[list_begin enumerated]
+[enum] when the last bits of performance are needed,
+[enum] access to 3rd party libraries,
+[enum] hiding critical pieces of your library or application, and
+[enum] simply needing features provided only by C.
+[list_end]
+
+[comment {
+	Should I discuss the alternatives? And why they are not good?
+}]
+
+[para] The following sections first reference a few related documents
+which may or may not be of interest to you, depending on if you are
+just a plain user of the system, trying to get and build/install it,
+or are going deep into the internals for either edification or
+modification.
+
+[para] This is followed by an introduction to the modes of operation
+supported by the system, and its general architecture as seen by a
+user.
+
+[comment {===================================================================}]
+[section {Related Documents}]
+[list_begin enum]
+[enum] [term {Critcl - License}].
+[enum] [term {Using Critcl}]
+[enum] [term {Critcl - How To Get The Sources}].
+[enum] [term {Critcl - The Installer's Guide}].
+[enum] [term {Critcl - Application Package Reference}]
+[enum] [term {Critcl - Package Reference}]
+[enum] [term {Critcl - The Developer's Guide}].
+[list_end]
+
+[comment {===================================================================}]
+[section {Modes Of Operation/Use}]
+[include include/modes.inc]
+
+[comment {===================================================================}]
+[section {System Architecture}]
+[include include/architecture.inc]
+
+[comment {===================================================================}]
+[section {Examples}]
+[include include/largeexampleref.inc]
+[include include/smallexampleref.inc]
+
+[comment {===================================================================}]
+[include include/changes.inc]
+[include include/feedback.inc]
+[manpage_end]
