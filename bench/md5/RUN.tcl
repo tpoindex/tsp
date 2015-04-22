@@ -1,7 +1,10 @@
 
 
-# fake namespace tsp::proc for native testing
-namespace eval tsp {::proc proc {name args body} {namespace eval :: [list proc $name $args $body]}}
+# fake namespace and tsp::proc for native testing, define
+# test procs as a normal Tcl procs for Tcl interperter timing
+namespace eval tsp {
+    ::proc proc {name args body} {namespace eval :: [list proc $name $args $body]}
+}
 
 
 # small string - used for warmup
@@ -21,7 +24,7 @@ if {$::tcl_platform(platform) eq "java"} {
 } else {
     set is_jtcl 0
     set warmup 1
-    set tclver "tcl  [info patchlevel]"
+    set tclver "tcl [info patchlevel]"
 }
 
 source tsp_md5.tcl
@@ -43,14 +46,14 @@ proc time_md5 {tclver} {
     set small_time [lindex [time {tsp_md5 $smallstring} 10] 0]
     
     puts -nonewline stderr " medium"
-    set med_time   [lindex [time {tsp_md5 $medstring} 2]    0]
+    set med_time   [lindex [time {tsp_md5 $medstring} 5]    0]
     
     puts -nonewline stderr " big"
     set big_time   [lindex [time {tsp_md5 $bigstring} 1]    0]
     
     puts stderr ""
-    puts stderr "[format %18s $tclver] results (seconds): ---32 bytes---  ---4k bytes---  --64k bytes---"
-    puts -nonewline stderr "[format %18s ""     ]                   "
+    puts stderr "[format %18s $tclver]     message size:  ---32 bytes---  ---4k bytes---  --64k bytes---"
+    puts -nonewline stderr "[format %18s ""     ] results (seconds) "
     puts -nonewline stderr " [format %14.7f [expr {$small_time / 1000000.0}]] " 
     puts -nonewline stderr " [format %14.7f [expr {$med_time   / 1000000.0}]] "
     puts -nonewline stderr " [format %14.7f [expr {$big_time   / 1000000.0}]] "
@@ -61,13 +64,13 @@ puts stderr "md5 timings for $tclver"
 time_md5 $tclver
 
 # if running jtcl, time for tjc
-if {$is_jtcl} {
-    package require TJC
-    TJC::compile tsp_md5 -readyvar tjc_done
-    vwait tjc_done
-    puts stderr "md5 timings for $tclver/tjc"
-    time_md5 $tclver/tjc
-}
+#if {$is_jtcl} {
+#    package require TJC
+#    TJC::compile tsp_md5 -readyvar tjc_done
+#    vwait tjc_done
+#    puts stderr "md5 timings for $tclver/tjc"
+#    time_md5 $tclver/tjc
+#}
 
 # now source tsp.tcl and re-source tsp_md5.tcl to compile it
 puts stderr "compiling with tsp..."

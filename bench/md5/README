@@ -4,3 +4,25 @@ It has been un-obfuscated (i.e., the preprocessing steps
 have already been performed), expr simplified to move nested
 commands outside the expr expression, and tsp annotations 
 and proc command applied. 
+
+
+The benchmark compute the md5 hash for three different sized
+strings, 32 bytes, ~4k bytes, and ~64k bytes.  The Tcl "time"
+command is iterated as follows:
+   32 bytes:  10 iterations
+   4k bytes:   5 iterations
+   64k bytes:  1 iteration
+
+Before the benchmark is run, the interpreter and compiled
+versions are allows to "warmup".  For C/Tcl the proc is
+run once to byte code compiled it; for JTcl, the proc
+is run 10,000 times to cause the C1/C2 compiler to optimize
+the code.
+
+Running the benchmark:
+
+C Tcl 8.6.x 
+   tclsh8.6 RUN.tcl
+
+JTcl 2.8.0
+   jtcl RUN.tcl
