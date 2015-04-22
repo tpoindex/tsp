@@ -5,7 +5,7 @@ set progs {cat grep hash loop proc fib sort wc}
 # make sure some data file is specified
 set data [lindex $argv 0]
 if {[string length $data] == 0} {
-    set data /dev/null
+    set data README.tsp
 }
 
 puts stderr "lang	cat	grep	hash	loop	proc	fib	sort	wc"

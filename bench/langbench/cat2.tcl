@@ -1,4 +1,3 @@
-source ../../tsp.tcl
 tsp::proc cat {file} {
 	#tsp::procdef void -args string
 	#tsp::int len cnt
@@ -11,13 +10,10 @@ tsp::proc cat {file} {
         puts stderr $cnt
 }
 
-tsp::printLog
-
 proc run_cat {} {
     global argv
     fconfigure stdout -buffering full -translation binary 
     foreach file $argv {
-puts stderr $file
 	    cat $file
     }
 }
