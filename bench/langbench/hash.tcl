@@ -1,15 +1,16 @@
-tsp::proc main {} {
+tsp::proc hash {} {
 	#tsp::procdef void
-	#tsp::string argv d file f buf
+	#tsp::array d
+	#tsp::string argv file f buf
 	#tsp::int len
 	global	argv
-
-	set d [dict create]
+	
+	array set d {}
 	foreach file $argv {
 		set f [open $file r]
 		set len [gets $f buf]
 		while {$len >= 0} {
-			dict set d $buf 1
+			set d($buf) 1
 			set len [gets $f buf]
 		}
 		close $f
@@ -17,9 +18,9 @@ tsp::proc main {} {
 }
 
 proc run_hash {} {
-    main
+    hash
     set f [open "/proc/[pid]/status"]
     while {[gets $f buf] >= 0} {
-    	if {[regexp {^Vm[RD]} $buf]} { puts $buf }
+	    if {[regexp {^Vm[RD]} $buf]} { puts $buf }
     }
 }

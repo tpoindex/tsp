@@ -1,14 +1,17 @@
 This is the md5 procedure from tcllib, version 1.4.4, with
 some modifications:
 
-  1. code has been un-obfuscated, i.e., the preprocessing steps
-     have already been performed.
-  2. expr simplified to move nested commands outside the expr 
+  1. Code has been un-obfuscated, i.e., the preprocessing steps
+     (macro expansion) have already been performed.
+
+  2. Expressions simplified to move nested commands outside the expr 
      command.
-  3. expressions are kept to 64 bits by use of wide(), otherwise
+
+  3. Expressions are kept to 64 bits by use of wide(), otherwise
      integers in tclsh8.5+ overflow into tcl bignums, and 
-     performance suffers badly.
-  4. tsp annotations and tsp::proc command applied. 
+     performance for pure interpreter timings suffers badly.
+
+  4. TSP annotations and tsp::proc command applied. 
 
 
 The benchmark computes the md5 hash for four different sized
