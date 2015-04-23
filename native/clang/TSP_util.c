@@ -82,25 +82,57 @@ TSP_Util_lang_convert_string_var(Tcl_DString** targetVarName, Tcl_Obj* sourceVar
 
 /*********************************************************************************************/
 /* get a string from an int */
+/* string must be used immediately */
 Tcl_DString*
 TSP_Util_lang_get_string_int(Tcl_WideInt sourceVarName) {
-    Tcl_DString* ds;
-    ds = (Tcl_DString*) ckalloc(sizeof(Tcl_DString));
-    Tcl_DStringInit(ds);
+    static int doInit = 1;
+    static Tcl_DString ds;
+    if (doInit) {
+        Tcl_DStringInit(&ds);
+        doInit = 0;
+    } else {
+        Tcl_DStringSetLength(&ds, 0);
+    }
     TSP_Util_lang_convert_string_int(NULL, &ds, sourceVarName);
-    return ds;
+    return &ds;
 }
 
 
 /*********************************************************************************************/
 /* get a string from an double */
+/* string must be used immediately */
 Tcl_DString*
 TSP_Util_lang_get_string_double(double sourceVarName) {
-    Tcl_DString* ds;
-    ds = (Tcl_DString*) ckalloc(sizeof(Tcl_DString));
-    Tcl_DStringInit(ds);
+    static int doInit = 1;
+    static Tcl_DString ds;
+    if (doInit) {
+        Tcl_DStringInit(&ds);
+        doInit = 0;
+    } else {
+        Tcl_DStringSetLength(&ds, 0);
+    }
     TSP_Util_lang_convert_string_double(NULL, &ds, sourceVarName);
-    return ds;
+    return &ds;
+}
+
+/*********************************************************************************************/
+/* get a string from a var */
+/* string must be used immediately */
+Tcl_DString*
+TSP_Util_lang_get_string_var(Tcl_Obj* sourceVarName) {
+    static int doInit = 1;
+    static Tcl_DString ds;
+    int len;
+    char* str;
+    if (doInit) {
+        Tcl_DStringInit(&ds);
+        doInit = 0;
+    } else {
+        Tcl_DStringSetLength(&ds, 0);
+    }
+    str = Tcl_GetStringFromObj(sourceVarName, &len);
+    Tcl_DStringAppend(&ds, str, len);
+    return &ds;
 }
 
 

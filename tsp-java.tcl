@@ -416,6 +416,7 @@ proc ::tsp::lang_convert_var_var {targetVarName sourceVarName {errMsg ""}} {
 
 ##############################################
 # get string from a boolean value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_boolean {sourceVarName} {
     return "$sourceVarName ? : \"1\" : \"0\""
@@ -423,6 +424,7 @@ proc ::tsp::lang_get_string_boolean {sourceVarName} {
 
 ##############################################
 # get a string from an int value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_int {sourceVarName} {
     return "\"\" + $sourceVarName"
@@ -430,6 +432,7 @@ proc ::tsp::lang_get_string_int {sourceVarName} {
 
 ##############################################
 # get a string from a double value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_double {sourceVarName} {
     return "\"\" + $sourceVarName"
@@ -437,6 +440,7 @@ proc ::tsp::lang_get_string_double {sourceVarName} {
 
 ##############################################
 # get a string from a string value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_string {sourceVarName} {
     return "$sourceVarName"
@@ -444,6 +448,7 @@ proc ::tsp::lang_get_string_string {sourceVarName} {
 
 ##############################################
 # get a string from a var value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_var {sourceVarName} {
     return "$sourceVarName.toString()"

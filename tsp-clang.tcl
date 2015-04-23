@@ -412,6 +412,7 @@ proc ::tsp::lang_convert_var_var {targetVarName sourceVarName {errMsg ""}} {
 
 ##############################################
 # get string from a boolean value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_boolean {sourceVarName} {
     return "$sourceVarName ? : \"1\" : \"0\""
@@ -419,6 +420,7 @@ proc ::tsp::lang_get_string_boolean {sourceVarName} {
 
 ##############################################
 # get a string from an int value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_int {sourceVarName} {
     return "TSP_Util_lang_get_string_int((TCL_WIDE_INT_TYPE) $sourceVarName)"
@@ -426,6 +428,7 @@ proc ::tsp::lang_get_string_int {sourceVarName} {
 
 ##############################################
 # get a string from a double value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_double {sourceVarName} {
     return "TSP_Util_lang_get_string_double($sourceVarName)"
@@ -433,16 +436,18 @@ proc ::tsp::lang_get_string_double {sourceVarName} {
 
 ##############################################
 # get a string from a string value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_string {sourceVarName} {
-    return "Tcl_DStringValue($sourceVarName)"
+    return "$sourceVarName"
 }
 
 ##############################################
 # get a string from a var value
+# NOTE - return value must be used immediately
 #
 proc ::tsp::lang_get_string_var {sourceVarName} {
-    return "Tcl_GetString($sourceVarName)"
+    return "TSP_Util_lang_get_string_var($sourceVarName)"
 }
 
 
