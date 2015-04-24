@@ -1,7 +1,7 @@
 tsp::proc cat {file} {
 	#tsp::procdef void -args var
 	#tsp::int len
-	#tsp::string f buf
+	#tsp::var f buf
 	set f [open $file r]
         set len [gets $f buf]
 	while {$len >= 0} { puts $buf ; set len [gets $f buf] }

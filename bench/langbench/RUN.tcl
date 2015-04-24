@@ -1,9 +1,10 @@
 # this must run with tclsh8.6, since we use 'exec' options
-# not in jtcl
+# not in jtcl.  set env variable TSP_INTERP to 'ctsp' or 'jtsp'
+# to test using c/tcl + tsp, or jtcl + tsp.
+# set env variable TSP_PROG to test a single benchmark program
 
 
-
-set progs {cat grep hash loop proc fib sort wc}
+set default_progs {cat grep hash loop proc fib sort wc}
 
 # make sure some data file is specified
 set data [lindex $argv 0]
@@ -12,7 +13,14 @@ if {[string length $data] == 0} {
     exit
 }
 
-puts stderr "lang	cat	grep	hash	loop	proc	fib	sort	wc"
+if {[catch {set progs $env(TSP_PROG)}] } {
+    set progs $default_progs
+    puts stderr "lang	cat	grep	hash	loop	proc	fib	sort	wc"
+} else {
+    puts stderr "lang	$progs"
+}
+
+
 
 
 # determine which interp to use with tsp: "jtsp"  or "ctsp" 
@@ -37,6 +45,10 @@ set env(TSP_INTERP) interp-only
 
 # now run the benchmark
 foreach prog $progs {
+
+    if {! [file exists $prog.tcl]} {
+        error "$prog.tcl not found"
+    }
     exec -ignorestderr $runtime RUN_PROG.tcl $prog $data >/dev/null </dev/null 
 }
 

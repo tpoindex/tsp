@@ -1,7 +1,7 @@
 tsp::proc hash {} {
 	#tsp::procdef void
 	#tsp::array d
-	#tsp::string argv file f buf
+	#tsp::var argv file f buf
 	#tsp::int len
 	global	argv
 	

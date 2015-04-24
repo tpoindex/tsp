@@ -1,7 +1,7 @@
 tsp::proc main {} {
 	#tsp::procdef void
 	#tsp::var l sorted
-	#tsp::string f buf file
+	#tsp::var f buf file
 	#tsp::int len
 	global	argv
 
