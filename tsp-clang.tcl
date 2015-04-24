@@ -362,7 +362,7 @@ proc ::tsp::lang_convert_string_boolean {targetVarName sourceVarName {errMsg ""}
 #
 proc ::tsp::lang_convert_string_int {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_int */\n"
-    append result "TSP_Util_lang_convert_string_int(interp, &$targetVarName, (TCL_WIDE_INT_TYPE) $sourceVarName);\n"
+    append result "$targetVarName = TSP_Util_lang_convert_string_int(interp, $targetVarName, (TCL_WIDE_INT_TYPE) $sourceVarName);\n"
 #FIXME: see UpdateStringOfWideInt()
     return $result
 }
@@ -372,7 +372,7 @@ proc ::tsp::lang_convert_string_int {targetVarName sourceVarName {errMsg ""}} {
 #
 proc ::tsp::lang_convert_string_double {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_double */\n"
-    append result "TSP_Util_lang_convert_string_double(interp, &$targetVarName, $sourceVarName);\n"
+    append result "$targetVarName = TSP_Util_lang_convert_string_double(interp, $targetVarName, $sourceVarName);\n"
 #FIXME: see Tcl_PrintDouble()
     return $result
 }
@@ -397,7 +397,7 @@ proc ::tsp::lang_convert_string_string {targetVarName sourceVarName {errMsg ""}}
 proc ::tsp::lang_convert_string_var {targetVarName sourceVarName {errMsg ""}} {
     append result "/* ::tsp::lang_convert_string_var */\n"
     append result "Tcl_DStringSetLength($targetVarName, 0);\n"
-    append result "TSP_Util_lang_convert_string_var(&$targetVarName, $sourceVarName);\n"
+    append result "$targetVarName = TSP_Util_lang_convert_string_var($targetVarName, $sourceVarName);\n"
 #FIXME: Tcl_GetStringFromObj, set DString as a result
     return $result
 }
@@ -1363,7 +1363,7 @@ proc ::tsp::lang_compile {compUnitDict code} {
 
         # cause compile to fail if return is not coded in execution branch
         if {[regexp gcc [::critcl::targetconfig]]} {
-            ::critcl::cflags -Werror=return-type
+            ::critcl::cflags -Werror=return-type -O3
         }
 
         # create the code, first is the proc (ccode), second is the tcl interface (ccommand)
@@ -1819,7 +1819,7 @@ proc ::tsp::lang_switch {compUnitDict switchVar switchVarType pattCodeList} {
     if {$switchVarType eq "var"} {
         set tmpvar [::tsp::get_tmpvar compUnit string]
         ::tsp::lock_tmpvar compUnit $tmpvar
-	append code "TSP_Util_lang_convert_string_var(&$tmpvar, $pre$switchVar);\n"
+	append code "$tmpvar = TSP_Util_lang_convert_string_var($tmpvar, $pre$switchVar);\n"
         set switchVarType string
     } else {
         set switchVar $pre$switchVar
