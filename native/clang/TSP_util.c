@@ -214,8 +214,8 @@ TSP_Util_lang_assign_var_var(Tcl_Obj* targetVarName, Tcl_Obj* sourceVarName) {
         Tcl_DecrRefCount(targetVarName);
     }
 
-    targetVarName = Tcl_DuplicateObj(sourceVarName); 
-    /* targetVarName = sourceVarName; */
+    /* targetVarName = Tcl_DuplicateObj(sourceVarName);  */
+    targetVarName = sourceVarName;
 
     Tcl_IncrRefCount(targetVarName);
     return targetVarName;

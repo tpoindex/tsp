@@ -1,4 +1,9 @@
-
+FEATURE - when invoking tcl interp or tcl direct, check if arg is a constant
+	string.  create constant obj, add to variables, and to cleanup
+	list.
+FEATURE - add info is tcl interp or tcl direct call doesn't return a value 
+	(e.g. puts), don't add GetResultObj code
+FIX - lang_assign_var_var should not duplicate(), just copy ref and preserve()
 
 CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check
   that all string dup's and new strings have a preserve()

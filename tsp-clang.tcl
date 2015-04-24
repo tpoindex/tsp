@@ -745,9 +745,11 @@ proc ::tsp::lang_dup_var_if_shared {targetVarName} {
     append result "    if (Tcl_IsShared($targetVarName)) \{\n"
     append result "        [::tsp::lang_release $targetVarName]"
     append result "        $targetVarName = Tcl_DuplicateObj($targetVarName);\n"
+    append result "        [::tsp::lang_preserve $targetVarName]"
     append result "    \}\n"
     append result "\} else \{\n"
     append result "    [::tsp::lang_new_var_string $targetVarName {""}]"
+    append result "    [::tsp::lang_preserve $targetVarName]"
     append result "\}\n"
     return $result
 }
