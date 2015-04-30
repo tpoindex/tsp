@@ -1573,13 +1573,15 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
         # probably shouldn't get tmpvars here, but get prefix anyway
         set pre [::tsp::var_prefix $var]
 
+        set varnameConst [::tsp::get_constvar [::tsp::getConstant compUnit $var]]
+
         append buf "/* interp.setVar $var */\n"
         if {$type eq "var"} {
             append buf "if ($pre$var == NULL) \{\n"
             append buf "    $pre$var = Tcl_NewStringObj(\"\",-1);\n"
             append buf "    [::tsp::lang_preserve $pre$var]"
             append buf "\}\n"
-            append buf "if (Tcl_SetVar2Ex(interp, [::tsp::lang_quote_string  $var], NULL, $pre$var, 0)  == NULL) \{\n"
+            append buf "if (Tcl_ObjSetVar2(interp, $varnameConst, NULL, $pre$var, 0)  == NULL) \{\n"
             append buf "    *rc = TCL_ERROR;\n"
             append buf "    ERROR_EXIT;\n"
             append buf "\}\n"
@@ -1590,7 +1592,7 @@ proc ::tsp::lang_spill_vars {compUnitDict varList} {
                 double  {set newobj "Tcl_NewDoubleObj($pre$var)"}
                 string  {set newobj "Tcl_NewStringObj(Tcl_DStringValue($pre$var), Tcl_DStringLength($pre$var))"}
             }
-            append buf "if (Tcl_SetVar2Ex(interp,[::tsp::lang_quote_string  $var], NULL, $newobj, TCL_LEAVE_ERR_MSG) == NULL) \{\n"
+            append buf "if (Tcl_ObjSetVar2(interp,  $varnameConst, NULL, $newobj, TCL_LEAVE_ERR_MSG) == NULL) \{\n"
             append buf "    *rc = TCL_ERROR;\n"
             append buf "    ERROR_EXIT;\n"
             append buf "\}\n"
@@ -1644,10 +1646,12 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
             set isvar 0
         }
 
+        set varnameConst [::tsp::get_constvar [::tsp::getConstant compUnit $var]]
+
         if {$setEmptyWhenNotExists} {
             append buf "/* ::tsp::lang_load_vars  interp.getVar $var */\n"
             append buf [::tsp::lang_safe_release $interpVar]
-            append buf "$interpVar = Tcl_GetVar2Ex(interp,[::tsp::lang_quote_string $var], NULL, 0);\n"
+            append buf "$interpVar = Tcl_ObjGetVar2(interp, $varnameConst, NULL, 0);\n"
             append buf "if ($interpVar != NULL) \{\n"
             append buf "    [::tsp::lang_preserve $interpVar]"
             if {! $isvar} {
@@ -1665,7 +1669,7 @@ proc ::tsp::lang_load_vars {compUnitDict varList setEmptyWhenNotExists} {
             # program needs to catch for this case
             append buf "/* ::tsp::lang_load_vars  interp.getVar $var */\n"
             append buf [::tsp::lang_safe_release $interpVar]
-            append buf "$interpVar = Tcl_GetVar2Ex(interp,[::tsp::lang_quote_string $var], NULL, TCL_LEAVE_ERR_MSG);\n"
+            append buf "$interpVar = Tcl_ObjGetVar2(interp, $varnameConst, NULL, TCL_LEAVE_ERR_MSG);\n"
             append buf "if ($interpVar == NULL) \{\n"
             append buf "    Tcl_AppendResult(interp, [::tsp::lang_quote_string "cannot load $var from interp"], (char*)NULL);\n"
             append buf "    *rc = TCL_ERROR;\n"
