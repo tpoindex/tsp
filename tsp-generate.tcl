@@ -399,7 +399,7 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
             set result "/* shadow var $nodeVarOrOther marked as clean */\n"
 	}
     } elseif {$nodeType eq "scalar" && [::tsp::getVarType compUnit $nodeVarOrOther] eq "var"} {
-        set argVar __$nodeVarOrOther
+        set argVar [::tsp::var_prefix $nodeVarOrOther]$nodeVarOrOther
     } else {
         # check if this should be a constant value
 # FIXME: handle multi-nodes of backslash and text
