@@ -1007,6 +1007,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set procArgsCleanup ""
     set comma ""
     set i 0
+    set procConstDecls ""
 
     # create: assignments from proc args to scoped variables; 
     #         declarations of scoped variables
@@ -1081,6 +1082,26 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         }
     }
 
+    # create decls and init code for constants
+    foreach {const n} [dict get $compUnit constVar] {
+        set constvar [::tsp::get_constvar $n]
+        set constComment [::tsp::mkComment "const: [string trim $const]"]
+        append procConstDecls "$constComment\nstatic [::tsp::lang_type_var] "
+        set constTypes [::tsp::literalExprTypes $const]
+        if {[::tsp::typeIsDouble $constTypes]} {
+            append procConstDecls [::tsp::lang_new_var_double $constvar $const]
+        } elseif {[::tsp::typeIsInt $constTypes]} {
+            append procConstDecls [::tsp::lang_new_var_int $constvar $const]
+        } else {
+            append procConstDecls [::tsp::lang_new_var_string $constvar [::tsp::lang_quote_string $const]]
+        }
+        # make the constant protected from altercation, preserve twice
+        append procConstDecls [::tsp::lang_preserve $constvar]
+        append procConstDecls [::tsp::lang_preserve $constvar]
+    }
+
+   
+
     # class template
 
     set classTemplate \
@@ -1125,6 +1146,9 @@ public class ${name}Cmd implements Command {
 
         // variables defined in proc, plus temp vars
         [::tsp::indent compUnit $procVarsDecls 2 \n]
+
+        // constants for tcl direct and tcl invoke commands
+        [::tsp::indent compUnit procConstDecls 2 \n]
 
         // any "var" arguments need to be preserved, since they are released in finally block
         [::tsp::indent compUnit $innerVarPreserves 2 \n]

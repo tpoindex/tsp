@@ -936,6 +936,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     set declStringsCleanup ""
     set procStringsAlloc ""
     set copyStringArgs ""
+    set procConstDecls ""
+    set procConstInit ""
 
     # create: assignments from proc args to scoped variables; 
     #         declarations of scoped variables
@@ -1150,6 +1152,25 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         append direct_tsp_init  "TSP_UserDirect_${cmdName} =  TSP_User_getCmd(interp, \"${cmdName}\");\n"
     }
 
+    # create decls and init code for constants
+    set constList ""
+    foreach {const n} [dict get $compUnit constVar] {
+        set constvar [::tsp::get_constvar $n]
+        set constComment [::tsp::mkComment "const: [string trim $const]"]
+        append procConstDecls "$constComment\nstatic [::tsp::lang_decl_var $constvar]\n"
+        set constTypes [::tsp::literalExprTypes $const]
+        if {[::tsp::typeIsDouble $constTypes]} {
+            append procConstInit [::tsp::lang_new_var_double $constvar $const]
+        } elseif {[::tsp::typeIsInt $constTypes]} {
+            append procConstInit [::tsp::lang_new_var_int $constvar $const]
+        } else {
+            append procConstInit [::tsp::lang_new_var_string $constvar [::tsp::lang_quote_string $const]]
+        }
+        # make the constant protected from altercation, preserve twice
+        append procConstInit [::tsp::lang_preserve $constvar]
+        append procConstInit [::tsp::lang_preserve $constvar]
+    }
+
     # class template
 
     set cfileTemplate1 \
@@ -1195,6 +1216,9 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     /* variables defined in proc, plus temp vars */
     [::tsp::indent compUnit $procVarsDecls 1 \n]
 
+    /* constants used for direct tcl and tcl invoked commands */
+    [::tsp::indent compUnit $procConstDecls 1 \n]
+
     /* initialize return value */
     $returnAlloc
     $returnInit
@@ -1211,10 +1235,11 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
     /* allocate any argvObj arrays */
     [::tsp::indent compUnit $argObjvAlloc 1 \n]
 
-    /* initialize function pointers for calling other compiled procs */
+    /* initialize function pointers for calling other compiled procs, constants */
     if (! directInit) {
         directInit = 1;
         [::tsp::indent compUnit $direct_tsp_init 2 \n]
+        [::tsp::indent compUnit $procConstInit 2 \n]
     }
     
     frame = (Tcl_CallFrame*) ckalloc(sizeof(Tcl_CallFrame));

@@ -25,6 +25,8 @@
 # maxLevel - max level of nested commands
 # catchLevel - count of nested catch statements
 # argsPerLevel - sub dict of level number and argv lengths
+# constNum - last constant value used
+# constVar - sub dict of constant to const number 
 # lineNum - current line number
 # errors - list of errors
 # warnings - list of warnings
@@ -57,6 +59,8 @@ proc ::tsp::init_compunit {file name procargs body} {
         maxLevel 0 \
         catchLevel 0 \
         argsPerLevel [dict create] \
+        constNum 0 \
+        constVar [dict create] \
         lineNum 1 \
         errors "" \
         warnings "" \

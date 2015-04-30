@@ -65,6 +65,25 @@ proc ::tsp::addArgsPerLevel {compUnitDict level argc} {
 
 
 #########################################################
+# add a constant var
+# returns the number of the constant
+#
+proc ::tsp::getConstant {compUnitDict value} {
+    upvar $compUnitDict compUnit
+    if {[dict exists $compUnit constVar $value]} {
+        return [dict get $compUnit constVar $value]
+    } else {
+        dict incr compUnit constNum
+        set n [dict get $compUnit constNum]
+        set constdict [dict get $compUnit constVar]
+        dict set constdict $value $n
+        dict set compUnit constVar $constdict
+        return $n
+    }
+}
+
+
+#########################################################
 # check a command string for nested commands
 #
 proc ::tsp::cmdStringHasNestedCommands {cmdStr} {
@@ -362,6 +381,7 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
     set nodeComponents [::tsp::parse_word compUnit $node]
     set nodeType [lindex [lindex $nodeComponents 0] 0]
     set nodeVarOrOther [lindex [lindex $nodeComponents 0] 1]
+    set nodeText [lindex [lindex $nodeComponents 0] 2]
     if {$nodeType eq "invalid"} {
 	::tsp::addError compUnit "objv argument parsed as \"$nodeType\" "
 	return [list void "" ""]
@@ -379,13 +399,20 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
             set result "/* shadow var $nodeVarOrOther marked as clean */\n"
 	}
     } else {
-	# just grab a regular temp var and generate an assignment
-	set argVar [::tsp::get_tmpvar compUnit var]
-	set argVarComponents [list [list text $argVar $argVar]]
-	set setTree ""
-        ::tsp::lock_tmpvar compUnit $argVar
-	append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
-        ::tsp::unlock_tmpvar compUnit $argVar
+        # check if this should be a constant value
+# FIXME: handle multi-nodes of backslash and text
+        if {[llength $nodeComponents] == 1 && $nodeType eq "text"} {
+            set constNum [::tsp::getConstant compUnit $nodeText]
+            return [list [::tsp::get_constvar $constNum] ""]
+        } else {
+	    # just grab a regular temp var and generate an assignment
+	    set argVar [::tsp::get_tmpvar compUnit var]
+	    set argVarComponents [list [list text $argVar $argVar]]
+	    set setTree ""
+            ::tsp::lock_tmpvar compUnit $argVar
+	    append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
+            ::tsp::unlock_tmpvar compUnit $argVar
+        }
     }
     return [list $argVar $result]
 }
@@ -741,5 +768,25 @@ proc ::tsp::nodeText {compUnitDict node} {
     return ""
 }
 
+
+#########################################################
+# generate a lang independent /* comment */ from text
+# remove any newline/tab/carriage returns, trims to optional length,
+# rawOnly - when true,  just return text
+
+proc ::tsp::mkComment {text {len 40} {rawOnly 0}} {
+    set text [string trim $text]
+    regsub -all {\n|\r|\t} $text "." text
+    regsub -all {\*/}      $text "./" text
+    set text [string trim $text]
+    if {[string length $text] > $len} {
+        set text [string trim [string range $text 0 [expr {$len - 3}]]]...
+    }
+    if {$rawOnly} {
+        return $text
+    } else {
+        return "/* $text */"
+    }
+}
 
 

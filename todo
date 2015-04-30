@@ -1,20 +1,23 @@
-FIX - when invoking tcl interp or tcl direct, check if arg is a constant
+FIX (mostly done)- when invoking tcl interp or tcl direct, check if arg is a constant
 	string.  create constant obj, add to variables, and to cleanup
 	list.  constants should be allocated once, and incrrefcount twice.
 FIX - add info is tcl interp or tcl direct call doesn't return a value 
 	(e.g. puts), don't add GetResultObj code
 FIX - lang_assign_var_var should not duplicate(), just copy ref and preserve()
 FIX - don't use Tcl_GetVar2Ex / Tcl_SetVar2Ex , use Tcl_ObjGetVar2 / Tcl_ObjSetVar2 
-      instead, with constant var for name. 
+      instead, with constant var for name.  see constant work above.
 FIX - tsp-clang - command name should just be assigned with calling obj proc, don't
       call a function just to return a command name obj.  or should this just be a
       constant?
 FIX - foreach loop - must preserve loop list var and use Tcl_ListObjGetElements()
+FIX - (clang) argv arrays should just be stack allocated, no need to alloc().
 
 EXPLORE - when loading var from interp, don't incr/decr ref count for this var??  
      test with cat-ext
 EXPLORE - inline util code, note tsp-java inline code is out of date!
 EXPLORE - option for string type variables to just be 'var' instead.
+
+FIX - langbench should use fconfigure binary for stdout, see original (only if clang????)
 
 
 

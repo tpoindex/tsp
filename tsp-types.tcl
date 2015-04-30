@@ -417,6 +417,13 @@ proc ::tsp::typeIsNumeric {typeList} {
 }
 
 
+#########################################################
+# get a native constant var
+# constants are defined as: _constant_$n
+ 
+proc ::tsp::get_constvar {n} {
+    return _constant_$n
+}
 
 #########################################################
 #
