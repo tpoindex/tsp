@@ -398,12 +398,14 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
 	    # var is clean no need to re-assign
             set result "/* shadow var $nodeVarOrOther marked as clean */\n"
 	}
+    } elseif {$nodeType eq "scalar" && [::tsp::getVarType compUnit $nodeVarOrOther] eq "var"} {
+        set argVar __$nodeVarOrOther
     } else {
         # check if this should be a constant value
 # FIXME: handle multi-nodes of backslash and text
         if {[llength $nodeComponents] == 1 && $nodeType eq "text"} {
             set constNum [::tsp::getConstant compUnit $nodeText]
-            return [list [::tsp::get_constvar $constNum] ""]
+            set argVar [::tsp::get_constvar $constNum]
         } else {
 	    # just grab a regular temp var and generate an assignment
 	    set argVar [::tsp::get_tmpvar compUnit var]
