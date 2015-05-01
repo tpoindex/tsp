@@ -1159,16 +1159,13 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         set constComment [::tsp::mkComment "const: [string trim $const]"]
         append procConstDecls "$constComment\nstatic [::tsp::lang_decl_var $constvar]\n"
         set constTypes [::tsp::literalExprTypes $const]
-        if {[::tsp::typeIsDouble $constTypes]} {
-            append procConstInit [::tsp::lang_new_var_double $constvar $const]
-        } elseif {[::tsp::typeIsInt $constTypes]} {
-            append procConstInit [::tsp::lang_new_var_int $constvar $const]
+        if {[::tsp::typeIsInt $constTypes]} {
+            append procConstInit "$constvar = TSP_Util_const_int((Tcl_WideInt) [::tsp::lang_int_const $const]);\n"
+        } elseif {[::tsp::typeIsDouble $constTypes]} {
+            append procConstInit "$constvar = TSP_Util_const_double((double) $const);\n"
         } else {
-            append procConstInit [::tsp::lang_new_var_string $constvar [::tsp::lang_quote_string $const]]
+            append procConstInit "$constvar = TSP_Util_const_string([::tsp::lang_quote_string $const]);\n"
         }
-        # make the constant protected from altercation, preserve twice
-        append procConstInit [::tsp::lang_preserve $constvar]
-        append procConstInit [::tsp::lang_preserve $constvar]
     }
 
     # class template
