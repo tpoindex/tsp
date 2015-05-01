@@ -1471,30 +1471,25 @@ proc ::tsp::lang_builtin_refs {} {
     append result "    \}\n"
     append result "     return &cmdInfo;\n"
     append result "\}\n\n\n"
-    append result "/* builtins command - a function that calls the builtin, and another for the command obj name */\n\n"
+    append result "/* builtins command - a function that calls the builtin and fills in command obj name */\n\n"
 
     foreach cmd $::tsp::BUILTIN_TCL_COMMANDS {
         append result "int\n"
         append result "TSP_Cmd_builtin_$cmd (ClientData dummy, Tcl_Interp* interp, int objc, struct Tcl_Obj *objv\[\]) \{\n"
         append result "    static Tcl_ObjCmdProc* cmdProc = NULL;\n"
+        append result "    static Tcl_Obj* cmdName = NULL;\n"
         append result "    static ClientData clientData = NULL;\n"
         append result "    if (cmdProc == NULL) \{\n"
         append result "        Tcl_CmdInfo* cmdInfo;\n"
         append result "        cmdInfo = TSP_Cmd_getCmdInfo(interp, \"::$cmd\");\n" 
         append result "        cmdProc = cmdInfo->objProc;\n" 
         append result "        clientData = cmdInfo->objClientData;\n" 
-        append result "    \}\n" 
-        append result "    return (cmdProc)(clientData, interp, objc, objv);\n"
-        append result "\}\n"
-        append result "Tcl_Obj*\n"
-        append result "TSP_Cmd_builtinName_$cmd () \{\n"
-        append result "    static Tcl_Obj* cmdName = NULL;\n"
-        append result "    if (cmdName == NULL) \{\n" 
         append result "        cmdName = Tcl_NewStringObj(\"$cmd\", -1);\n" 
-        append result "        Tcl_IncrRefCount(cmdName);  /* should be safe from modification, but    */\n" 
-        append result "        Tcl_IncrRefCount(cmdName);  /* make obj safe by setting refCount to two */\n" 
+        append result "        Tcl_IncrRefCount(cmdName);  /* make cmdName safe */\n" 
+        append result "        Tcl_IncrRefCount(cmdName);  /* from altercation  */\n" 
         append result "    \}\n" 
-        append result "    return cmdName;\n"
+        append result "    objv\[0\] = cmdName;\n"
+        append result "    return (cmdProc)(clientData, interp, objc, objv);\n"
         append result "\}\n\n"
     }
     return $result
@@ -1503,10 +1498,11 @@ proc ::tsp::lang_builtin_refs {} {
 
 ##############################################
 # return a builtin command string object
-# note - no checking if cmd is actually a builtin command
+# note - command name object is filled in the objv array by
+# the command wrapper function
 #
 proc ::tsp::lang_builtin_cmd_obj {cmd} {
-    return "TSP_Cmd_builtinName_$cmd ()"
+    return "NULL"
 }
 
 
