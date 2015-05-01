@@ -6,7 +6,7 @@ tsp::proc hash {} {
 
 	set d [dict create]
 	foreach file $argv {
-		set f [open $file r]
+		set f [open $file rb]
 		set len [gets $f buf]
 		while {$len >= 0} {
 			dict set d $buf 1

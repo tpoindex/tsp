@@ -6,9 +6,9 @@ tsp::proc main {} {
 	global	argv
 
 	foreach file $argv {
-		set f [open $file r]
+		set f [open $file rb]
 
-		# Takes 2.7 seconds/12.3
+		
 		set len [gets $f buf]
 		while {$len >= 0} {
 			lappend l $buf
@@ -17,7 +17,7 @@ tsp::proc main {} {
 		close $f
 	}
 
-	# takes 7.9 seconds/12.3
+	
         set sorted [lsort $l]
 	foreach buf $sorted {
 		puts $buf

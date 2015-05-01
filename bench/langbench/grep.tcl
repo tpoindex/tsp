@@ -1,14 +1,13 @@
 tsp::proc grep {file} {
 	#tsp::procdef void -args var
-	#tsp::var f buf re
+	#tsp::var f buf
 	#tsp::int len
 	#tsp::boolean matched
-	set f [open $file r]
-	set re {[^A-Za-z]fopen\(.*\)}
+	set f [open $file rb]
 	set buf ""
 	set len [gets $f buf]
 	while {$len >= 0} {
-		set matched [regexp $re $buf]
+		set matched [regexp -- {[^A-Za-z]fopen\(.*\)} $buf]
 		if {$matched} { puts $buf }
 		set len [gets $f buf]
 	}

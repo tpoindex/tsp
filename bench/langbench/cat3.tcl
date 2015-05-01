@@ -2,7 +2,7 @@ tsp::proc cat {file} {
 	#tsp::procdef void -args var
 	#tsp::int len
 	#tsp::var f buf
-	set f [open $file r]
+	set f [open $file rb]
         fconfigure $f -buffersize 1000000 -buffering full 
         set buf [read $f 1000000]
 	set len [string length $buf]

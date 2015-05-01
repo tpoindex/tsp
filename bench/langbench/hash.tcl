@@ -7,7 +7,7 @@ tsp::proc hash {} {
 	
 	array set d {}
 	foreach file $argv {
-		set f [open $file r]
+		set f [open $file rb]
 		set len [gets $f buf]
 		while {$len >= 0} {
 			set d($buf) 1
