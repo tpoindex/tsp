@@ -1079,7 +1079,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         }
     }
     
-    # create the argObjvArrays, one for each level of command nesting
+    # create the argObjvArrays and foreachObjArrs, one for each level of command nesting
     set argObjvArrays ""
     set argObjvAlloc ""
     set argObjvFree ""
@@ -1089,6 +1089,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             if {[dict exists $compUnit argsPerLevel $i]} {
                 append argObjvArrays "Tcl_Obj** argObjvArray_$i = NULL;\n"
                 append argObjvArrays "int       argObjc_$i = 0;\n"
+                append argObjvArrays "Tcl_Obj** foreachObjv_$i = NULL;\n"
                 set size [lindex [dict get $compUnit argsPerLevel $i] end]
                 append argObjvAlloc  "argObjvArray_$i = (Tcl_Obj**) ckalloc($size * sizeof(Tcl_Obj *));\n"
                 append argObjvFree   "ckfree((char*) argObjvArray_$i);\n"
@@ -1973,7 +1974,8 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
                 append code "[::tsp::lang_preserve $dataVar]\n"
             } else {
                 # must be var
-                set dataVar $dataListPre$dataList
+                # assign to the dataVar so that we incr refcount of the dataList to prevent changes
+                append code "[::tsp::lang_assign_var_var $dataVar $dataListPre$dataList]\n"
             }
         }
     } else {
@@ -1983,8 +1985,9 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
         append code "[::tsp::lang_preserve $dataVar]\n"
     }
 
+    set foreachObjArr foreachObjv_[dict get $compUnit cmdLevel]
     append code "$idxVar = 0; /* idx */\n"
-    append code "if ((*rc = Tcl_ListObjLength(interp, $dataVar, &len)) != TCL_OK) \{ \n"
+    append code "if ((*rc = Tcl_ListObjGetElements(interp, $dataVar, &len, &$foreachObjArr)) != TCL_OK) \{ \n"
     append code "    ERROR_EXIT;\n"
     append code "\}\n"
     append code "$lenVar = len; /* list length */\n"
@@ -1996,15 +1999,11 @@ proc ::tsp::lang_foreach {compUnitDict idxVar lenVar convertVar dataVar varList 
         append code "    if ($idxVar < $lenVar) \{\n"
         if {$type eq "var"} {
             append code "[::tsp::indent compUnit [::tsp::lang_safe_release $varPre$var] 1]" \n
-            append code "[::tsp::indent compUnit "if ((*rc = Tcl_ListObjIndex(interp, $dataVar, (int) ${idxVar}++, &$varPre$var)) != TCL_OK) \{" 1]" \n
-            append code "[::tsp::indent compUnit "    ERROR_EXIT;" 1]" \n
-            append code "[::tsp::indent compUnit "\}" 1]" \n
+            append code "[::tsp::indent compUnit "$varPre$var = *(${foreachObjArr}+${idxVar}++);" 1]" \n
             append code "[::tsp::indent compUnit [::tsp::lang_preserve $varPre$var] 1]" \n
         } else {
             append code "[::tsp::indent compUnit [::tsp::lang_safe_release $convertVar] 1]" \n
-            append code "[::tsp::indent compUnit "if ((*rc = Tcl_ListObjIndex(interp, $dataVar, (int) ${idxVar}++, &$convertVar)) != TCL_OK) \{" 1]"  \n
-            append code "[::tsp::indent compUnit "    ERROR_EXIT;" 1]" \n
-            append code "[::tsp::indent compUnit "\}" 1]" \n
+            append code "[::tsp::indent compUnit "$convertVar = *(${foreachObjArr}+${idxVar}++);" 1]"  \n
             append code "[::tsp::indent compUnit [::tsp::lang_preserve $convertVar] 1]" \n
             append code "[::tsp::indent compUnit [::tsp::lang_convert_${type}_var $varPre$var $convertVar "unable to convert var to $type"] 1]" \n
         }
