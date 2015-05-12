@@ -1,5 +1,5 @@
 tsp::proc wordsplit {str} {
-	#tsp::procdef var -args string
+	#tsp::procdef var -args var
 	#tsp::var list char word splitstr
 	#tsp::boolean is_space
 	#tsp::int len
