@@ -1148,7 +1148,7 @@ public class ${name}Cmd implements Command {
         [::tsp::indent compUnit $procVarsDecls 2 \n]
 
         // constants for tcl direct and tcl invoke commands
-        [::tsp::indent compUnit procConstDecls 2 \n]
+        [::tsp::indent compUnit $procConstDecls 2 \n]
 
         // any "var" arguments need to be preserved, since they are released in finally block
         [::tsp::indent compUnit $innerVarPreserves 2 \n]

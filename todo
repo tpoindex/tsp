@@ -1,3 +1,9 @@
+FIX regression in tsp-java
+FIX calling inner functions of other compiled procs in tcl-clang need 
+    preserve/release for var types
+FIX call inner functions with string type in tsp-clang
+
+
 FIX (mostly done)- when invoking tcl interp or tcl direct, check if arg is a constant
 	string.  create constant obj, add to variables, and to cleanup
 	list.  constants should be allocated once, and incrrefcount twice.
