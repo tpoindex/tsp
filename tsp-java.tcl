@@ -1086,18 +1086,19 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     foreach {const n} [dict get $compUnit constVar] {
         set constvar [::tsp::get_constvar $n]
         set constComment [::tsp::mkComment "const: [string trim $const]"]
-        append procConstDecls "$constComment\nstatic [::tsp::lang_type_var] "
+        append procConstDecls "$constComment\nprivate static [::tsp::lang_type_var] $constvar;\nstatic \{ "
         set constTypes [::tsp::literalExprTypes $const]
         if {[::tsp::typeIsDouble $constTypes]} {
-            append procConstDecls [::tsp::lang_new_var_double $constvar $const]
+            append procConstDecls "    [::tsp::lang_new_var_double $constvar $const]"
         } elseif {[::tsp::typeIsInt $constTypes]} {
-            append procConstDecls [::tsp::lang_new_var_int $constvar $const]
+            append procConstDecls "    [::tsp::lang_new_var_int $constvar $const]"
         } else {
-            append procConstDecls [::tsp::lang_new_var_string $constvar [::tsp::lang_quote_string $const]]
+            append procConstDecls "    [::tsp::lang_new_var_string $constvar [::tsp::lang_quote_string $const]]"
         }
         # make the constant protected from altercation, preserve twice
-        append procConstDecls [::tsp::lang_preserve $constvar]
-        append procConstDecls [::tsp::lang_preserve $constvar]
+        append procConstDecls "    [::tsp::lang_preserve $constvar]"
+        append procConstDecls "    [::tsp::lang_preserve $constvar]"
+        append procConstDecls "\}\n"
     }
 
    
@@ -1113,7 +1114,7 @@ import tsp.util.*;
 
 public class ${name}Cmd implements Command {
 
-//::tsp::lang_builtin_refs
+    // define the Tcl interface cmdProc 
 
     public void cmdProc(Interp interp, TclObject argv\[\]) throws TclException {
         $returnVarDecl
@@ -1139,6 +1140,12 @@ public class ${name}Cmd implements Command {
         
     }
 
+    // constants for tcl direct and tcl invoke commands
+    [::tsp::indent compUnit $procConstDecls 1 \n]
+
+
+    // define the proc compiled implementation
+
     public static $nativeReturnType __${name}(Interp interp $nativeTypedArgs) throws TclException {
         TclObject _tmpVar_cmdResultObj = null;
         CallFrame frame = null;
@@ -1146,9 +1153,6 @@ public class ${name}Cmd implements Command {
 
         // variables defined in proc, plus temp vars
         [::tsp::indent compUnit $procVarsDecls 2 \n]
-
-        // constants for tcl direct and tcl invoke commands
-        [::tsp::indent compUnit $procConstDecls 2 \n]
 
         // any "var" arguments need to be preserved, since they are released in finally block
         [::tsp::indent compUnit $innerVarPreserves 2 \n]

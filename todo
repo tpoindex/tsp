@@ -1,4 +1,3 @@
-FIX regression in tsp-java
 FIX calling inner functions of other compiled procs in tcl-clang need 
     preserve/release for var types
 FIX call inner functions with string type in tsp-clang
