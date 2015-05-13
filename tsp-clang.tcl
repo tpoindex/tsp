@@ -2043,7 +2043,7 @@ proc ::tsp::lang_return {compUnitDict argVar} {
     append code "/* ::tsp::lang_return */\n"
     switch $returnType {
         string {append code "Tcl_DStringAppend(returnValue, Tcl_DStringValue($argVar), Tcl_DStringLength($argVar));\n"}
-        var    {append code "returnValue = Tcl_DuplicateObj($argVar);\nTcl_IncrRefCount($argVar);\n"}
+        var    {append code "returnValue = $argVar;\nTcl_IncrRefCount(returnValue);\n"}
         default {append code "returnValue = $argVar;\n"}
     }
     append code "*rc = TCL_OK;\n"
