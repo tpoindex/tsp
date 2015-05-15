@@ -1081,18 +1081,14 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     
     # create the argObjvArrays and foreachObjArrs, one for each level of command nesting
     set argObjvArrays ""
-    set argObjvAlloc ""
-    set argObjvFree ""
     set maxLevel [dict get $compUnit maxLevel]
     if {[llength [dict get $compUnit argsPerLevel]]} {
         for {set i 0} {$i <= $maxLevel} {incr i} {
             if {[dict exists $compUnit argsPerLevel $i]} {
-                append argObjvArrays "Tcl_Obj** argObjvArray_$i = NULL;\n"
+                set size [lindex [dict get $compUnit argsPerLevel $i] end]
+                append argObjvArrays "Tcl_Obj*  argObjvArray_$i\[$size\];\n"
                 append argObjvArrays "int       argObjc_$i = 0;\n"
                 append argObjvArrays "Tcl_Obj** foreachObjv_$i = NULL;\n"
-                set size [lindex [dict get $compUnit argsPerLevel $i] end]
-                append argObjvAlloc  "argObjvArray_$i = (Tcl_Obj**) ckalloc($size * sizeof(Tcl_Obj *));\n"
-                append argObjvFree   "ckfree((char*) argObjvArray_$i);\n"
             }
         }
     }
@@ -1102,7 +1098,6 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
     append cleanup_defs [::tsp::indent compUnit [::tsp::lang_safe_release _tmpVar_cmdResultObj] 1 \n]
     append cleanup_defs [::tsp::indent compUnit $procVarsCleanup 1 \n]
     append cleanup_defs [::tsp::indent compUnit $procStringsCleanup 1 \n]
-    append cleanup_defs [::tsp::indent compUnit $argObjvFree 1 \n]
 
     set arg_cleanup_defs ""
     if {[string length $declStringsCleanup]} {
@@ -1229,9 +1224,6 @@ TSP_UserDirect_${name}(Tcl_Interp* interp, int* rc  $nativeTypedArgs ) {
 
     /* string arguments need to be copied (FIXME: investigate using COW for strings) */
     [::tsp::indent compUnit $copyStringArgs 1 \n]
-
-    /* allocate any argvObj arrays */
-    [::tsp::indent compUnit $argObjvAlloc 1 \n]
 
     /* initialize function pointers for calling other compiled procs, constants */
     if (! directInit) {
