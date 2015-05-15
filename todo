@@ -1,4 +1,5 @@
-FIX - (clang) argv arrays should just be stack allocated, no need to alloc().
+FIX - assign to array with index is a var, try not to convert to string
+
 FIX - inline util code, note tsp-java inline code is out of date!
 FIX - add info is tcl interp or tcl direct call doesn't return a value 
 	(e.g. puts), don't add GetResultObj code
