@@ -3,4 +3,4 @@ comparison to the TSP compiled versions.
 
 Run as:
 
-tclsh8.6 cat-ext.tcl >/dev/null
+tclsh8.6 cat-ext.tcl DATA >/dev/null

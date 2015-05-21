@@ -202,12 +202,14 @@ proc cat-lb {file} {
 set times 5
 fconfigure stdout -buffering full -translation binary
 
+set file [lindex $argv 0]
+
 # time original langbench version
-set avg_micros [time {cat-lb /tmp/DATA} $times]
+set avg_micros [time {cat-lb $file} $times]
 puts stderr "cat-lb:    [format %-8.2f [expr [lindex $avg_micros 0] / 1000000.0]]"
 
 # time c extension version
-set avg_micros [time {cat-ext /tmp/DATA} $times]
+set avg_micros [time {cat-ext $file} $times]
 puts stderr "cat-ext:   [format %-8.2f [expr [lindex $avg_micros 0] / 1000000.0]]"
 
 
