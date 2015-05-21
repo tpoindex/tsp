@@ -225,9 +225,9 @@ TSP_Util_lang_assign_var_var(Tcl_Obj* targetVarName, Tcl_Obj* sourceVarName) {
 /*********************************************************************************************/
 /* assign an array & element from a var */
 int
-TSP_Util_lang_assign_array_var(Tcl_Interp* interp, char* targetArrayStr, char* targetIdxStr, Tcl_Obj* var) {
+TSP_Util_lang_assign_array_var(Tcl_Interp* interp, Tcl_Obj* targetArrayVar, Tcl_Obj* targetIdxVar, Tcl_Obj* var) {
     Tcl_Obj* obj;
-    obj = Tcl_SetVar2Ex(interp, targetArrayStr, targetIdxStr, var, TCL_LEAVE_ERR_MSG);
+    obj = Tcl_ObjSetVar2(interp, targetArrayVar, targetIdxVar, var, TCL_LEAVE_ERR_MSG);
     if (obj == NULL) {
         return TCL_ERROR;
     } else {

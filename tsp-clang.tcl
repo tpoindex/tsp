@@ -567,12 +567,12 @@ proc ::tsp::lang_assign_empty_zero {var type} {
 ##############################################
 # assign a TclObject from a interp array with a scalar or var index
 # note that errMsg should be passed unquoted (done here)
-# arrVar is already a quoted string
+# arrVar and index are tcl objects
 #
-proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype errMsg} {
+proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar errMsg} {
     append result "/* ::tsp::lang_array_get_array_idxvar */\n"
 
-    append result "$targetObj = Tcl_GetVar2Ex(interp, $arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], TCL_LEAVE_ERR_MSG);\n"
+    append result "$targetObj = Tcl_ObjGetVar2(interp, $arrVar, $idxVar, TCL_LEAVE_ERR_MSG);\n"
     append result "if ($targetObj == NULL) \{\n"
     append result "    /* Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], (char *) NULL);*/\n"
     append result "    *rc = TCL_ERROR;\n"
@@ -583,13 +583,13 @@ proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype err
 
 ##############################################
 # assign a TclObject from a interp array with a text index or var index
-# idxTxtVar should either be a quoted string, or a string
+# arrVar and idxTxtVar are tcl objects
 # note that errMsg should be passed unquoted (done here)
 #
 proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
     append result "/* ::tsp::lang_array_get_array_idxtext */\n"
 
-    append result "$targetObj = Tcl_GetVar2Ex(interp, $arrVar, $idxTxtVar, TCL_LEAVE_ERR_MSG);\n"
+    append result "$targetObj = Tcl_ObjGetVar2(interp, $arrVar, $idxTxtVar, TCL_LEAVE_ERR_MSG);\n"
     append result "if ($targetObj == NULL) \{\n"
     append result "    /* Tcl_AppendResult(interp, [::tsp::lang_quote_string $errMsg], (char *) NULL);*/\n"
     append result "    *rc = TCL_ERROR;\n"
@@ -679,16 +679,15 @@ proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
 }
 
 ##############################################
-# assign a tclobj var to an interp array using string name1/name2
-#   targetArrayStr targetIdxStr must already be valid string constants
-#   or string references.
+# assign a tclobj var to an interp array using name1/name2
+#   targetArrayStr targetIdxStr must already be valid tcl objects
 #   the var is the object to assign into the array,
 #   which is preserved and released
 #
-proc ::tsp::lang_assign_array_var {targetArrayStr targetIdxStr var} {
+proc ::tsp::lang_assign_array_var {targetArrayVar targetIdxVar var} {
     append result "/* ::tsp::lang_assign_array_var */\n"
 
-    append result "TSP_Util_lang_assign_array_var(interp, $targetArrayStr, $targetIdxStr, $var);\n"
+    append result "TSP_Util_lang_assign_array_var(interp, $targetArrayVar, $targetIdxVar, $var);\n"
     return $result
 }
 
@@ -1395,6 +1394,7 @@ proc ::tsp::lang_compile {compUnitDict code} {
     } result ]
     set critcl_results_dict [critcl::cresults]
     set errors ""
+#FIXME: use exl key for new critcl version
     catch {set errors [dict get [critcl::cresults] log]}
     set cc_errors ""
     foreach line [split $::tsp::cc_output \n] {
@@ -1405,7 +1405,8 @@ proc ::tsp::lang_compile {compUnitDict code} {
     if {$rc || [string length $cc_errors] > 0} {
         ::tsp::addError compUnit "error compiling $name:\n$result\n$errors\n$cc_errors"
     }
-    critcl::reset
+#FIXME: remove reset for new critcl version
+    catch {critcl::reset}
 
     # reset the PkgInit proc for other critcl usage
     ::proc ::critcl::PkgInit {file} $::tsp::critcl_pkginit

@@ -315,7 +315,7 @@ proc ::tsp::produce_set {compUnitDict tree targetComponents sourceComponents} {
             # generate assigment
             if {$targetWordType eq "text"} {
 		return [list void "" [::tsp::gen_assign_scalar_array compUnit  $targetVarName $targetType \
-			$sourceVarName "" "" [::tsp::lang_quote_string $sourceArrayIdxtext]]]
+			$sourceVarName "" "" $sourceArrayIdxtext]]
 		
 
             } elseif {$targetWordType eq "text_array_idxtext" || $targetWordType eq "text_array_idxvar"} {
@@ -708,44 +708,31 @@ proc ::tsp::gen_assign_var_string_interpolated_string {compUnitDict targetVarNam
 # assign an array variable from text string
 # array index is either a text string, or a variable 
 #
-#FIXME: this should use shadow vars, and create/update if needed when var is dirty
 #
 proc ::tsp::gen_assign_array_text {compUnitDict targetVarName targetArrayIdxtext \
 		targetArrayIdxvar targetArrayIdxvarType targetType sourceText sourceType} {
 
     upvar $compUnitDict compUnit
     
-    # get a temp variable to work with
-    set value [::tsp::get_tmpvar compUnit var]
-    append code [::tsp::lang_safe_release $value]
+    # make text value into a constant var
+    set value [::tsp::get_constvar [::tsp::getConstant compUnit $sourceText]]
     append result "\n/***** ::tsp::gen_assign_array_text */\n"
     if {$targetArrayIdxtext ne ""} {
         # constant string index
-        if {$sourceType eq "string"} {
-            append code [::tsp::lang_new_var_$sourceType  $value [::tsp::lang_quote_string $sourceText]]
-            append code [::tsp::lang_preserve $value]
-        } else {
-            append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
-            append code [::tsp::lang_preserve $value]
-        }
-        append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] \
-			[::tsp::lang_quote_string $targetArrayIdxtext] $value] 
+        append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] \
+			[::tsp::get_constvar [::tsp::getConstant compUnit $targetArrayIdxtext]] $value] 
         append result $code
         return $result
     } else {
         # variable index
-        # we have to get a string from the scalar
-        set idx [::tsp::get_tmpvar compUnit string]
-        if {$sourceType eq "string"} {
-            append code [::tsp::lang_new_var_$sourceType  $value [::tsp::lang_quote_string $sourceText]]
-            append code [::tsp::lang_preserve $value]
-        } else {
-            append code [::tsp::lang_new_var_$sourceType  $value $sourceText]
-            append code [::tsp::lang_preserve $value]
-        }
         set idxPre [::tsp::var_prefix $targetArrayIdxvar]
-        append code [::tsp::lang_convert_string_string $idx [::tsp::lang_get_string_$targetArrayIdxvarType $idxPre$targetArrayIdxvar]]
-        append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
+        if {$targetArrayIdxvarType eq "var"} {
+            set idx $idxPre$targetArrayIdxvar
+        } else {
+            set idx [::tsp::get_tmpvar compUnit var]
+            append code [::tsp::lang_assign_var_$targetArrayIdxvarType  $idx $idxPre$targetArrayIdxvar]
+        }
+        append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] $idx $value]
         append result $code
         return $result
     }
@@ -776,8 +763,8 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
             append code [::tsp::lang_new_var_$sourceType  $value $pre$sourceVarName]
             append code [::tsp::lang_preserve $value]
         }
-        append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] \
-			[::tsp::lang_quote_string $targetArrayIdxtext] $value] 
+        append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] \
+			[::tsp::get_constvar [::tsp::getConstant compUnit $targetArrayIdxtext]] $value] 
         append result $code
         return $result
     } else {
@@ -795,8 +782,13 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
             append code [::tsp::lang_preserve $value]
         }
         set idxPre [::tsp::var_prefix $targetArrayIdxvar]
-        append code [::tsp::lang_convert_string_string $idx  [::tsp::lang_get_string_$targetArrayIdxvarType $idxPre$targetArrayIdxvar]]
-        append code [::tsp::lang_assign_array_var [::tsp::lang_quote_string $targetVarName] $idx $value]
+        if {$targetArrayIdxvarType eq "var"} {
+            set idx $idxPre$targetArrayIdxvar
+        } else {
+            set idx [::tsp::get_tmpvar compUnit var]
+            append code [::tsp::lang_assign_var_$targetArrayIdxvarType  $idx $idxPre$targetArrayIdxvar]
+        }
+        append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] $idx $value]
         append result $code
         return $result
     }
@@ -838,11 +830,18 @@ proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourc
     append code [::tsp::lang_safe_release $targetVar]
     if {$sourceArrayIdxtext ne ""} {
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index \"$sourceArrayIdxtext\" "]]
-        append code [::tsp::lang_assign_var_array_idxtext $targetVar [::tsp::lang_quote_string $sourceVarName] $sourceArrayIdxtext $errMsg]
+        append code [::tsp::lang_assign_var_array_idxtext $targetVar [::tsp::get_constvar [::tsp::getConstant compUnit $sourceVarName]] \
+                                   [::tsp::get_constvar [::tsp::getConstant compUnit $sourceArrayIdxtext]] $errMsg]
     } else {
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index var \"$sourceArrayIdxvar\" "]]
         set idxPre [::tsp::var_prefix $sourceArrayIdxvar]
-        append code [::tsp::lang_assign_var_array_idxvar $targetVar [::tsp::lang_quote_string $sourceVarName] $idxPre$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
+        if {$sourceArrayIdxvarType eq "var"} {
+            set idx $idxPre$sourceArrayIdxvar
+        } else {
+            set idx [::tsp::get_tmpvar compUnit var]
+            append code [::tsp::lang_assign_var_$sourceArrayIdxvarType  $idx $idxPre$sourceArrayIdxvar]
+        }
+        append code [::tsp::lang_assign_var_array_idxvar $targetVar [::tsp::get_constvar [::tsp::getConstant compUnit $sourceVarName]] $idx $errMsg]
     }
     append code [::tsp::lang_preserve $targetVar]
     append code [::tsp::gen_assign_scalar_scalar compUnit $targetVarName $targetType $targetVar var]
@@ -862,11 +861,18 @@ proc ::tsp::gen_assign_array_array {compUnitDict targetVarName targetArrayIdxtex
     append code [::tsp::lang_safe_release $assignVar]
     if {$sourceArrayIdxtext ne ""} {
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index \"$sourceArrayIdxtext\" "]]
-        append code [::tsp::lang_assign_var_array_idxtext $assignVar [::tsp::lang_quote_string $sourceVarName] [::tsp::lang_quote_string $sourceArrayIdxtext] $errMsg]
+        append code [::tsp::lang_assign_var_array_idxtext $assignVar [::tsp::get_constvar [::tsp::getConstant compUnit $sourceVarName]] \
+                                   [::tsp::get_constvar [::tsp::getConstant compUnit $sourceArrayIdxtext]]  $errMsg]
     } else {
         set errMsg [::tsp::gen_runtime_error compUnit [::tsp::lang_quote_string "unable to get var from array \"$sourceVarName\", index var \"$sourceArrayIdxvar\" "]]
-       set idxPre [::tsp::var_prefix $sourceArrayIdxvar]
-        append code [::tsp::lang_assign_var_array_idxvar $assignVar [::tsp::lang_quote_string $sourceVarName] $idxPre$sourceArrayIdxvar $sourceArrayIdxvarType $errMsg]
+        set idxPre [::tsp::var_prefix $sourceArrayIdxvar]
+        if {$sourceArrayIdxvarType eq "var"} {
+            set idx $idxPre$sourceArrayIdxvar
+        } else {
+            set idx [::tsp::get_tmpvar compUnit var]
+            append code [::tsp::lang_assign_var_$sourceArrayIdxvarType  $idx $idxPre$sourceArrayIdxvar]
+        }
+        append code [::tsp::lang_assign_var_array_idxvar $assignVar [::tsp::get_constvar [::tsp::getConstant compUnit $sourceVarName]] $idx $errMsg]
     }
     
     append code [::tsp::lang_preserve $assignVar]

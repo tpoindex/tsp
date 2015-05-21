@@ -569,18 +569,18 @@ proc ::tsp::lang_assign_empty_zero {var type} {
 # note that errMsg should be passed unquoted (done here)
 # arrVar is already a quoted string
 #
-proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar idxVartype errMsg} {
+proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar errMsg} {
     append result "// ::tsp::lang_array_get_array_idxvar\n"
 
     if {! $::tsp::INLINE} {
-        append result "$targetObj = TspUtil.lang_assign_var_array_idxvar(interp, $arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], [::tsp::lang_quote_string $errMsg]);\n"
+        append result "$targetObj = TspUtil.lang_assign_var_array_idxvar(interp, ${arrVar}.toString(), ${idxVar}.toString(), [::tsp::lang_quote_string $errMsg]);\n"
         return $result
     }
 
     append result "try {\n"
-    append result "    $targetObj = interp.getVar($arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], 0);\n"
+    append result "    $targetObj = interp.getVar(${arrVar}.toString(), ${idxVar}.toString(), 0);\n"
     append result "} catch (TclException te) {\n"
-    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + sourceVarName + \"\\ncaused by: \" + te.getMessage());\n"
+    append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + \"\\ncaused by: \" + te.getMessage());\n"
     append result "}\n"
 
     return $result
@@ -769,22 +769,21 @@ proc ::tsp::lang_assign_var_var {targetVarName sourceVarName {preserve 1}} {
 
 ##############################################
 # assign a tclobj var to an interp array using string name1/name2
-#   targetArrayStr targetIdxStr must already be valid string constants
-#   or string references.
+#   targetArrayStr targetIdxStr must already be valid tcl objects
 #   the var is the object to assign into the array,
 #   which is preserved and released
 #
-proc ::tsp::lang_assign_array_var {targetArrayStr targetIdxStr var} {
+proc ::tsp::lang_assign_array_var {targetArrayVar targetIdxVar var} {
     append result "// ::tsp::lang_assign_array_var\n"
 
     if {! $::tsp::INLINE} {
-        append result "TspUtil.lang_assign_array_var(interp, $targetArrayStr, $targetIdxStr, $var);\n"
+        append result "TspUtil.lang_assign_array_var(interp, ${targetArrayVar}.toString(), ${targetIdxVar}.toString(), $var);\n"
         return $result
     }
 
     append result "try {\n"
     append result "    [::tsp::lang_preserve $var]"
-    append result "    interp.setVar($targetArrayStr, $targetIdxStr, $var, 0);\n"
+    append result "    interp.setVar(${targetArrayVar}.toString(), ${targetIdxVar}.toString(), $var, 0);\n"
     append result "} catch (TclException te) {\n"
     append result "    throw te;\n"
     append result "} finally {\n"
