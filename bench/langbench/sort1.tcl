@@ -2,19 +2,17 @@ tsp::proc main {} {
 	#tsp::procdef void
 	#tsp::var l sorted
 	#tsp::var f buf file
-	#tsp::boolean iseof
+	#tsp::int len
 	global	argv
 
 	foreach file $argv {
 		set f [open $file rb]
 
 		
-		set buf [gets $f]
-		set iseof [eof $f]
-		while {! $iseof} {
+		set len [gets $f buf]
+		while {$len >= 0} {
 			lappend l $buf
-			set buf [gets $f]
-			set iseof [eof $f]
+			set len [gets $f buf]
 		}
 		close $f
 	}

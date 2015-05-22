@@ -28,20 +28,17 @@ tsp::proc wordsplit {str} {
 tsp::proc doit {file} {
 	#tsp::procdef int -args var
 	#tsp::var f buf words
-	#tsp::int n i
-	#tsp::boolean iseof
+	#tsp::int n len i
 	set f [open $file r]
 	fconfigure $f -translation binary
 	set buf ""
 	set n 0
-	set buf [gets $f]
-	set iseof [eof $f]
-	while {! $iseof} {
+	set len [gets $f buf]
+	while {$len >= 0} {
 		set words [wordsplit $buf]
 		set i [llength $words]
 		incr n $i
-		set buf [gets $f]
-		set iseof [eof $f]
+		set len [gets $f buf]
 	}
 	close $f
 	return $n
