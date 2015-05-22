@@ -729,8 +729,9 @@ proc ::tsp::gen_assign_array_text {compUnitDict targetVarName targetArrayIdxtext
         if {$targetArrayIdxvarType eq "var"} {
             set idx $idxPre$targetArrayIdxvar
         } else {
-            set idx [::tsp::get_tmpvar compUnit var]
-            append code [::tsp::lang_assign_var_$targetArrayIdxvarType  $idx $idxPre$targetArrayIdxvar]
+            # it's a native var, use a shadow var
+            lassign [::tsp::getCleanShadowVar compUnit $targetArrayIdxvar] idx shadowCode
+            append code $shadowCode
         }
         append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] $idx $value]
         append result $code
@@ -751,42 +752,42 @@ proc ::tsp::gen_assign_array_scalar {compUnitDict targetVarName targetArrayIdxte
     upvar $compUnitDict compUnit
     
     append result "\n/***** ::tsp::gen_assign_array_scalar */\n"
+
+    # prepare the source variable
+    if {$sourceType eq "var"} {
+        set pre [::tsp::var_prefix $sourceVarName]
+        set value  $pre$sourceVarName
+    } else {
+        set pre [::tsp::var_prefix $sourceVarName]
+        if {$pre eq ""} { 
+            # it's a tmp var, so just assign into a tmp var type
+            set value [::tsp::get_tmpvar compUnit var]
+            append code [::tsp::lang_assign_var_$sourceType $value $pre$sourceVarName]
+        } else {
+            # it's a native var, use a shadow var
+            lassign [::tsp::getCleanShadowVar compUnit $sourceVarName] value shadowCode
+            append code $shadowCode
+        }
+    }
+
     if {$targetArrayIdxtext ne ""} {
         # constant string index
-        if {$sourceType eq "var"} {
-            set pre [::tsp::var_prefix $sourceVarName]
-            set value  $pre$sourceVarName
-        } else {
-            set pre [::tsp::var_prefix $sourceVarName]
-            set value [::tsp::get_tmpvar compUnit var]
-            append code [::tsp::lang_decl_var $value]
-            append code [::tsp::lang_new_var_$sourceType  $value $pre$sourceVarName]
-            append code [::tsp::lang_preserve $value]
-        }
+
         append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] \
 			[::tsp::get_constvar [::tsp::getConstant compUnit $targetArrayIdxtext]] $value] 
         append result $code
         return $result
+
     } else {
         # variable index
-        # we have to get a string from the scalar
-        set idx [::tsp::get_tmpvar compUnit string]
-        if {$sourceType eq "var"} {
-            set pre [::tsp::var_prefix $sourceVarName]
-            set value $pre$sourceVarName
-        } else {
-            set pre [::tsp::var_prefix $sourceVarName]
-            set value [::tsp::get_tmpvar compUnit var]
-            append code [::tsp::lang_safe_release $value]
-            append code [::tsp::lang_new_var_$sourceType  value $pre$sourceVarName]
-            append code [::tsp::lang_preserve $value]
-        }
+
         set idxPre [::tsp::var_prefix $targetArrayIdxvar]
         if {$targetArrayIdxvarType eq "var"} {
             set idx $idxPre$targetArrayIdxvar
         } else {
-            set idx [::tsp::get_tmpvar compUnit var]
-            append code [::tsp::lang_assign_var_$targetArrayIdxvarType  $idx $idxPre$targetArrayIdxvar]
+            # it's a native var, use a shadow var
+            lassign [::tsp::getCleanShadowVar compUnit $targetArrayIdxvar] idx shadowCode
+            append code $shadowCode
         }
         append code [::tsp::lang_assign_array_var [::tsp::get_constvar [::tsp::getConstant compUnit $targetVarName]] $idx $value]
         append result $code
@@ -821,9 +822,7 @@ proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourc
 
     upvar $compUnitDict compUnit
   
-    # set the target as dirty
-    # puts "gen_assign_scalar_array- ::tsp::setDirty compUnit $targetVarName"
-    ::tsp::setDirty compUnit $targetVarName 
+    # target will be marked as dirty in ::tsp::gen_assign_scalar_scalar
 
     append result "\n/***** ::tsp::gen_assign_scalar_array */\n"
     set targetVar [::tsp::get_tmpvar compUnit var]
@@ -838,8 +837,9 @@ proc ::tsp::gen_assign_scalar_array {compUnitDict targetVarName targetType sourc
         if {$sourceArrayIdxvarType eq "var"} {
             set idx $idxPre$sourceArrayIdxvar
         } else {
-            set idx [::tsp::get_tmpvar compUnit var]
-            append code [::tsp::lang_assign_var_$sourceArrayIdxvarType  $idx $idxPre$sourceArrayIdxvar]
+            # it's a native var, use a shadow var
+            lassign [::tsp::getCleanShadowVar compUnit $sourceArrayIdxvar] idx shadowCode
+            append code $shadowCode
         }
         append code [::tsp::lang_assign_var_array_idxvar $targetVar [::tsp::get_constvar [::tsp::getConstant compUnit $sourceVarName]] $idx $errMsg]
     }

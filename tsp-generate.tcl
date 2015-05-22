@@ -399,10 +399,9 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
         set argVar [::tsp::var_prefix $nodeVarOrOther]$nodeVarOrOther
     } else {
         # check if this should be a constant value
-# FIXME: handle multi-nodes of backslash and text
+        # FIXME: handle multi-nodes of backslash and text
         if {[llength $nodeComponents] == 1 && $nodeType eq "text"} {
-            set constNum [::tsp::getConstant compUnit $nodeText]
-            set argVar [::tsp::get_constvar $constNum]
+            set argVar [::tsp::get_constvar [::tsp::getConstant compUnit $nodeText]]
         } else {
 	    # just grab a regular temp var and generate an assignment
 	    set argVar [::tsp::get_tmpvar compUnit var]
