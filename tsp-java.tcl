@@ -570,7 +570,7 @@ proc ::tsp::lang_assign_empty_zero {var type} {
 # arrVar is already a quoted string
 #
 proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar errMsg} {
-    append result "// ::tsp::lang_array_get_array_idxvar\n"
+    append result "// ::tsp::lang_assign_var_array_idxvar\n"
 
     if {! $::tsp::INLINE} {
         append result "$targetObj = TspUtil.lang_assign_var_array_idxvar(interp, ${arrVar}.toString(), ${idxVar}.toString(), [::tsp::lang_quote_string $errMsg]);\n"
@@ -588,31 +588,22 @@ proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar errMsg} {
 
 ##############################################
 # assign a TclObject from a interp array with a text index or var index
-# idxTxtVar should either be a quoted string, or a string
+# arrayVar and idxTxtVar should tcl objs
 # note that errMsg should be passed unquoted (done here)
 #
 proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
     append result "// ::tsp::lang_array_get_array_idxtext\n"
 
     if {! $::tsp::INLINE} {
-        append result "$targetObj = TspUtil.lang_assign_var_array_idxtext(interp, $arrVar, $idxTxtVar, [::tsp::lang_quote_string $errMsg]);\n"
+        append result "$targetObj = TspUtil.lang_assign_var_array_idxtext(interp, ${arrVar}.toString(), ${idxTxtVar}.toString(), [::tsp::lang_quote_string $errMsg]);\n"
         return $result
     }
 
     append result "try {\n"
-    append result "    $targetObj = interp.getVar($arrVar, $idxTxtVar, 0);\n"
+    append result "    $targetObj = interp.getVar(${arrVar}.toString(), ${idxTxtVar}.toString(), 0);\n"
     append result "} catch (TclException te) {\n"
     append result "    throw new TclException(interp, [::tsp::lang_quote_string $errMsg] + \"\\ncaused by: \" + te.getMessage());\n"
     append result "}\n"
-    return $result
-}
-
-##############################################
-# get a TclObject from a interp array with a scalar or var index
-#
-proc ::tsp::lang_array_get_array_idxvar {arrVar idxVar idxVartype} {
-    append result "// ::tsp::lang_array_get_array_idxvar\n"
-    append result "interp.getVar($arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], 0);"
     return $result
 }
 

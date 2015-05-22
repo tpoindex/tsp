@@ -570,7 +570,7 @@ proc ::tsp::lang_assign_empty_zero {var type} {
 # arrVar and index are tcl objects
 #
 proc ::tsp::lang_assign_var_array_idxvar {targetObj arrVar idxVar errMsg} {
-    append result "/* ::tsp::lang_array_get_array_idxvar */\n"
+    append result "/* ::tsp::lang_assign_var_array_idxvar */\n"
 
     append result "$targetObj = Tcl_ObjGetVar2(interp, $arrVar, $idxVar, TCL_LEAVE_ERR_MSG);\n"
     append result "if ($targetObj == NULL) \{\n"
@@ -597,16 +597,6 @@ proc ::tsp::lang_assign_var_array_idxtext {targetObj arrVar idxTxtVar errMsg} {
     append result "\}\n"
     return $result
 
-    return $result
-}
-
-##############################################
-# get a TclObject from a interp array with a scalar or var index
-#
-proc ::tsp::lang_array_get_array_idxvar {arrVar idxVar idxVartype} {
-#FIXME: is this even used???? if not remove here and in tsp-java.tcl
-    append result "/* ::tsp::lang_array_get_array_idxvar */\n"
-    append result "interp.getVar($arrVar, [::tsp::lang_get_string_$idxVartype $idxVar], 0);"
     return $result
 }
 
