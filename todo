@@ -1,28 +1,25 @@
-FIX - assign to array with index is a var, try not to convert to string
-
 FIX - inline util code, note tsp-java inline code is out of date!
+
 FIX - add info is tcl interp or tcl direct call doesn't return a value 
 	(e.g. puts), don't add GetResultObj code
-FIX - tsp-clang - command name should just be assigned with calling obj proc, don't
-      call a function just to return a command name obj.  or should this just be a
-      constant?  Option - only initialize tcl direct functions used by proc, same for
-      the command name. (or make command name another constant?)
 
+FIX - compile 'dict' command.  jtcl will need to have DictCmd.java private
+      methods made public.
+FIX - compile more 'string' subcommands.
 
+FIX - convert tsp-clang strings int TSP_UniDString 
 
+FIX:  lang_switch should pass a string tempvar, locked, to
+      both clang and java.  clang needs it when switchvar is var type
 
 EXPLORE - when loading var from interp, don't incr/decr ref count for this var??  
      test with cat-ext
 EXPLORE - option for string type variables to just be 'var' instead.
 
-FIX - langbench should use fconfigure binary for stdout, see original (only if clang????)
 
 
 
 
-
-CHECK: tsp-java, tsp-generate-string, tsp-generate-list : check
-  that all string dup's and new strings have a preserve()
 
 
 CHECK: when assiging or converting from string, how do we
@@ -34,47 +31,18 @@ CHECK: tsp-generate-set.tcl and tsp-clang, tsp-java
   should string just be passed to the ::tsp::lang_get_string_$ proc 
   to avoid ::tsp::lang_convert_string_string 
 
-FIX:  lang_switch should pass a string tempvar, locked, to
-      both clang and java.  clang needs it when switchvar is var type
-
-
-
-PERFORMANCE: 
-  - check that assignment to var is doing copy only when needed
-  - check assign_var_var is just copying ref and preserve
-  - check if we need to preserve()/release on involing tcl builtin command
 
   
-
-
---------------------------------------
-critcl::load bug??  see github issue
---------------------------------------
-
-
-PERFORMANCE:  add INLINE for some C lang_xxxx functions ???
-             or just remove the INLINE from java code?
-
-
-
-
---------------------------------------
 
 
 steal tcl.h determination of TCL_LL_MODIFIER and adapt to use as
 TSP_LL_SUFFIX, since vc++, osx may need other than LL (e.g., vc++ I64 )
 
 
-check TspFunc.java - does int_abs need to check for Long.MIN_VALUE ?  (since we can't abs that value)
-
 add sugar and sugar {*} to jtcllib
 
 change tsp_md5 proc to use original nested commands (partially complete)
 hyde package - need to include "hyde" directory in env(TCL_CLASSPATH)  (like before????)
-
-check over compiled commands: append, lappend  to be more like lappend - if
-   var has been declared volatile for that command, just generated call to
-   tcl command code.
 
 c/tcl parser - must check [parse getstring $body {i-4 3}] and [parse getstring $body {i-3 3}]
 for "{*}".  This is because c/tcl will expand simple text inside the parser, rather than
