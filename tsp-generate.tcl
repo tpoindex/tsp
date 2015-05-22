@@ -385,19 +385,9 @@ proc ::tsp::getTmpVarAndConversion {compUnitDict node} {
     if {$nodeType eq "invalid"} {
 	::tsp::addError compUnit "objv argument parsed as \"$nodeType\" "
 	return [list void "" ""]
-    } elseif {$nodeType eq "scalar" && [lsearch $::tsp::NATIVE_TYPES [::tsp::getVarType compUnit $nodeVarOrOther]] >= 0} {
+    } elseif {$nodeType eq "scalar" && [::tsp::varIsNativeType compUnit $nodeVarOrOther]} {
 	# use shadow tmpvar, and only assign current native value if dirty
-	set argVar [::tsp::get_tmpvar compUnit var $nodeVarOrOther]
-	if {[lsearch [::tsp::getCleanList compUnit] $nodeVarOrOther] == -1} {
-	    # var is not clean (or not present, generate an assignment and mark it clean
-	    set argVarComponents [list [list text $argVar $argVar]]
-	    set setTree ""
-	    append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
-	    ::tsp::setDirty compUnit $nodeVarOrOther 0
-	} else {
-	    # var is clean no need to re-assign
-            set result "/* shadow var $nodeVarOrOther marked as clean */\n"
-	}
+        lassign [::tsp::getCleanShadowVar compUnit $nodeVarOrOther] argVar result
     } elseif {$nodeType eq "scalar" && [::tsp::getVarType compUnit $nodeVarOrOther] eq "var"} {
         set argVar [::tsp::var_prefix $nodeVarOrOther]$nodeVarOrOther
     } else {
@@ -791,4 +781,29 @@ proc ::tsp::mkComment {text {len 40} {rawOnly 0}} {
     }
 }
 
+
+#########################################################
+# get a clean shadow var for a native variable
+# generates code to set the shadow var if native variable is currently dirty
+# returns list of {var code}
+
+proc ::tsp::getCleanShadowVar {compUnitDict nativeVar} {
+    upvar $compUnitDict compUnit
+    set shadowVar [::tsp::get_tmpvar compUnit var $nativeVar]
+    if {[lsearch [::tsp::getCleanList compUnit] $nativeVar] == -1} {
+        # var is not clean or not present, generate an assignment
+        set argVarComponents [list [list text $shadowVar $shadowVar]]
+        set sourceComponents [list [list scalar $nativeVar]]
+        set setTree ""
+        set result "\n/* set shadow variable $nativeVar */"
+        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $sourceComponents] 2]
+        # mark the native variable clean
+        ::tsp::setDirty compUnit $nativeVar 0
+    } else {
+        # var is clean no need to re-assign
+        set result "/* shadow variable $nativeVar marked as clean */\n"
+    }
+
+    return [list $shadowVar $result]
+}
 

@@ -27,6 +27,16 @@ proc ::tsp::setVarType {compUnitDict var type} {
     return ""
 }
 
+
+#########################################################
+# return true if var is a native type
+# 
+proc ::tsp::varIsNativeType {compUnitDict name} {
+    upvar $compUnitDict compUnit
+    return [expr {[lsearch $::tsp::NATIVE_TYPES [::tsp::getVarType compUnit $name]] >= 0}]
+}
+
+
 #########################################################
 # set (or clear) a native type variable as dirty, but not for tmpvars
 # 
@@ -519,7 +529,7 @@ proc ::tsp::unlock_tmpvar {compUnitDict varName} {
 # test if name is a temp var or other internal var
 
 proc ::tsp::is_tmpvar {name} {
-    return [regexp {^_tmpVar_} $name]
+    return [regexp {^_tmpVar_|^_constant_} $name]
 }
 
 
