@@ -213,10 +213,6 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
         set argType [lindex $procArgTypes $idx]
         set parsedWord [::tsp::parse_word compUnit $node]
 
-        #FIXME: do we need to copy C DString into a new string arg?
-        #       if so, make a check of arg type "string" here, and allow to
-        #       fall into coercion code
-
         if {[lindex $parsedWord 0 0] eq "scalar"} {
             # arg is a variable, check the type
             set var [lindex $parsedWord 0 1]
@@ -236,20 +232,31 @@ proc ::tsp::gen_native_type_list {compUnitDict argTree procArgTypes} {
         # else arg is different type, or is var, or is array, or is a constant, so
         # we assign into a tmp var 
 
-        #FIXME: if argType eq var, then use shadow/dirty
-
-        set argVar [::tsp::get_tmpvar compUnit $argType]
-        set argVarComponents [list [list text $argVar $argVar]]
         set nodeComponents [::tsp::parse_word compUnit $node]
         set nodeType [lindex [lindex $nodeComponents 0] 0]
+        set nodeVarOrOther [lindex [lindex $nodeComponents 0] 1]
+        set nodeText [lindex [lindex $nodeComponents 0] 2]
         if {$nodeType eq "invalid"} {
             ::tsp::addError compUnit "lappend argument parsed as \"$nodeType\""
             return [list void "" ""]
         }
-        set setTree ""
-        ::tsp::lock_tmpvar compUnit $argVar
-        append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
-        ::tsp::unlock_tmpvar compUnit $argVar
+
+        # use shadown var if arg type is var and node is scalar native var
+	if {$argType eq "var" && $nodeType eq "scalar" && [::tsp::varIsNativeType compUnit $nodeVarOrOther]} {
+            lassign [::tsp::getCleanShadowVar compUnit $nodeVarOrOther] argVar shadowCode 
+            append result $shadowCode
+        } elseif {$argType eq "var" && $nodeType eq "text"} {
+            set argVar [::tsp::get_constvar [::tsp::getConstant compUnit $nodeText]]
+        } else {
+
+            set argVar [::tsp::get_tmpvar compUnit $argType]
+            set argVarComponents [list [list text $argVar $argVar]]
+
+            set setTree ""
+            ::tsp::lock_tmpvar compUnit $argVar
+            append result [lindex [::tsp::produce_set compUnit $setTree $argVarComponents $nodeComponents] 2]
+            ::tsp::unlock_tmpvar compUnit $argVar
+        }
 
         lappend argVarList $argVar
         incr idx
