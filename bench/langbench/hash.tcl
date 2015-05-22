@@ -1,17 +1,16 @@
 tsp::proc hash {} {
 	#tsp::procdef void
 	#tsp::array d
-	#tsp::var argv file f buf one
+	#tsp::var argv file f buf
 	#tsp::int len
 	global	argv
 	
-        set one 1
 	array set d {}
 	foreach file $argv {
 		set f [open $file rb]
 		set len [gets $f buf]
 		while {$len >= 0} {
-			set d($buf) $one
+			set d($buf) 1
 			set len [gets $f buf]
 		}
 		close $f
