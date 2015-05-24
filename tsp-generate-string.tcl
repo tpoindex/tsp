@@ -33,13 +33,6 @@ proc ::tsp::gen_command_append {compUnitDict tree} {
         return [list void "" ""]
     }
  
-    # if type is a var, then just let the builtin command handle it
-    if {$type eq "var"} {
-        # ensure target var is added to the spill/load list
-        ::tsp::append_volatile_list compUnit $varname
-        return [::tsp::gen_direct_tcl compUnit $tree]
-    }
-
     set pre [::tsp::var_prefix $varname]
     set code "\n/***** ::tsp::gen_command_append */\n"
 
