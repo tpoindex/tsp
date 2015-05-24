@@ -1077,8 +1077,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
                 set size [lindex [dict get $compUnit argsPerLevel $i] end]
                 append argObjvArrays "Tcl_Obj*  argObjvArray_$i\[$size\];\n"
                 append argObjvArrays "int       argObjc_$i = 0;\n"
-                append argObjvArrays "Tcl_Obj** foreachObjv_$i = NULL;\n"
             }
+            append argObjvArrays "Tcl_Obj** foreachObjv_$i = NULL;\n"
         }
     }
 
