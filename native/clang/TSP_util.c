@@ -271,34 +271,31 @@ TSP_Util_string_compare_const(Tcl_DString* s1, char* string2, int length2) {
 
 
 /*********************************************************************************************/
-/* create a constant string obj, whose ref count is two in order to prevent altercation      */
+/* create a constant string obj                                                              */
 Tcl_Obj*
 TSP_Util_const_string(char* str) {
     Tcl_Obj* constObj;
     constObj = Tcl_NewStringObj(str, -1);
     Tcl_IncrRefCount(constObj);
-    Tcl_IncrRefCount(constObj);
     return constObj;
 }
 
 /*********************************************************************************************/
-/* create a constant wide int obj, whose ref count is two in order to prevent altercation      */
+/* create a constant wide int obj                                                            */
 Tcl_Obj*
 TSP_Util_const_int(Tcl_WideInt i) {
     Tcl_Obj* constObj;
     constObj = Tcl_NewWideIntObj(i);
     Tcl_IncrRefCount(constObj);
-    Tcl_IncrRefCount(constObj);
     return constObj;
 }
 
 /*********************************************************************************************/
-/* create a constant double obj, whose ref count is two in order to prevent altercation      */
+/* create a constant double obj                                                              */
 Tcl_Obj*
 TSP_Util_const_double(double d) {
     Tcl_Obj* constObj;
     constObj = Tcl_NewDoubleObj(d);
-    Tcl_IncrRefCount(constObj);
     Tcl_IncrRefCount(constObj);
     return constObj;
 }

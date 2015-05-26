@@ -1085,8 +1085,7 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
         } else {
             append procConstDecls "    [::tsp::lang_new_var_string $constvar [::tsp::lang_quote_string $const]]"
         }
-        # make the constant protected from altercation, preserve twice
-        append procConstDecls "    [::tsp::lang_preserve $constvar]"
+        # preserve the constant
         append procConstDecls "    [::tsp::lang_preserve $constvar]"
         append procConstDecls "\}\n"
     }
