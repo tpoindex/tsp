@@ -1,15 +1,14 @@
 tsp::proc wordsplit {str} {
 	#tsp::procdef var -args var
 	#tsp::var list char
-	#tsp::string word splitstr
+	#tsp::string word
 	#tsp::boolean is_space
-	#tsp::int len i
+	#tsp::int strlen len i
 	set list {}
 	set word {}
-	set splitstr [split $str {}]
-        set len [string length $splitstr]
-	for {set i 0} {$i < $len} {incr i} {
-                set char [string index $splitstr $i]
+        set strlen [string length $str]
+	for {set i 0} {$i < $strlen} {incr i} {
+                set char [string index $str $i]
 		set is_space [string is space $char]
 		if {$is_space} {
 			set len [string length $word]
