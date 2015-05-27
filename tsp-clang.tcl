@@ -1080,6 +1080,8 @@ proc ::tsp::lang_create_compilable {compUnitDict code} {
             }
             append argObjvArrays "Tcl_Obj** foreachObjv_$i = NULL;\n"
         }
+    } else {
+        append argObjvArrays "Tcl_Obj** foreachObjv_0 = NULL;\n"
     }
 
     append cleanup_defs "#define CLEANUP " \ \n
@@ -1724,8 +1726,8 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
     append code "Tcl_DStringSetLength($returnVar, 0);\n"
     if {$isFromEnd} {
         append code "if ((len - 1 - (int) $idx >= 0) && (len - 1 - (int) $idx < len)) \{\n"
-        append code "    str1 = Tcl_UtfAtIndex(Tcl_DStringValue($argVar), len - 1 - (int) $idx);\n"
-        append code "    str2 = Tcl_UtfNext(str1);\n"
+        append code "    str1 = (char*) Tcl_UtfAtIndex(Tcl_DStringValue($argVar), len - 1 - (int) $idx);\n"
+        append code "    str2 = (char*) Tcl_UtfNext(str1);\n"
         append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"
     } else {
         append code "if (($idx >= 0) && ((int) $idx < len)) \{\n"
@@ -1772,7 +1774,7 @@ proc ::tsp::lang_string_range {returnVar firstIdx firstIsFromEnd lastIdx lastIsF
         append code "idx2 = ((int) $lastIdx >= len) ? len - 1 : (int) $lastIdx;\n"
     }
     append code "if ((idx1 < len) && (idx1 <= idx2) && (len > 0)) \{\n"
-    append code "    str1 = Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) idx1);\n"
+    append code "    str1 = (char*) Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) idx1);\n"
     append code "    str2 = str1;\n"
     append code "    while (idx1 <= idx2) \{\n"
     append code "        str2 = Tcl_UtfNext(str2);\n"
