@@ -42,6 +42,10 @@ The benchmark files are modified from the original langbench files by:
      less that 1/100's of a second.  Again, note that these timings don't
      include interpreter load, parse, and startup times.
 
+  9. The 'wc' benchmark is run with the full DATA file.  In the original
+     langbench, a SMALL file (50,000 lines) is used for the wc 
+     benchmark. 
+ 
 Create a "DATA" file using instructions from original README, set
 TCL_SRC_DIR to your tcl8.6.x source directory:
 

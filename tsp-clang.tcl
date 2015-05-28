@@ -1731,8 +1731,8 @@ proc ::tsp::lang_string_index {returnVar idx isFromEnd argVar} {
         append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"
     } else {
         append code "if (($idx >= 0) && ((int) $idx < len)) \{\n"
-        append code "    str1 = Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) $idx);\n"
-        append code "    str2 = Tcl_UtfNext(str1);\n"
+        append code "    str1 = (char*) Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) $idx);\n"
+        append code "    str2 = (char*) Tcl_UtfNext(str1);\n"
         append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"
     }
     append code "\} else \{\n"
@@ -1777,7 +1777,7 @@ proc ::tsp::lang_string_range {returnVar firstIdx firstIsFromEnd lastIdx lastIsF
     append code "    str1 = (char*) Tcl_UtfAtIndex(Tcl_DStringValue($argVar), (int) idx1);\n"
     append code "    str2 = str1;\n"
     append code "    while (idx1 <= idx2) \{\n"
-    append code "        str2 = Tcl_UtfNext(str2);\n"
+    append code "        str2 = (char*) Tcl_UtfNext(str2);\n"
     append code "        idx1++;\n"
     append code "    \}\n"
     append code "    Tcl_DStringAppend($returnVar, str1, str2 - str1);\n"

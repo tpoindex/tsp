@@ -28,16 +28,18 @@ set timing_iters 1
 set pgm [lindex $argv 0]
 set timing_argv [lrange $argv 1 end]
 set warmup_argv README.tsp
+set argv $warmup_argv
 
 source $pgm.tcl
+catch {init_$pgm}
 
 # warmup
-set argv $warmup_argv
 time run_$pgm $warmup_iters
 
 
 # time it
 set argv $timing_argv
+catch {init_$pgm}
 set avg_micros [time run_$pgm $timing_iters]
 puts -nonewline stderr [format %-8.2f [expr [lindex $avg_micros 0] / 1000000.0]]
 
