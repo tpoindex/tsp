@@ -1,5 +1,0 @@
-
-Welcome to the [term {C Runtime In Tcl}], [term CriTcl] for short, a
-system to build C extension packages for Tcl on the fly, from C code
-embedded within Tcl scripts, for all who wish to make their code go
-faster.
