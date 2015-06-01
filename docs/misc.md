@@ -22,24 +22,28 @@ Otherwise, TSP will try to continue parsing after a limitation has
 been parsed, in order to uncover other TSP limitations.
 
 
-## Shadow variables & dirty checking
+## Shadow variables, dirty checking, var constant
 
 TSP performs some minor optimizations, particlarly allocating *shadow* var
 variables (i.e., Tcl_Obj/TclObject) to use when calling builtin Tcl commands, or any
 other command inoked via the Tcl interp.  Usage is tracked (*dirty checking*), 
 and if the variable has not been altered from one Tcl invocation to another, 
 the shadow variable is assumed to be *clean*, and will not be reloaded with 
-the native value.
+the native value.  
+
+TSP also makes constants for var variables used in calls to the Tcl interpreter.
+Any literal string, integer, double, or boolean used in a Tcl call is initialized
+once and used thereafter.
 
 ## Code generation
 
 Code generation is fairly simplistic, a nearly direct translation of
-Tcl code into C or Java.  Other than shadow variables and dirty checking
-as noted above, no other optimization is done.  This leads to some native
+Tcl code into C or Java.  Other than shadow variablesk, dirty checking,
+and constant var variables, little other optimization is done.  This can emit native
 code that seems unnecessary, such as assigning a result to a temporary 
-variable, and then another assignment to the target.  No need to worry,
-the Java and C compilers are way better at code optimization than TSP, and
-can eliminate such transformations.
+variable, and then another assignment from the temporary variable to the target.  
+No need to worry, the Java and C compilers are way better at code optimization 
+than TSP, and can eliminate such transformations.
 
 Common modules generate code for both Java and C.  Low level modules
 perform the code generation for each native language.  Both C and Java
@@ -51,9 +55,9 @@ arguments.
 
 Invoking Tcl builtin commands is done by getting a reference to the 
 Tcl C or Java function/object implementing the command.  In the case of
-Java, this is done at compile time.  For C, this is done dynamically,
-since not all commands have a direct C function to implement a Tcl
-command, and instead have an *ensemble* command.
+Java, this is done at compile time.  For C, this is done once at runtime,
+as C/Tcl ensemble commands require the ClientData information in
+addition to the actual C function address.
 
 Likewise, invoking a previously compiled proc with the Java backend
 makes used of Java's dynamic linking resolution.  For C, the 
@@ -88,7 +92,7 @@ Differences:
   * TSP uses native types; TJC uses Tcl Objects.
   * TSP compiles a subset of Tcl, and restricts Tcl semantics;  TJC implements Tcl semantics.
   * TSP avoids the Tcl interpreter as much as possible; TJC uses the Tcl interpreter extensively
-  * TSP compiles on the fly only; TJC can also be used in an ahead-of-time configuration.
+  * TSP currently compiles on the fly only; TJC can also be used in an ahead-of-time configuration.
   * TSP uses type annotations for variable typing; TJC uses TclObjects for local variables.
 
 ### Koski Compiler (Koski, 1996)
@@ -138,4 +142,4 @@ are under development.
   * kt2c (Cuthbert, 2000)
   * TclVM (Vitale, 2004)
   * TyCL (Buss, 2012)
-  * TclBDD/llvn (Kenny/Fellows, 2015)
+  * TclBDD/llvm (Kenny/Fellows, 2015)

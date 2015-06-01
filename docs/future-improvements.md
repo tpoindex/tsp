@@ -2,7 +2,7 @@
 
 In no particular order:
 
-## Additonal compiled builtin commands - especially `string`, `scan`, others
+## Additonal compiled builtin commands - especially `string`, `split`, `dict`, `scan`, others
 
 Compile more of the `string` subcommands.  Compile `scan` for simple cases
 of user coded conversions from string/var to int or double.

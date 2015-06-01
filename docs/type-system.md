@@ -13,8 +13,13 @@ TSP compiled types are:
     * tsp::double - double in both Java and C
     * tsp::string - Java java.lang.String or C Tcl_DString
     * tsp::var - Java TclObject or C Tcl_Obj
-    * tsp::array - uses interpreter variables
-    * tsp::void - valid for proc definitions only
+    * tsp::array - uses interpreter array variables, not valid 
+      for proc definitions or return types.
+    * void - valid for procdef return type only
+
+For tsp::procdef argument types, only the type is specified ("boolean", "int", etc.)
+Note that "array" is not a valid procdef argument or return type; "void" is valid only
+for proc return type.
 
 Array variables are not defined in compiled code.  Instead, they are defined and
 accessed in the Tcl interpreter.  Array elements of course are TclObjects, and can
@@ -38,26 +43,20 @@ not be converted.
 ## Conversions:
   
 
-|     |  from:  | integer       | double        | boolean      | string        | var
-|-----|---------|---------------|---------------|--------------|---------------|------------
-|  to:| integer | y             | int           | true->1      | is int?       | is int?
-|     |         |               |               | false->0     |               |
-|-----|---------|---------------|---------------|--------------|---------------|------------
-|     | double  | double()      | y             | true->1.0    | is double?    | is double?
-|     |         |               |               | false->0.0   |               |
-|-----|---------|---------------|---------------|--------------|---------------|------------
-|     | boolean | 0->false      | 0->false      | y            | is boolean?   | is boolean?
-|     |         | else->true    | else->true    |              |               |
-|-----|---------|---------------|---------------|--------------|---------------|------------
-|     | string  | y             | y             | y            |  y            |  y
-|-----|---------|---------------|---------------|--------------|---------------|------------
-|     | var     | y             | y             | y            |  y            |  y
+| to\from | integer             | double             | boolean           | string      | var
+|---------|---------------------|--------------------|-------------------|-------------|------------
+| integer | y                   | int()              | true->1, false->0 | is int?     | is int?
+| double  | double()            | y                  | true->1, false->0 | is double?  | is double?
+| boolean | 0->false, !0->true  | 0->false, !0->true | y                 | is boolean? | is boolean?
+| string  | y                   | y                  | y                 |  y          |  y
+| var     | y                   | y                  | y                 |  y          |  y
 
 
  > The notation "is type?" uses type appropriate Tcl functions to perform conversions.
- > If a conversion fails, a Tcl error is raised as the time of conversion.
+   If a conversion fails, a Tcl error is raised as the time of conversion.
+
  > In the case of string or var to boolean, any of the Tcl recognized values for true/false
- > can be used, true: any int or double not zero, "true", "yes"  false: 0, 0.0, "false", "no"
+   can be used, true: any int or double not zero, "true", "yes"  false: 0, 0.0, "false", "no"
 
 
 

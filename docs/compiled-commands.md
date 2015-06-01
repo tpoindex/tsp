@@ -49,7 +49,7 @@ for variable name usage to ensure that the variables are spilled and loaded.
     * expr
     * incr
   
- > ^1 - indicates limitations on arguments/style
+ > ^1 - indicates limitations on arguments and/or options
 
  > ^2 - indicates lightly compiled, automatic volatile variable handling
 
