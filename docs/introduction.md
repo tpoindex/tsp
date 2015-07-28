@@ -2,7 +2,7 @@
 
 ##  What is TSP?
 
-Tcl Static Prime (TSP) is a compiler for the Tcl langauge that produces C or Java code, which 
+Tcl Static Prime (TSP) is a compiler for the Tcl language that produces C or Java code, which 
 is then compiled on-the-fly during execution of a Tcl program.  TSP compiles selected 
 Tcl *procs*, not an entire program.   TSP can speed up procs by several orders of magnitude,
 at a slight cost in Tcl language features.  Procs that are not able to be compiled due to
@@ -42,13 +42,13 @@ most significant limitation is Tcl expression syntax found in the expr, if, and 
 TSP requires that nested commands and array references be moved out of the expression, and all
 variables used in the expression must be defined as native types (boolean, int, or double).
 
-TSP also acheives higher performance by avoiding invocation of the Tcl interpreter.  This has a 
-few implications that may subtlebly alter customary Tcl semantics.  First, since typed variables are not
+TSP also achieves higher performance by avoiding invocation of the Tcl interpreter.  This has a 
+few implications that may subtly alter customary Tcl semantics.  First, since typed variables are not
 stored in the interpreter, variable read and writes will not normally trigger a 'trace' that may
 have been defined for a variable (array types are an exception, since they are stored in the
-interpreter.)  Second, Tcl bultin commands (set, puts, list, etc.) are either directly compiled 
+interpreter.)  Second, Tcl builtin commands (set, puts, list, etc.) are either directly compiled 
 into native code or are invoked directly.  Redefinition of builtin commands (via 'rename') is
-not recoginized by TSP compiled procs; the original builtin command is always invoked.  Third, TSP
+not recognized by TSP compiled procs; the original builtin command is always invoked.  Third, TSP
 procs may only be defined in the global namespace ('::').  
    
 ## Use of profiler to target procs

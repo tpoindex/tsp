@@ -24,9 +24,9 @@ been parsed, in order to uncover other TSP limitations.
 
 ## Shadow variables, dirty checking, var constant
 
-TSP performs some minor optimizations, particlarly allocating *shadow* var
+TSP performs some minor optimizations, particularly allocating *shadow* var
 variables (i.e., Tcl_Obj/TclObject) to use when calling builtin Tcl commands, or any
-other command inoked via the Tcl interp.  Usage is tracked (*dirty checking*), 
+other command invoked via the Tcl interp.  Usage is tracked (*dirty checking*), 
 and if the variable has not been altered from one Tcl invocation to another, 
 the shadow variable is assumed to be *clean*, and will not be reloaded with 
 the native value.  
@@ -38,7 +38,7 @@ once and used thereafter.
 ## Code generation
 
 Code generation is fairly simplistic, a nearly direct translation of
-Tcl code into C or Java.  Other than shadow variablesk, dirty checking,
+Tcl code into C or Java.  Other than shadow variables, dirty checking,
 and constant var variables, little other optimization is done.  This can emit native
 code that seems unnecessary, such as assigning a result to a temporary 
 variable, and then another assignment from the temporary variable to the target.  
@@ -62,7 +62,7 @@ addition to the actual C function address.
 Likewise, invoking a previously compiled proc with the Java backend
 makes used of Java's dynamic linking resolution.  For C, the 
 previously compiled function is found at runtime by querying the
-intepreter to find the proc's Tcl interface function.  The Tcl 
+interpreter to find the proc's Tcl interface function.  The Tcl 
 interface function is invoked with a ClientData pointer; the
 Tcl interface function recognizes this pattern and assigns the
 address of the direct function into the caller's ClientData.
@@ -83,7 +83,7 @@ version may compile a whole sourced file at a time.)
 
 Similarities:
 
-  * Both are primarly written in Tcl
+  * Both are primarily written in Tcl
   * Both use the `parser` extension for Tcl parsing
   
 Differences:

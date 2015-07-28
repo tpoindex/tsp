@@ -17,14 +17,14 @@ This happens automatically for select Tcl commands.  Other programmer defined
 procs require that the invoking code arrange for variables to be spilled and
 reloaded.
 
-## Volatile to spill/load varivles to interp
+## Volatile to spill/load variables to interp
 
 TSP supports an annotation to mark variables as "volatile" to spill variables to
 the Tcl interpreter for a single command, and to reload those variables back into
 native types after a command finishes.   
 
 Conversion exceptions can occur when reloading variables back into native types.
-For instance, if a command is ivoked that "upvar"s a variable and changes its
+For instance, if a command is invoked that "upvar"s a variable and changes its
 type into a value that cannot be converted to the native type of the variable, a 
 runtime conversion will occur.
 
@@ -47,7 +47,7 @@ kept as native types.
 ## Builtin commands call directly when possible
 
 TSP will also bypass the Tcl interpreter when invoking builtin Tcl commands.  Code is
-emitted to directly call builting Tcl commands.   For instances where a builtin command
+emitted to directly call builtin Tcl commands.   For instances where a builtin command
 should be called by invoking the interpreter, use the global namespaced version of the
 command, e.g. instead of `puts` use `::puts`.  
 

@@ -15,7 +15,7 @@ For limitations for compiling specific commands, see compiled-commands.md.
 
 The **expr** command and logical expressions used in **for** and **while** only 
 operate on native types (boolean, int, double, string.)
-If a *var* or *array* type in encounterd during expression parsing, the compilation will
+If a *var* or *array* type in encountered during expression parsing, the compilation will
 fail.  
 
 String variables should only be used in logical comparison **eq** and **ne**, or with logical
@@ -41,7 +41,7 @@ Expression must be enclosed by braces, quoted or bare expressions cannot be comp
     }
 ```
 
-## Expansion syntax not suported {*}
+## Expansion syntax not supported {*}
 
 The Tcl 8.5+ list expansion syntax **{*}** is not supported, since this introduces
 a level of additional runtime interpretation.

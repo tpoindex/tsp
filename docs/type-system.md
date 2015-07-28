@@ -101,7 +101,7 @@ command.  Spilling variables causes a interpreter variable to be created with th
 as the native variable and the value copied from the native variable into the interpreter 
 variable.  Examples of Tcl builtin commands that use variable names are
 lset, regexp, regsub, scan, vwait, and other.   After the Tcl command completes,
-varibles are reloaded into native variables.  
+variables are reloaded into native variables.  
 
 For user defined procs where a variable name is expected as an argument, the 
 tsp::volatile annotation can be used to explicitly spill a variable into the

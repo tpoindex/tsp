@@ -11,7 +11,7 @@ into the `::tsp` namespace, and also loads supporting packages `parser`, `hyde` 
 ### `tsp::proc` *name args body*
 
 `tsp::proc` defines a TSP compiled proc.  The name of the proc must be a valid
-TSP indentifer, and the argument list must not contain default aguments, or the
+TSP identifier, and the argument list must not contain default arguments, or the
 "args" argument.   At a minimum, a TSP proc requires that the `#tsp::procdef` 
 annotation be specified, preferably at the beginning of the body.
 
@@ -39,7 +39,7 @@ proc can also be specified with a single underscore **('_')**.
 ### `tsp::lastLog` 
 
 `tsp::lastLog` returns logging information for the most recently compiled proc.  It is
-a convienence for `tsp::log _`
+a convenience for `tsp::log _`
 
 
 ### `tsp::printLog` *?outfd? ?proc?*

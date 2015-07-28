@@ -45,7 +45,7 @@ for variable name usage to ensure that the variables are spilled and loaded.
     * string length
     * string range (^1)
 
-  * Arithmatic commands
+  * Arithmetic commands
     * expr
     * incr
   

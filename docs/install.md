@@ -17,11 +17,11 @@ Tcl 8.6.3+ is required.
 
 Required Extensions: 
 
-  - *parser*, verison 1.4.1  (included, see ../lib).  You must manually build and 
+  - *parser*, version 1.4.1  (included, see ../lib).  You must manually build and 
     install the parser extension.  Since parser only exists as a module of another
     project, it is included with TSP for convenience.
 
-  - *critcl*, verison 3.1.15  https://github.com/andreas-kupries/critcl/releases
+  - *critcl*, version 3.1.15  https://github.com/andreas-kupries/critcl/releases
 
 
 ## Installing TSP

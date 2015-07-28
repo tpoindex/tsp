@@ -1,6 +1,6 @@
 # Tcl Static Prime
 
-Tcl Static Prime (TSP) is an experimental compiler for the Tcl langauge 
+Tcl Static Prime (TSP) is an experimental compiler for the Tcl language 
 that produces C or Java code, which is then compiled on-the-fly during 
 execution of a Tcl program.   TSP is a currently a work-in-progress;
 it's performance varies greatly depending the Tcl commands that are
@@ -11,7 +11,7 @@ typed by comment-based annotations.  Native types supported are boolean,
 int (64-bit integers), double, string, and var (TclObjects for lists, dicts,
 etc.)
 
-TSP language restrictions include restricting all arithmatic expressions
+TSP language restrictions include restricting all arithmetic expressions
 (expr, if, while, etc) to using boolean, int, double, and string data types.
 Additionally, expressions may not include array references or nested commands.
 TSP also assumes that builtin Tcl commands are not re-defined, as builtin 
