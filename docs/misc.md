@@ -142,4 +142,4 @@ are under development.
   * kt2c (Cuthbert, 2000)
   * TclVM (Vitale, 2004)
   * TyCL (Buss, 2012)
-  * TclBDD/llvm (Kenny/Fellows, 2015)
+  * TclBDD/Quadcode/llvm (Kenny/Fellows, 2015)

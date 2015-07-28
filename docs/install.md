@@ -3,12 +3,13 @@
 
 ## Requirements
 
+TSP can be used with C/Tcl and/or JTcl.
+
 ### JTcl
 
 JTcl 2.8.0+ is required.  http://github.com/jtcl-project/jtcl/releases
 
 JTcl includes the *parser* and *hyde* extensions, so no other extensions are required.
-TSP will likely be included in future versions of JTcl.
 
 ## C/Tcl
 
@@ -25,5 +26,21 @@ Required Extensions:
 
 ## Installing TSP
 
-Simply unpack TSP into a directory normally included in your Tcl auto_path.
+Simply unpack TSP into a directory normally included in your Tcl auto_path.  If you 
+wish to try out TSP first, unpack in any directory, and add that directory to your
+Tcl auto_path before requiring tsp:
+
+```
+  lappend auto_path /dir/where/you/unpacked/tsp
+  package require tsp
+```
+
+Additionally, for JTcl usage, you must compile the runtime support classes.
+
+```
+   cd native
+  ./compile.sh
+```
+
+When using C/Tcl, runtime C files are currently compiled on-the-fly.
 
