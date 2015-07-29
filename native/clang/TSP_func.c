@@ -10,6 +10,9 @@
 #include <limits.h>
 #endif
 
+#ifndef _STDLIB_H_
+#include <stdlib.h>
+#endif
 
 #define TRUE 1
 #define FALSE 0
