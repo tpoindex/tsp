@@ -237,16 +237,6 @@ TSP_Util_lang_assign_array_var(Tcl_Interp* interp, Tcl_Obj* targetArrayVar, Tcl_
 
 
 /*********************************************************************************************/
-/* compare two Tcl_DStrings */
-int
-TSP_Util_string_compare(Tcl_DString* s1, Tcl_DString* s2) {
-    char* string2;
-    int length2;
-
-    return TSP_Util_string_compare_const(s1, Tcl_DStringValue(s2), Tcl_DStringLength(s2));
-}
-
-/*********************************************************************************************/
 /* compare a Tcl_DString to a const string. use negative length to find first null in string2 */
 int
 TSP_Util_string_compare_const(Tcl_DString* s1, char* string2, int length2) {
@@ -267,6 +257,16 @@ TSP_Util_string_compare_const(Tcl_DString* s1, char* string2, int length2) {
         match = length1 - length2;
     }
     return match;
+}
+
+/*********************************************************************************************/
+/* compare two Tcl_DStrings */
+int
+TSP_Util_string_compare(Tcl_DString* s1, Tcl_DString* s2) {
+    char* string2;
+    int length2;
+
+    return TSP_Util_string_compare_const(s1, Tcl_DStringValue(s2), Tcl_DStringLength(s2));
 }
 
 

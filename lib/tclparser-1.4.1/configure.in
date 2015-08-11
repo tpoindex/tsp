@@ -5,7 +5,7 @@ AC_REVISION($Id: configure.in,v 1.15 2007/07/08 19:53:05 kennykb Exp $)
 
 AC_INIT([tclparser], [1.4.1])
 
-TEA_INIT([3.2])
+TEA_INIT([3.9])
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
@@ -66,9 +66,11 @@ TEA_ADD_TCL_SOURCES([])
 
 if test "${TEA_PLATFORM}" = "windows" ; then
     AC_DEFINE(BUILD_tclparser)
-    CLEANFILES="pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
+    CLEANFILES="*.lib *.dll *.exp *.ilk *.pdb vc*.pch"
 else
-    CLEANFILES="pkgIndex.tcl"
+	# Ensure no empty else clauses
+	:
+    #CLEANFILES=""
 fi
 AC_SUBST(CLEANFILES)
 

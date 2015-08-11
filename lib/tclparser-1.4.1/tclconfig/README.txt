@@ -23,4 +23,4 @@ install-sh	Program used for copying binaries and script files
 		to their install locations.
 
 tcl.m4		Collection of Tcl autoconf macros.  Included by a package's
-		aclocal.m4 to define SC_* macros.
+		aclocal.m4 to define TEA_* macros.
